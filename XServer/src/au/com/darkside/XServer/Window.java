@@ -36,6 +36,7 @@ public class Window extends Resource {
 	private final Vector<Window>	_children;
 	private final Hashtable<Integer, Property>	_properties;
 	private final Set<PassiveButtonGrab>	_passiveButtonGrabs;
+	private final Set<PassiveKeyGrab>		_passiveKeyGrabs;
 	private boolean					_isMapped = false;
 	private boolean					_exposed = false;
 
@@ -137,6 +138,7 @@ public class Window extends Resource {
 		_children = new Vector<Window> ();
 		_properties = new Hashtable<Integer, Property> ();
 		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
+		_passiveKeyGrabs = new HashSet<PassiveKeyGrab>();
 	}
 
 	/**
@@ -220,6 +222,23 @@ public class Window extends Resource {
 	public int
 	getDoNotPropagateMask () {
 		return _attributes[AttrDoNotPropagateMask];
+	}
+
+	/**
+	 * Is the specified window an ancestor?
+	 *
+	 * @param w	The window that may be an ancestor.
+	 * @return	True if the window is an ancestor.
+	 */
+	public boolean
+	isAncestor (
+		Window		w
+	) {
+		for (Window pw = _parent; pw != null; pw = pw._parent)
+			if (pw == w)
+				return true;
+
+		return false;
 	}
 
 	/**
@@ -339,6 +358,68 @@ public class Window extends Resource {
 			PassiveButtonGrab	pbg = it.next ();
 
 			if (pbg.matchesGrab (button, modifiers))
+				it.remove ();
+		}
+	}
+
+	/**
+	 * Find a passive key grab on this window or its ancestors.
+	 *
+	 * @param key	The key that was pressed.
+	 * @param modifiers	The modifiers currently pressed.
+	 * @param highestPkg	Highest key grab found so far.
+	 * @return	The passive key grab from the highest ancestor.
+	 */
+	public PassiveKeyGrab
+	findPassiveKeyGrab (
+		int				key,
+		int				modifiers,
+		PassiveKeyGrab	highestPkg
+	) {
+		for (PassiveKeyGrab pkg: _passiveKeyGrabs) {
+			if (pkg.matchesEvent (key, modifiers)) {
+				highestPkg = pkg;
+				break;
+			}
+		}
+
+		if (_parent == null)
+			return highestPkg;
+		else
+			return _parent.findPassiveKeyGrab (key, modifiers, highestPkg);
+	}
+
+	/**
+	 * Add a passive key grab.
+	 *
+	 * @param pkg	The passive key grab.
+	 */
+	public void
+	addPassiveKeyGrab (
+		PassiveKeyGrab	pkg
+	) {
+		removePassiveKeyGrab (pkg.getKey (), pkg.getModifiers ());
+		_passiveKeyGrabs.add (pkg);
+	}
+
+	/**
+	 * Remove all passive key grabs that match the key and modifiers
+	 * combination.
+	 *
+	 * @param key	The key, or 0 for any key.
+	 * @param modifiers	The modifier mask, or 0x8000 for any.
+	 */
+	public void
+	removePassiveKeyGrab (
+		int			key,
+		int			modifiers
+	) {
+		Iterator<PassiveKeyGrab>		it = _passiveKeyGrabs.iterator ();
+
+		while (it.hasNext ()) {
+			PassiveKeyGrab		pkg = it.next ();
+
+			if (pkg.matchesGrab (key, modifiers))
 				it.remove ();
 		}
 	}

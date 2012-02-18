@@ -52,6 +52,7 @@ public class ScreenView extends View {
 	private Cursor		_grabCursor = null;
 	private Window		_grabConfineWindow = null;
 	private int			_grabEventMask = 0;
+	private PassiveKeyGrab	_grabKeyboardPassiveGrab = null;
 
 	/**
 	 * Constructor.
@@ -478,9 +479,30 @@ public class ScreenView extends View {
 		int			keycode,
 		boolean		pressed
 	) {
-		if (_grabKeyboardWindow == null) {
-			Window		w = _rootWindow.windowAtPoint (_motionX, _motionY);
+		Window		w = null;
 
+		if (_grabKeyboardWindow == null)
+			w = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+		if (pressed && _grabKeyboardWindow == null) {
+			Window			fw = w;	// Focus window - MKWAN
+			PassiveKeyGrab	pkg = fw.findPassiveKeyGrab (keycode,
+													_buttons & 0xff, null);
+
+			if (pkg == null && w.isAncestor (fw))
+				pkg = w.findPassiveKeyGrab (keycode, _buttons & 0xff, null);
+
+			if (pkg != null) {
+				_grabKeyboardPassiveGrab = pkg;
+				_grabKeyboardWindow = pkg.getGrabWindow ();
+				_grabKeyboardTime = _xServer.getTimestamp ();
+				_grabKeyboardOwnerEvents = pkg.getOwnerEvents ();
+				_grabPointerSynchronous = pkg.getPointerSynchronous ();
+				_grabKeyboardSynchronous = pkg.getKeyboardSynchronous ();
+			}
+		}
+
+		if (_grabKeyboardWindow == null) {
 			w.keyNotify (pressed, _motionX, _motionY, keycode, null);
 		} else if (!_grabKeyboardSynchronous){
 			_grabKeyboardWindow.grabKeyNotify (pressed, _motionX, _motionY,
@@ -488,6 +510,15 @@ public class ScreenView extends View {
 		}	// Else need to queue keyboard events.
 
 		_xServer.getKeyboard().updateKeymap (keycode, pressed);
+
+		if (!pressed && _grabKeyboardPassiveGrab != null) {
+			int			rk = _grabKeyboardPassiveGrab.getKey ();
+
+			if (rk == 0 || rk == keycode) {
+				_grabKeyboardPassiveGrab = null;
+				_grabKeyboardWindow = null;
+			}
+		}
 	}
 
 	/**
@@ -824,9 +855,14 @@ public class ScreenView extends View {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					io.readInt ();	// Time.
+					int			time = io.readInt ();	// Time.
+					int			now = _xServer.getTimestamp ();
 
-					_grabKeyboardWindow = null;
+					if (time == 0)
+						time = now;
+
+					if (time >= _grabKeyboardTime && time <= now)
+						_grabKeyboardWindow = null;
 				}
 				break;
 			case RequestCode.GrabKey:
@@ -857,7 +893,7 @@ public class ScreenView extends View {
 					} else {
 						Window		w = (Window) r;
 
-						// Not implemented.
+						w.removePassiveKeyGrab (arg, modifiers);
 					}
 				}
 				break;
@@ -1205,6 +1241,7 @@ public class ScreenView extends View {
 
 		Window			w = (Window) r;
 
-			// Not implemented.
+		w.addPassiveKeyGrab (new PassiveKeyGrab (w, keycode, modifiers,
+												ownerEvents, psync, ksync));
 	}
 }
