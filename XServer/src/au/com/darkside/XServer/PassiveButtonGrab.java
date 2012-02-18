@@ -58,7 +58,6 @@ public class PassiveButtonGrab {
 	 * Does the event trigger the passive grab?
 	 *
 	 * @param button	Currently-pressed buttons and modifiers.
-	 *
 	 * @return	True if the event matches.
 	 */
 	public boolean
@@ -77,8 +76,8 @@ public class PassiveButtonGrab {
 	/**
 	 * Does this match the parameters of the grab?
 	 *
-	 * @param button
-	 * @param modifiers
+	 * @param button	The button being grabbed, or 0 for any.
+	 * @param modifiers	The modifier mask, or 0x8000 for any.
 	 * @return	True if it matches the parameters.
 	 */
 	public boolean
