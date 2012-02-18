@@ -44,6 +44,7 @@ public class ScreenView extends View {
 	private int			_grabPointerTime = 0;
 	private boolean		_grabPointerOwnerEvents = false;
 	private boolean		_grabPointerSynchronous = false;
+	private boolean		_grabPointerPassive = false;
 	private Window		_grabKeyboardWindow = null;
 	private int			_grabKeyboardTime = 0;
 	private boolean		_grabKeyboardOwnerEvents = false;
@@ -393,19 +394,40 @@ public class ScreenView extends View {
 
 		if (_grabPointerWindow == null) {
 			Window		w = _rootWindow.windowAtPoint (_motionX, _motionY);
+			PassiveButtonGrab	pbg = null;
 
-			w.buttonNotify (pressed, _motionX, _motionY, button, null);
-			if (pressed) {
-				int			em = w.getEventMask ();
+			if (pressed)
+				pbg = w.findPassiveButtonGrab (_buttons, null);
 
-				_grabPointerWindow = w;
-				_grabCursor = w.getCursor ();
-				_grabConfineWindow = null;
-				_grabEventMask = em & EventCode.MaskAllPointer;
-				_grabPointerOwnerEvents = (em & EventCode.MaskOwnerGrabButton)
-																		!= 0;
-				_grabPointerSynchronous = false;
-				_grabKeyboardSynchronous = false;
+			if (pbg != null) {
+				_grabPointerWindow = pbg.getGrabWindow ();
+				_grabPointerPassive = true;
+				_grabPointerTime = _xServer.getTimestamp ();
+				_grabConfineWindow = pbg.getConfineWindow ();
+				_grabEventMask = pbg.getEventMask ();
+				_grabPointerOwnerEvents = pbg.getOwnerEvents ();
+				_grabPointerSynchronous = pbg.getPointerSynchronous ();
+				_grabKeyboardSynchronous = pbg.getKeyboardSynchronous ();
+
+				_grabCursor = pbg.getCursor ();
+				if (_grabCursor == null)
+					_grabCursor = _grabPointerWindow.getCursor ();
+			} else {
+				w.buttonNotify (pressed, _motionX, _motionY, button, null);
+				if (pressed) {
+					int			em = w.getEventMask ();
+	
+					_grabPointerWindow = w;
+					_grabPointerPassive = false;
+					_grabPointerTime = _xServer.getTimestamp ();
+					_grabCursor = w.getCursor ();
+					_grabConfineWindow = null;
+					_grabEventMask = em & EventCode.MaskAllPointer;
+					_grabPointerOwnerEvents
+								= (em& EventCode.MaskOwnerGrabButton) != 0;
+					_grabPointerSynchronous = false;
+					_grabKeyboardSynchronous = false;
+				}
 			}
 		} else {
 			if (!_grabPointerSynchronous) {
@@ -743,7 +765,7 @@ public class ScreenView extends View {
 					} else {
 						Window		w = (Window) r;
 
-						// Not implemented.
+						w.removePassiveButtonGrab (arg, modifiers);
 					}
 				}
 				break;
@@ -753,7 +775,37 @@ public class ScreenView extends View {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					io.readSkip (bytesRemaining);	// Not implemented.
+					int			cid = io.readInt ();	// Cursor.
+					int			time = io.readInt ();	// Time.
+					int			mask = io.readShort ();	// Event mask.
+					Cursor		c = null;
+
+					io.readSkip (2);	// Unused.
+
+					if (cid != 0) {
+						Resource	r = _xServer.getResource (cid);
+
+						if (r == null)
+							ErrorCode.write (io, ErrorCode.Cursor,
+												sequenceNumber, opcode, 0);
+						else
+							c = (Cursor) r;
+					}
+
+					int			now = _xServer.getTimestamp ();
+
+					if (time == 0)
+						time = now;
+
+					if (_grabPointerWindow != null && !_grabPointerPassive
+									&& time >= _grabPointerTime && time <= now
+												&& (cid == 0 || c != null)) {
+						_grabEventMask = mask;
+						if (c != null)
+							_grabCursor = c;
+						else
+							_grabCursor = _grabPointerWindow.getCursor ();
+					}
 				}
 				break;
 			case RequestCode.GrabKeyboard:
@@ -953,12 +1005,12 @@ public class ScreenView extends View {
 
 		if (cid != 0) {
 			r = _xServer.getResource (cid);
-
 			if (r != null && r.getType () == Resource.CURSOR) {
 				ErrorCode.write (io, ErrorCode.Cursor, sequenceNumber,
 										RequestCode.GrabPointer, cid);
 				return;
 			}
+
 			c = (Cursor) r;
 		}
 
@@ -977,6 +1029,7 @@ public class ScreenView extends View {
 			status = 1;	// Already grabbed.
 		} else {
 			_grabPointerWindow = w;
+			_grabPointerPassive = false;
 			_grabPointerTime = time;
 			_grabCursor = c;
 			_grabConfineWindow = cw;
@@ -1058,10 +1111,8 @@ public class ScreenView extends View {
 			c = (Cursor) r;
 		}
 
-		if (c == null)
-			c = w.getCursor ();
-
-			// Not implemented.
+		w.addPassiveButtonGrab (new PassiveButtonGrab (w, button, modifiers,
+									ownerEvents, mask, psync, ksync, cw, c));
 	}
 
 	/**

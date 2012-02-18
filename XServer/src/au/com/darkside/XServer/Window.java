@@ -4,7 +4,10 @@
 package au.com.darkside.XServer;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -32,6 +35,7 @@ public class Window extends Resource {
 	private boolean					_overrideRedirect;
 	private final Vector<Window>	_children;
 	private final Hashtable<Integer, Property>	_properties;
+	private final Set<PassiveButtonGrab>	_passiveButtonGrabs;
 	private boolean					_isMapped = false;
 	private boolean					_exposed = false;
 
@@ -132,6 +136,7 @@ public class Window extends Resource {
 										_attributes[AttrBackgroundPixel]);
 		_children = new Vector<Window> ();
 		_properties = new Hashtable<Integer, Property> ();
+		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
 	}
 
 	/**
@@ -276,6 +281,66 @@ public class Window extends Resource {
 		}
 
 		return this;
+	}
+
+	/**
+	 * Find a passive button grab on this window or its ancestors.
+	 *
+	 * @param buttons	The pointer buttons and modifiers currently pressed.
+	 * @param highestPbg	Highest pointer grab found so far.
+	 * @return	The passive pointer grab from the highest ancestor.
+	 */
+	public PassiveButtonGrab
+	findPassiveButtonGrab (
+		int					buttons,
+		PassiveButtonGrab	highestPbg
+	) {
+		for (PassiveButtonGrab pbg: _passiveButtonGrabs) {
+			if (pbg.matchesEvent (buttons)) {
+				highestPbg = pbg;
+				break;
+			}
+		}
+
+		if (_parent == null)
+			return highestPbg;
+		else
+			return _parent.findPassiveButtonGrab (buttons, highestPbg);
+	}
+
+	/**
+	 * Add a passive button grab.
+	 *
+	 * @param pbg	The passive button grab.
+	 */
+	public void
+	addPassiveButtonGrab (
+		PassiveButtonGrab	pbg
+	) {
+		removePassiveButtonGrab (pbg.getButton (), pbg.getModifiers ());
+		_passiveButtonGrabs.add (pbg);
+	}
+
+	/**
+	 * Remove all passive button grabs that match the button and modifiers
+	 * combination.
+	 *
+	 * @param button	The button, or 0 for any button.
+	 * @param modifiers	The modifier mask, or 0x8000 for any.
+	 */
+	public void
+	removePassiveButtonGrab (
+		int			button,
+		int			modifiers
+	) {
+		Iterator<PassiveButtonGrab>		it = _passiveButtonGrabs.iterator ();
+
+		while (it.hasNext ()) {
+			PassiveButtonGrab	pbg = it.next ();
+
+			if (pbg.matchesGrab (button, modifiers))
+				it.remove ();
+		}
 	}
 
 	/**
