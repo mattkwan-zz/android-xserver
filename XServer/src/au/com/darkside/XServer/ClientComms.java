@@ -403,6 +403,8 @@ public class ClientComms extends Thread {
 			case RequestCode.GrabKey:
 			case RequestCode.UngrabKey:
 			case RequestCode.AllowEvents:
+			case RequestCode.SetInputFocus:
+			case RequestCode.GetInputFocus:
 				_xServer.getScreen().processRequest (_xServer, _inputOutput,
 						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
 				break;
@@ -432,26 +434,6 @@ public class ClientComms extends Thread {
 				_xServer.getPointer().processRequest (_xServer, _inputOutput,
 						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
 				break;				
-			case RequestCode.SetInputFocus:
-				if (requestLength != 3) {
-					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
-				} else {
-					Window.processSetInputFocus (_xServer, _inputOutput,
-														_sequenceNumber, arg);
-				}
-				break;
-			case RequestCode.GetInputFocus:
-				if (requestLength != 1) {
-					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
-				} else {
-					Window.writeInputFocus (_xServer, _inputOutput,
-															_sequenceNumber);
-				}
-				break;
 			case RequestCode.OpenFont:
 				if (requestLength < 3) {
 					_inputOutput.readSkip (requestLength * 4 - 4);

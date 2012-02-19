@@ -54,6 +54,10 @@ public class ScreenView extends View {
 	private int			_grabEventMask = 0;
 	private PassiveKeyGrab	_grabKeyboardPassiveGrab = null;
 
+	private Window		_focusWindow = null;
+	private int			_focusRevertTo = 0;	// 0=None, 1=Root, 2=Parent.
+	private int			_focusLastChangeTime = 0;
+
 	/**
 	 * Constructor.
 	 *
@@ -131,6 +135,16 @@ public class ScreenView extends View {
 	}
 
 	/**
+	 * Return the window that has input focus. Can be null.
+	 *
+	 * @return	The window that has input focus.
+	 */
+	public Window
+	getFocusWindow () {
+		return _focusWindow;
+	}
+
+	/**
 	 * Add an installed colormap.
 	 *
 	 * @param cmap	The colormap to add.
@@ -194,8 +208,44 @@ public class ScreenView extends View {
 			updatePointer (0);
 		}
 
-		if (_grabKeyboardWindow == w)
+		revertFocus (w);
+	}
+
+	/**
+	 * Called when the window is unmapped.
+	 * If the window had keyboard focus, update the focus window.
+	 *
+	 * @param w
+	 */
+	public void
+	revertFocus (
+		Window		w
+	) {
+		if (w == _grabKeyboardWindow) {
+			Window		pw = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+			Window.focusInOutNotify (_grabKeyboardWindow, _focusWindow, pw,
+															_rootWindow, 2);
 			_grabKeyboardWindow = null;
+		}
+
+		if (w == _focusWindow) {
+			Window		pw = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+			if (_focusRevertTo == 0) {
+				_focusWindow = null;
+			} else if (_focusRevertTo == 1) {
+				_focusWindow = _rootWindow;
+			} else {
+				_focusWindow = w.getParent ();
+				while (!_focusWindow.isViewable ())
+					_focusWindow = _focusWindow.getParent ();
+			}
+
+			_focusRevertTo = 0;
+			Window.focusInOutNotify (w, _focusWindow, pw, _rootWindow,
+										_grabKeyboardWindow == null ? 0 : 3);
+		}
 	}
 
 	/**
@@ -413,6 +463,8 @@ public class ScreenView extends View {
 				_grabCursor = pbg.getCursor ();
 				if (_grabCursor == null)
 					_grabCursor = _grabPointerWindow.getCursor ();
+
+				updatePointer (1);
 			} else {
 				w.buttonNotify (pressed, _motionX, _motionY, button, null);
 				if (pressed) {
@@ -428,6 +480,7 @@ public class ScreenView extends View {
 								= (em& EventCode.MaskOwnerGrabButton) != 0;
 					_grabPointerSynchronous = false;
 					_grabKeyboardSynchronous = false;
+					updatePointer (1);
 				}
 			}
 		} else {
@@ -441,6 +494,7 @@ public class ScreenView extends View {
 				_grabPointerWindow = null;
 				_grabCursor = null;
 				_grabConfineWindow = null;
+				updatePointer (2);
 			}
 		}
 	}
@@ -479,18 +533,20 @@ public class ScreenView extends View {
 		int			keycode,
 		boolean		pressed
 	) {
-		Window		w = null;
-
-		if (_grabKeyboardWindow == null)
-			w = _rootWindow.windowAtPoint (_motionX, _motionY);
+		if (_grabKeyboardWindow == null && _focusWindow == null)
+			return;
 
 		if (pressed && _grabKeyboardWindow == null) {
-			Window			fw = w;	// Focus window - MKWAN
-			PassiveKeyGrab	pkg = fw.findPassiveKeyGrab (keycode,
+			PassiveKeyGrab	pkg = _focusWindow.findPassiveKeyGrab (keycode,
 													_buttons & 0xff, null);
 
-			if (pkg == null && w.isAncestor (fw))
-				pkg = w.findPassiveKeyGrab (keycode, _buttons & 0xff, null);
+			if (pkg == null) {
+				Window	w = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+				if (w.isAncestor (_focusWindow))
+					pkg = w.findPassiveKeyGrab (keycode, _buttons & 0xff,
+																	null);
+			}
 
 			if (pkg != null) {
 				_grabKeyboardPassiveGrab = pkg;
@@ -503,7 +559,8 @@ public class ScreenView extends View {
 		}
 
 		if (_grabKeyboardWindow == null) {
-			w.keyNotify (pressed, _motionX, _motionY, keycode, null);
+			_focusWindow.keyNotify (pressed, _motionX, _motionY, keycode,
+																	null);
 		} else if (!_grabKeyboardSynchronous){
 			_grabKeyboardWindow.grabKeyNotify (pressed, _motionX, _motionY,
 										keycode, _grabKeyboardOwnerEvents);
@@ -861,8 +918,14 @@ public class ScreenView extends View {
 					if (time == 0)
 						time = now;
 
-					if (time >= _grabKeyboardTime && time <= now)
+					if (time >= _grabKeyboardTime && time <= now) {
+						Window		pw = _rootWindow.windowAtPoint (_motionX,
+																	_motionY);
+
+						Window.focusInOutNotify (_grabKeyboardWindow,
+											_focusWindow, pw, _rootWindow, 2);
 						_grabKeyboardWindow = null;
+					}
 				}
 				break;
 			case RequestCode.GrabKey:
@@ -908,6 +971,41 @@ public class ScreenView extends View {
 						// Not implemented.
 				}
 				break;
+			case RequestCode.SetInputFocus:
+				if (bytesRemaining != 8) {
+					io.readSkip (bytesRemaining);
+					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+																opcode, 0);
+				} else {
+					processSetInputFocusRequest (_xServer, io, sequenceNumber,
+																		arg);
+				}
+				break;
+			case RequestCode.GetInputFocus:
+				if (bytesRemaining != 0) {
+					io.readSkip (bytesRemaining);
+					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+																opcode, 0);
+				} else {
+					int			wid;
+
+					if (_focusWindow == null)
+						wid = 0;
+					else if (_focusWindow == _rootWindow)
+						wid = 1;
+					else
+						wid = _focusWindow.getId ();
+
+					synchronized (io) {
+						Util.writeReplyHeader (io, _focusRevertTo,
+															sequenceNumber);
+						io.writeInt (0);	// Reply length.
+						io.writeInt (wid);	// Focus window.
+						io.writePadBytes (20);	// Unused.
+					}
+					io.flush ();
+				}
+				break;
 		}
 	}
 
@@ -937,8 +1035,18 @@ public class ScreenView extends View {
 		if (wid == 0) {		// Pointer window.
 			w = _rootWindow.windowAtPoint (_motionX, _motionY);
 		} else if (wid == 1) {	// Input focus.
-				// Not finished - MKWAN
-			w = _rootWindow.windowAtPoint (_motionX, _motionY);
+			if (_focusWindow == null) {
+				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+												RequestCode.SendEvent, wid);
+				return;
+			}
+
+			Window		pw = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+			if (pw.isAncestor (_focusWindow))
+				w = pw;
+			else
+				w = _focusWindow;
 		} else {
 			Resource		r = _xServer.getResource (wid);
 
@@ -970,6 +1078,8 @@ public class ScreenView extends View {
 
 				w = w.getParent ();
 				if (w == null)
+					break;
+				if (wid == 1 && w == _focusWindow)
 					break;
 			}
 		}
@@ -1206,6 +1316,11 @@ public class ScreenView extends View {
 			io.writePadBytes (24);	// Unused.
 		}
 		io.flush ();
+
+		if (status == 0)
+			Window.focusInOutNotify (_focusWindow, w,
+							_rootWindow.windowAtPoint (_motionX, _motionY),
+							_rootWindow, 1);
 	}
 
 	/**
@@ -1243,5 +1358,61 @@ public class ScreenView extends View {
 
 		w.addPassiveKeyGrab (new PassiveKeyGrab (w, keycode, modifiers,
 												ownerEvents, psync, ksync));
+	}
+
+	/**
+	 * Process a SetInputFocus request.
+	 *
+	 * @param xServer	The X server.
+	 * @param io	The input/output stream.
+	 * @param sequenceNumber	The sequence number of the request.
+	 * @param revertTo	0=None, 1=Root, 2=Parent.
+
+	 * @throws IOException
+	 */
+	private void
+	processSetInputFocusRequest (
+		XServer			xServer,
+		InputOutput		io,
+		int				sequenceNumber,
+		int				revertTo
+	) throws IOException {
+		int				wid = io.readInt ();	// Focus window.
+		int				time = io.readInt ();	// Time.
+		Window			w;
+
+		if (wid == 0) {
+			w = null;
+			revertTo = 0;
+		} else if (wid == 1) {
+			w = _rootWindow;
+			revertTo = 0;
+		} else {
+			Resource	r = xServer.getResource (wid);
+
+			if (r == null || r.getType () != Resource.WINDOW) {
+				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+											RequestCode.GrabPointer, wid);
+				return;
+			}
+
+			w = (Window) r;
+		}
+
+		int			now = xServer.getTimestamp ();
+
+		if (time == 0)
+			time = now;
+
+		if (time < _focusLastChangeTime || time > now)
+			return;
+
+		Window.focusInOutNotify (_focusWindow, w,
+							_rootWindow.windowAtPoint (_motionX, _motionY),
+							_rootWindow, _grabKeyboardWindow == null ? 0 : 3);
+
+		_focusWindow = w;
+		_focusRevertTo = revertTo;
+		_focusLastChangeTime = time;
 	}
 }

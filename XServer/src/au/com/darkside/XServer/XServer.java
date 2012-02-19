@@ -50,7 +50,6 @@ public class XServer {
 	private final Visual		_rootVisual;
 	private ScreenView			_screen = null;
 	private String[]			_fontPath = null;
-	private Window				_inputFocus = null;
 	private AcceptThread		_acceptThread = null;
 	private Date				_timestamp;
 	private ClientComms			_grabClient;
@@ -311,28 +310,6 @@ public class XServer {
 		String[]	path
 	) {
 		_fontPath = path;
-	}
-
-	/**
-	 * Get the window with the current input focus.
-	 *
-	 * @return	The window with the current input focus. May be null.
-	 */
-	public Window
-	getInputFocus () {
-		return _inputFocus;
-	}
-
-	/**
-	 * Set the window with the current input focus.
-	 *
-	 * @param w	The current focus window. May be null.
-	 */
-	public void
-	setInputFocus (
-		Window		w
-	) {
-		_inputFocus = w;
 	}
 
 	/**

@@ -225,20 +225,52 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Is the specified window an ancestor?
+	 * Is the window an inferior of this window?
 	 *
-	 * @param w	The window that may be an ancestor.
-	 * @return	True if the window is an ancestor.
+	 * @param w	The window being tested.
+	 *
+	 * @return	True if the window is a inferior of this window.
+	 */
+	public boolean
+	isInferior (
+		Window		w
+	) {
+		for (;;) {
+			if (w._parent == this)
+				return true;
+			else if (w._parent == null)
+				return false;
+			else
+				w = w._parent;
+		}
+	}
+
+	/**
+	 * Is the window an ancestor of this window?
+	 *
+	 * @param w	The window being tested.
+	 *
+	 * @return	True if the window is an ancestor of this window.
 	 */
 	public boolean
 	isAncestor (
 		Window		w
 	) {
-		for (Window pw = _parent; pw != null; pw = pw._parent)
-			if (pw == w)
-				return true;
+		return w.isInferior (this);
+	}
 
-		return false;
+	/**
+	 * Is the window viewable? It and all its ancestors must be mapped.
+	 *
+	 * @return	True if the window is viewable.
+	 */
+	public boolean
+	isViewable () {
+		for (Window w = this; w != null; w = w._parent)
+			if (!w._isMapped)
+				return false;
+
+		return true;
 	}
 
 	/**
@@ -281,7 +313,7 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Return the visible window that contains the specified point.
+	 * Return the mapped window that contains the specified point.
 	 *
 	 * @param x	X coordinate of the point.
 	 * @param y	Y coordinate of the point.
@@ -704,7 +736,7 @@ public class Window extends Resource {
 	 * @param y	Pointer Y coordinate.
 	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear, 4=NonlinearVirtual.
 	 * @param toWindow	Window containing pointer.
-	 * @param mode	0=Normal, 1=Grab, 2=Ungrab
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab.
 	 */
 	private void
 	enterNotify (
@@ -718,7 +750,11 @@ public class Window extends Resource {
 			return;
 
 		Window		child = (toWindow._parent == this) ? toWindow : null;
-		boolean		focus = true;	// MKWAN
+		Window		fw = _screen.getFocusWindow ();
+		boolean		focus = false;
+
+		if (fw != null)
+			focus = (fw == this) || isAncestor (fw);
 
 		try {
 			EventCode.sendEnterNotify (_clientComms, _xServer.getTimestamp (),
@@ -742,7 +778,7 @@ public class Window extends Resource {
 	 * @param y	Pointer Y coordinate.
 	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear, 4=NonlinearVirtual.
 	 * @param fromWindow	Window previously containing pointer.
-	 * @param mode	0=Normal, 1=Grab, 2=Ungrab
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab.
 	 */
 	private void
 	leaveNotify (
@@ -756,7 +792,11 @@ public class Window extends Resource {
 			return;
 
 		Window		child = (fromWindow._parent == this) ? fromWindow : null;
-		boolean		focus = false;	// MKWAN
+		Window		fw = _screen.getFocusWindow ();
+		boolean		focus = false;
+
+		if (fw != null)
+			focus = (fw == this) || isAncestor (fw);
 
 		try {
 			EventCode.sendLeaveNotify (_clientComms, _xServer.getTimestamp (),
@@ -773,7 +813,7 @@ public class Window extends Resource {
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
 	 * @param ew	The window being entered.
-	 * @param mode	0=Normal, 1=Grab, 2=Ungrab
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab.
 	 */
 	public void
 	leaveEnterNotify (
@@ -829,6 +869,265 @@ public class Window extends Resource {
 			}
 
 			ew.enterNotify (x, y, 3, ew, mode);
+		}
+	}
+
+	/**
+	 * Notify that this window has gained keyboard focus.
+	 *
+	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear,
+	 *					4=NonlinearVirtual, 5=Pointer, 6=PointerRoot, 7=None.
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab, 3=WhileGrabbed.
+	 */
+	private void
+	focusInNotify (
+		int			detail,
+		int			mode
+	) {
+		if (!isSelecting (EventCode.MaskFocusChange) || !_isMapped)
+			return;
+
+		try {
+			EventCode.sendFocusIn (_clientComms, _xServer.getTimestamp (),
+						detail, this, mode);
+
+			if (isSelecting (EventCode.MaskKeymapState)) {
+				Keyboard	kb = _xServer.getKeyboard ();
+
+				EventCode.sendKeymapNotify (_clientComms, kb.getKeymap ());
+			}
+		} catch (IOException e) {
+		}
+	}
+
+	/**
+	 * Notify that this window has lost keyboard focus.
+	 *
+	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear,
+	 *					4=NonlinearVirtual, 5=Pointer, 6=PointerRoot, 7=None.
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab, 3=WhileGrabbed.
+	 */
+	private void
+	focusOutNotify (
+		int			detail,
+		int			mode
+	) {
+		if (!isSelecting (EventCode.MaskFocusChange) || !_isMapped)
+			return;
+
+		try {
+			EventCode.sendFocusOut (_clientComms, _xServer.getTimestamp (),
+														detail, this, mode);
+		} catch (IOException e) {
+		}
+	}
+
+	/**
+	 * Called when keyboard focus changes from one window to another.
+	 * Handles the FocusIn and FocusOut events.
+	 *
+	 * @param wlose	The window that is losing focus.
+	 * @param wgain	The window that is gaining focus.
+	 * @param wp	The window containing the pointer.
+	 * @param wroot	The root window.
+	 * @param mode	0=Normal, 1=Grab, 2=Ungrab, 3=WhileGrabbed.
+	 */
+	public static void
+	focusInOutNotify (
+		Window		wlose,
+		Window		wgain,
+		Window		wp,
+		Window		wroot,
+		int			mode
+	) {
+		if (wlose == wgain)
+			return;
+
+		if (wlose == null) {
+			wroot.focusOutNotify (7, mode);
+
+			if (wgain == wroot) {
+				wroot.focusInNotify (6, mode);
+
+				Stack<Window>	stack = new Stack<Window>();
+
+				for (Window w = wp; w != null; w = w._parent)
+					stack.push (w);
+
+				while (!stack.empty ()) {
+					Window		w = stack.pop ();
+
+					w.focusInNotify (5, mode);
+				}
+			} else {
+				Stack<Window>	stack = new Stack<Window>();
+
+				for (Window w = wgain._parent; w != null; w = w._parent)
+					stack.push (w);
+
+				while (!stack.empty ()) {
+					Window		w = stack.pop ();
+
+					w.focusInNotify (4, mode);
+				}
+
+				wgain.focusInNotify (3, mode);
+
+				if (wgain.isInferior (wp)) {
+					for (Window w = wp; w != wgain; w = w._parent)
+						stack.push (w);
+
+					while (!stack.empty ()) {
+						Window		w = stack.pop ();
+
+						w.focusInNotify (5, mode);
+					}
+				}
+			}
+		} else if (wlose == wroot) {
+			for (Window w = wp; w != null; w = w._parent)
+				w.focusOutNotify (5, mode);
+
+			wroot.focusOutNotify (6, mode);
+
+			if (wgain == null) {
+				wroot.focusInNotify (7, mode);
+			} else {
+				Stack<Window>	stack = new Stack<Window>();
+
+				for (Window w = wgain._parent; w != null; w = w._parent)
+					stack.push (w);
+
+				while (!stack.empty ()) {
+					Window		w = stack.pop ();
+
+					w.focusInNotify (4, mode);
+				}
+
+				wgain.focusInNotify (3, mode);
+
+				if (wgain.isInferior (wp)) {
+					for (Window w = wp; w != wgain; w = w._parent)
+						stack.push (w);
+
+					while (!stack.empty ()) {
+						Window		w = stack.pop ();
+
+						w.focusInNotify (5, mode);
+					}
+				}
+			}
+		} else if (wgain == null) {
+			if (wlose.isInferior (wp))
+				for (Window w = wp; w != wlose; w = w._parent)
+					w.focusOutNotify (5, mode);
+
+			wlose.focusOutNotify (3, mode);
+			for (Window w = wlose._parent; w != null; w = w._parent)
+				w.focusOutNotify (4, mode);
+			wroot.focusInNotify (7, mode);
+		} else if (wgain == wroot) {
+			if (wlose.isInferior (wp))
+				for (Window w = wp; w != wlose; w = w._parent)
+					w.focusOutNotify (5, mode);
+
+			wlose.focusOutNotify (3, mode);
+			for (Window w = wlose._parent; w != null; w = w._parent)
+				w.focusOutNotify (4, mode);
+			wroot.focusInNotify (6, mode);
+
+			Stack<Window>	stack = new Stack<Window>();
+
+			for (Window w = wp; w != null; w = w._parent)
+				stack.push (w);
+
+			while (!stack.empty ()) {
+				Window		w = stack.pop ();
+
+				w.focusInNotify (5, mode);
+			}
+		} else if (wgain.isInferior (wlose)) {
+			wlose.focusOutNotify (0, mode);
+
+			for (Window w = wlose._parent; w != wgain; w = w._parent)
+				w.focusOutNotify (1, mode);
+
+			wgain.focusInNotify (2, mode);
+
+			if (wgain.isInferior (wp) && (wp != wlose && !wp.isInferior (wlose)
+												&& !wp.isAncestor (wlose))) {
+				Stack<Window>	stack = new Stack<Window>();
+
+				for (Window w = wp; w != wgain; w = w._parent)
+					stack.push (w);
+
+				while (!stack.empty ()) {
+					Window		w = stack.pop ();
+
+					w.focusInNotify (5, mode);
+				}
+			}
+		} else if (wlose.isInferior (wgain)) {
+			if (wlose.isInferior (wp) && (wp != wgain && !wp.isInferior (wgain)
+												&& !wp.isAncestor (wgain))) {
+				for (Window w = wp; w != wlose; w = w._parent)
+					w.focusOutNotify (5, mode);
+			}
+
+			wlose.focusOutNotify (2, mode);
+
+			Stack<Window>	stack = new Stack<Window>();
+
+			for (Window w = wgain._parent; w != wlose; w = w._parent)
+				stack.push (w);
+
+			while (!stack.empty ()) {
+				Window		w = stack.pop ();
+
+				w.focusInNotify (1, mode);
+			}
+
+			wgain.focusInNotify (0, mode);
+		} else {
+			if (wlose.isInferior (wp))
+				for (Window w = wp; w != wlose; w = w._parent)
+					w.focusOutNotify (5, mode);
+
+			wlose.focusOutNotify (3, 0);
+
+			Window			lca = null;
+			Stack<Window>	stack = new Stack<Window>();
+
+			for (Window w = wlose._parent; w != wgain; w = w._parent) {
+				if (w.isInferior (wgain)) {
+					lca = w;
+					break;
+				} else {
+					w.focusOutNotify (4, mode);
+				}
+			}
+
+			for (Window w = wgain._parent; w != lca; w = w._parent)
+				stack.push (w);
+
+			while (!stack.empty ()) {
+				Window		w = stack.pop ();
+
+				w.focusInNotify (4, mode);
+			}
+
+			wgain.focusInNotify (3, mode);
+
+			if (wgain.isInferior (wp)) {
+				for (Window w = wp; w != wgain; w = w._parent)
+					stack.push (w);
+
+				while (!stack.empty ()) {
+					Window		w = stack.pop ();
+
+					w.focusInNotify (5, mode);
+				}			
+			}
 		}
 	}
 
@@ -1182,27 +1481,6 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Is the window an inferior of this window?
-	 *
-	 * @param w	The window being tested.
-	 *
-	 * @return	True if the window is a inferior of this window.
-	 */
-	private boolean
-	isInferior (
-		Window		w
-	) {
-		for (;;) {
-			if (w._parent == this)
-				return true;
-			else if (w._parent == null)
-				return false;
-			else
-				w = w._parent;
-		}
-	}
-
-	/**
 	 * Map/unmap the window.
 	 *
 	 * @param io	The input/output stream.
@@ -1246,6 +1524,7 @@ public class Window extends Resource {
 			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
 				EventCode.sendUnmapNotify (_parent._clientComms, _parent,
 																this, false);
+			_screen.revertFocus (this);
 		}
 	}
 
@@ -2181,66 +2460,5 @@ public class Window extends Resource {
 			if (updatePointer)
 				_screen.updatePointer (0);
 		}
-	}
-
-	/**
-	 * Write a response to a GetInputFocus request.
-	 *
-	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
-	 * @throws IOException
-	 */
-	public static void
-	writeInputFocus (
-		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
-		Window			w = xServer.getInputFocus ();
-		int				id = (w == null) ? 0 : w.getId ();
-
-		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
-			io.writeInt (0);	// Reply length.
-			io.writeInt (id);	// Focus window.
-			io.writePadBytes (20);	// Keys. Not implemented.
-		}
-		io.flush ();
-	}
-
-	/**
-	 * Process a SetInputFocus request.
-	 *
-	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
-	 * @param revertTo	Flag indicating where focus reverts to.
-	 * @throws IOException
-	 */
-	public static void
-	processSetInputFocus (
-		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
-		int				revertTo
-	) throws IOException {
-		int				id = io.readInt ();	// Focus window.
-		Window			w = null;
-
-		io.readInt ();	// Time. Not implemented.
-
-		if (id != 0) {
-			Resource	r = xServer.getResource (id);
-
-			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window,
-							sequenceNumber, RequestCode.SetInputFocus, id);
-				return;
-			}
-			w = (Window) r;
-		}
-
-		xServer.setInputFocus (w);
 	}
 }
