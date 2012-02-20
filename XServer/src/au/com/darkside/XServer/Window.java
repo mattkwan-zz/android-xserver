@@ -1481,70 +1481,98 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Map/unmap the window.
+	 * Map the window.
 	 *
 	 * @param io	The input/output stream.
 	 * @param sequenceNumber	The request sequence number.
-	 * @param enable	If true, map the window. Otherwise unmap.
 	 * @throws IOException
 	 */
 	private void
 	map (
 		InputOutput		io,
-		int				sequenceNumber,
-		boolean			enable
+		int				sequenceNumber
 	) throws IOException {
-		if (_isMapped == enable)
+		if (_isMapped)
 			return;
 
-		if (enable && !_overrideRedirect && _parent != null
+		if (!_overrideRedirect && _parent != null
 				&& _parent.isSelecting (EventCode.MaskSubstructureRedirect)) {
 			EventCode.sendMapRequest(_parent._clientComms, _parent, this);
 			return;
 		}
 
-		_isMapped = enable;
-
-		if (enable) {
-			if (isSelecting (EventCode.MaskStructureNotify))
-				EventCode.sendMapNotify (_clientComms, this, this,
+		_isMapped = true;
+		if (isSelecting (EventCode.MaskStructureNotify))
+			EventCode.sendMapNotify (_clientComms, this, this,
 														_overrideRedirect);
-			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-				EventCode.sendMapNotify (_parent._clientComms, _parent,
-													this, _overrideRedirect);
-			if (!_exposed) {
-				if (isSelecting (EventCode.MaskExposure))
-					EventCode.sendExpose (_clientComms, this, 0, 0,
+		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
+			EventCode.sendMapNotify (_parent._clientComms, _parent, this,
+														_overrideRedirect);
+		if (!_exposed) {
+			if (isSelecting (EventCode.MaskExposure))
+				EventCode.sendExpose (_clientComms, this, 0, 0,
 							_drawable.getWidth (), _drawable.getHeight (), 0);
-				_exposed = true;
-			}
-		} else {
-			if (isSelecting (EventCode.MaskStructureNotify))
-				EventCode.sendUnmapNotify (_clientComms, this, this, false);
-			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-				EventCode.sendUnmapNotify (_parent._clientComms, _parent,
-																this, false);
-			_screen.revertFocus (this);
+			_exposed = true;
 		}
 	}
 
 	/**
-	 * Map/unmap the children of this window.
+	 * Map the children of this window.
 	 *
 	 * @param io	The input/output stream.
 	 * @param sequenceNumber	The request sequence number.
-	 * @param enable	If true, map the window. Otherwise unmap.
 	 * @throws IOException
 	 */
 	private void
 	mapSubwindows (
 		InputOutput		io,
-		int				sequenceNumber,
-		boolean			enable
+		int				sequenceNumber
 	) throws IOException {
 		for (Window w: _children) {
-			w.map (io, sequenceNumber, enable);
-			w.mapSubwindows (io, sequenceNumber, enable);
+			w.map (io, sequenceNumber);
+			w.mapSubwindows (io, sequenceNumber);
+		}
+	}
+
+	/**
+	 * Unmap the window.
+	 *
+	 * @param io	The input/output stream.
+	 * @param sequenceNumber	The request sequence number.
+	 * @throws IOException
+	 */
+	private void
+	unmap (
+		InputOutput		io,
+		int				sequenceNumber
+	) throws IOException {
+		if (!_isMapped)
+			return;
+
+		_isMapped = false;
+		if (isSelecting (EventCode.MaskStructureNotify))
+			EventCode.sendUnmapNotify (_clientComms, this, this, false);
+		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
+			EventCode.sendUnmapNotify (_parent._clientComms, _parent, this,
+																	false);
+		_screen.revertFocus (this);
+	}
+
+	/**
+	 * Unmap the children of this window.
+	 *
+	 * @param io	The input/output stream.
+	 * @param sequenceNumber	The request sequence number.
+	 * @throws IOException
+	 */
+	private void
+	unmapSubwindows (
+		InputOutput		io,
+		int				sequenceNumber
+	) throws IOException {
+		for (Window w: _children) {
+			w.unmap (io, sequenceNumber);
+			w.unmapSubwindows (io, sequenceNumber);
 		}
 	}
 
@@ -1567,7 +1595,7 @@ public class Window extends Resource {
 
 		_xServer.freeResource (_id);
 		if (_isMapped)
-			map (io, sequenceNumber, false);
+			unmap (io, sequenceNumber);
 
 		for (Window w: _children)
 			w.destroy (io, sequenceNumber, false);
@@ -1604,7 +1632,7 @@ public class Window extends Resource {
 		boolean		mapped = _isMapped;
 
 		if (mapped)
-			map (io, sequenceNumber, false);
+			unmap (io, sequenceNumber);
 
 		Rect		orig = new Rect (_orect);
 		int			dx = parent._irect.left + x - _orect.left;
@@ -1635,9 +1663,10 @@ public class Window extends Resource {
 											parent, x, y, _overrideRedirect);
 
 		_parent = parent;
-		if (mapped && !_inputOnly) {
-			map (io, sequenceNumber, true);
-			_screen.postInvalidate (orig.left, orig.top, orig.right,
+		if (mapped) {
+			map (io, sequenceNumber);
+			if (!_inputOnly)
+				_screen.postInvalidate (orig.left, orig.top, orig.right,
 															orig.bottom);
 		}
 	}
@@ -2148,7 +2177,7 @@ public class Window extends Resource {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					map (io, sequenceNumber, true);
+					map (io, sequenceNumber);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2159,7 +2188,7 @@ public class Window extends Resource {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					mapSubwindows (io, sequenceNumber, true);
+					mapSubwindows (io, sequenceNumber);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2170,7 +2199,7 @@ public class Window extends Resource {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					map (io, sequenceNumber, false);
+					unmap (io, sequenceNumber);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2181,7 +2210,7 @@ public class Window extends Resource {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					mapSubwindows (io, sequenceNumber, false);
+					unmapSubwindows (io, sequenceNumber);
 					redraw = true;
 					updatePointer = true;
 				}
