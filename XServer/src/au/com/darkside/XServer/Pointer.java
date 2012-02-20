@@ -23,6 +23,23 @@ public class Pointer {
 	}
 
 	/**
+	 * Return the virtual button that a physical button has been mapped to.
+	 * Zero indicates the button has been disabled.
+	 *
+	 * @param button	The physical button: 1, 2, or 3.
+	 * @return	The virtual button, or 0 for disabled.
+	 */
+	public int
+	mapButton (
+		int			button
+	) {
+		if (button < 1 || button >= _buttonMap.length)
+			return 0;
+
+		return _buttonMap[button];
+	}
+
+	/**
 	 * Process a WarpPointer request.
 	 *
 	 * @param xServer	The X server.
@@ -157,7 +174,6 @@ public class Pointer {
 																opcode, 0);
 				} else {
 					io.readBytes (_buttonMap, 0, arg);
-					io.readSkip (arg);	// Map. Not implemented.
 					io.readSkip (-arg & 3);	// Unused.
 
 					synchronized (io) {

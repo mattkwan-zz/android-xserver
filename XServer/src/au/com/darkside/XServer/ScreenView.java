@@ -436,6 +436,12 @@ public class ScreenView extends View {
 		int			button,
 		boolean		pressed
 	) {
+		Pointer		p = _xServer.getPointer ();
+
+		button = p.mapButton (button);
+		if (button == 0)
+			return;
+
 		int			mask = 0x80 << button;
 
 		if (pressed)
@@ -966,9 +972,16 @@ public class ScreenView extends View {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					io.readInt ();	// Time.
+					int			time = io.readInt ();	// Time.
+					int			now = _xServer.getTimestamp ();
 
-						// Not implemented.
+					if (time == 0)
+						time = now;
+
+					if (time <= now && time >= _grabPointerTime
+											&& time >= _grabKeyboardTime) {
+						// Release queued events.
+					}
 				}
 				break;
 			case RequestCode.SetInputFocus:
