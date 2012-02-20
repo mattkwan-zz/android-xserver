@@ -15,6 +15,7 @@ import java.util.Vector;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
@@ -53,6 +54,13 @@ public class XServer {
 	private AcceptThread		_acceptThread = null;
 	private Date				_timestamp;
 	private ClientComms			_grabClient;
+
+	private int				_screenSaverTimeout = 0;
+	private int				_screenSaverInterval = 0;
+	private int				_preferBlanking = 1;
+	private int				_allowExposures = 0;
+	private long			_screenSaverTime = 0;
+	private CountDownTimer	_screenSaverCountDownTimer = null;
 
 	/**
 	 * Constructor.
@@ -116,6 +124,8 @@ public class XServer {
 
 		if (_windowManagerClass != null)
 			_context.startService (new Intent (_context, _windowManagerClass));
+
+		resetScreenSaver ();
 
 		return true;
 	}
@@ -197,8 +207,7 @@ public class XServer {
 	 */
 	public synchronized int
 	getTimestamp () {
-		Date	d = new Date ();
-		long	diff = d.getTime () - _timestamp.getTime ();
+		long	diff = System.currentTimeMillis () - _timestamp.getTime ();
 
 		if (diff <= 0)
 			return 1;
@@ -700,6 +709,68 @@ public class XServer {
 	}
 
 	/**
+	 * Set the screen saver parameters.
+	 *
+	 * @param timeout	Timeout period, in seconds. 0=disabled, -1=default.
+	 * @param interval	Interval in seconds. 0=disabled, -1=default.
+	 * @param preferBlanking	0=No, 1=Yes, 2=Default.
+	 * @param allowExposures	0=No, 1=Yes, 2=Default.
+	 */
+	public void
+	setScreenSaver (
+		int			timeout,
+		int			interval,
+		int			preferBlanking,
+		int			allowExposures
+	) {
+		if (timeout == -1)
+			_screenSaverTimeout = 0;	// Default timeout.
+		else
+			_screenSaverTimeout = timeout;
+
+		if (interval == -1)
+			_screenSaverInterval = 0;	// Default interval.
+		else
+			_screenSaverInterval = interval;
+
+		_preferBlanking = preferBlanking;
+		_allowExposures = allowExposures;
+
+		resetScreenSaver ();
+	}
+
+	/**
+	 * Reset the screen saver timer.
+	 */
+	public void
+	resetScreenSaver () {
+		long		now = System.currentTimeMillis () / 1000;
+
+		if (now == _screenSaverTime)
+			return;
+
+		_screenSaverTime = now;
+
+		if (_screenSaverCountDownTimer != null) {
+			_screenSaverCountDownTimer.cancel ();
+			_screenSaverCountDownTimer = null;
+		}
+
+		if (_screenSaverTimeout != 0) {
+			long		time = _screenSaverTimeout * 1000;
+
+			_screenSaverCountDownTimer = new CountDownTimer (time, time + 1) {
+				public void onTick (long millis) {}
+				public void onFinish () {
+					_screen.blank (true);
+					_screenSaverCountDownTimer = null;
+				}
+			};
+			_screenSaverCountDownTimer.start ();
+		}
+	}
+
+	/**
 	 * Reply to GetScreenSaver request.
 	 *
 	 * @param io	The input/output stream.
@@ -714,10 +785,10 @@ public class XServer {
 		synchronized (io) {
 			Util.writeReplyHeader (io, 0, sequenceNumber);
 			io.writeInt (0);	// Reply length.
-			io.writeShort ((short) 60);	// Timeout.
-			io.writeShort ((short) 0);	// Interval.
-			io.writeByte ((byte) 1);	// Prefer blanking. 1=Yes.
-			io.writeByte ((byte) 0);	// Allow exposures. 0=No.
+			io.writeShort ((short) _screenSaverTimeout);	// Timeout.
+			io.writeShort ((short) _screenSaverInterval);	// Interval.
+			io.writeByte ((byte) _preferBlanking);	// Prefer blanking.
+			io.writeByte ((byte) _allowExposures);	// Allow exposures.
 			io.writePadBytes (18);	// Unused.
 		}
 		io.flush ();

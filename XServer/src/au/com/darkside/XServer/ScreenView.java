@@ -39,6 +39,7 @@ public class ScreenView extends View {
 	private int			_motionX;
 	private int			_motionY;
 	private int			_buttons = 0;
+	private boolean		_isBlanked = false;
 
 	private Window		_grabPointerWindow = null;
 	private int			_grabPointerTime = 0;
@@ -142,6 +143,25 @@ public class ScreenView extends View {
 	public Window
 	getFocusWindow () {
 		return _focusWindow;
+	}
+
+	/**
+	 * Blank/unblank the screen.
+	 *
+	 * @param flag	If true, blank the screen. Otherwise unblank it.
+	 */
+	public void
+	blank (
+		boolean		flag
+	) {
+		if (_isBlanked == flag)
+			return;
+
+		_isBlanked = flag;
+		postInvalidate ();
+
+		if (!_isBlanked)
+			_xServer.resetScreenSaver ();
 	}
 
 	/**
@@ -260,6 +280,11 @@ public class ScreenView extends View {
 	) {
 		if (_rootWindow == null) {
 			super.onDraw (canvas);
+			return;
+		}
+
+		if (_isBlanked) {
+			canvas.drawColor (0xff000000);
 			return;
 		}
 
@@ -598,6 +623,7 @@ public class ScreenView extends View {
 		if (_rootWindow == null)
 			return false;
 
+		blank (false);	// Reset the screen saver.
 		updatePointerPosition ((int) event.getX (), (int) event.getY (), 0);
 
 		return true;
@@ -618,6 +644,8 @@ public class ScreenView extends View {
 	) {
 		if (_rootWindow == null)
 			return false;
+
+		blank (false);	// Reset the screen saver.
 
 		boolean		sendEvent = false;
 
@@ -669,6 +697,8 @@ public class ScreenView extends View {
 	) {
 		if (_rootWindow == null)
 			return false;
+
+		blank (false);	// Reset the screen saver.
 
 		boolean		sendEvent = false;
 

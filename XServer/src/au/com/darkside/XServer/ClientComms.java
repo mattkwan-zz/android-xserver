@@ -729,11 +729,20 @@ public class ClientComms extends Thread {
 						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
 				break;
 			case RequestCode.SetScreenSaver:
-				if (requestLength != 3)
+				if (requestLength != 3) {
+					_inputOutput.readSkip (requestLength * 4 - 4);
 					ErrorCode.write (_inputOutput, ErrorCode.Length,
 												_sequenceNumber, opcode, 0);
-				_inputOutput.readSkip (requestLength * 4 - 4);
-				break;	// Do nothing.
+				} else {
+					int		timeout = _inputOutput.readShort ();	// Timeout.
+					int		interval = _inputOutput.readShort ();	// Interval
+					int		pb = _inputOutput.readByte ();	// Prefer-blanking.
+					int		ae = _inputOutput.readByte ();	// Allow-exposures.
+
+					_inputOutput.readSkip (2);	// Unused.
+					_xServer.setScreenSaver (timeout, interval, pb, ae);
+				}
+				break;
 			case RequestCode.GetScreenSaver:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
@@ -775,11 +784,14 @@ public class ClientComms extends Thread {
 													requestLength * 4 - 4);
 				break;
 			case RequestCode.ForceScreenSaver:
-				if (requestLength != 1)
+				if (requestLength != 1) {
+					_inputOutput.readSkip (requestLength * 4 - 4);
 					ErrorCode.write (_inputOutput, ErrorCode.Length,
 												_sequenceNumber, opcode, 0);
-				_inputOutput.readSkip (requestLength * 4 - 4);
-				break;	// Do nothing.
+				} else {
+					_xServer.getScreen().blank (arg == 1);
+				}
+				break;
 			case RequestCode.NoOperation:
 				_inputOutput.readSkip (requestLength * 4 - 4);
 				break;
