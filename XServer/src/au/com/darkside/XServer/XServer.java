@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.Vector;
 
 import android.content.Context;
@@ -62,6 +63,8 @@ public class XServer {
 	private long			_screenSaverTime = 0;
 	private CountDownTimer	_screenSaverCountDownTimer = null;
 
+	private final Hashtable<String, Extension>	_extensions;
+
 	/**
 	 * Constructor.
 	 *
@@ -80,6 +83,9 @@ public class XServer {
 		_atoms = new Hashtable<Integer, Atom>();
 		_atomNames = new Hashtable<String, Atom>();
 		_selections = new Hashtable<Integer, Selection>();
+
+		_extensions = new Hashtable<String, Extension>();
+		_extensions.put ("dummy", new Extension (0, 0, 0));
 
 		_formats.add (new Format ((byte) 32, (byte) 24, (byte) 8));
 
@@ -597,7 +603,6 @@ public class XServer {
 
 	/**
 	 * Process a QueryExtension request.
-	 * No extensions are supported.
 	 *
 	 * @param io	The input/output stream.
 	 * @param sequenceNumber	The sequence number of the request.
@@ -630,17 +635,73 @@ public class XServer {
 			return;
 		}
 
-		io.readSkip (length);	// Extension name. Not implemented.
+		byte[]		bytes = new byte[length];
+
+		io.readBytes(bytes, 0, length);
 		io.readSkip (pad);	// Unused.
+
+		String		s = new String (bytes);
+		Extension	e;
+
+		if (_extensions.contains (s))
+			e = _extensions.get (s);
+		else
+			e = null;
 
 		synchronized (io) {
 			Util.writeReplyHeader (io, 0, sequenceNumber);
 			io.writeInt (0);	// Reply length.
-			io.writeByte ((byte) 0);	// Present. 0 = false.
-			io.writeByte ((byte) 0);	// Major opcode.
-			io.writeByte ((byte) 0);	// First event.
-			io.writeByte ((byte) 0);	// First error.
+
+			if (e == null) {
+				io.writeByte ((byte) 0);	// Present. 0 = false.
+				io.writeByte ((byte) 0);	// Major opcode.
+				io.writeByte ((byte) 0);	// First event.
+				io.writeByte ((byte) 0);	// First error.
+			} else {
+				io.writeByte ((byte) 1);	// Present. 1 = true.
+				io.writeByte ((byte) e.majorOpcode);	// Major opcode.
+				io.writeByte ((byte) e.firstEvent);	// First event.
+				io.writeByte ((byte) e.firstError);	// First error.
+			}
+
 			io.writePadBytes (20);	// Unused.
+		}
+		io.flush ();
+	}
+
+	/**
+	 * Write the list of extensions supported by the server.
+	 *
+	 * @param io	The input/output stream.
+	 * @param sequenceNumber	The sequence number of the request.
+	 * @throws IOException
+	 */
+	public void
+	writeListExtensions (
+		InputOutput		io,
+		int				sequenceNumber
+	) throws IOException {
+		Set<String>		ss = _extensions.keySet ();
+		int				length = 0;
+
+		for (String s: ss)
+			length += s.length () + 1;
+
+		int				pad = -length & 3;
+
+		synchronized (io) {
+			Util.writeReplyHeader (io, ss.size (), sequenceNumber);
+			io.writeInt ((length + pad) / 4);	// Reply length.
+			io.writePadBytes (24);	// Unused.
+
+			for (String s: ss) {
+				byte[]		ba = s.getBytes ();
+
+				io.writeByte ((byte) ba.length);
+				io.writeBytes (ba, 0, ba.length);
+			}
+
+			io.writePadBytes (pad);	// Unused.
 		}
 		io.flush ();
 	}
@@ -688,22 +749,21 @@ public class XServer {
 	}
 
 	/**
-	 * Write the list of extensions supported by the server.
-	 * No extensions are supported.
+	 * Reply to a ListHosts request.
 	 *
 	 * @param io	The input/output stream.
 	 * @param sequenceNumber	The sequence number of the request.
 	 * @throws IOException
 	 */
 	public void
-	writeListExtensions (
+	writeListHosts (
 		InputOutput		io,
 		int				sequenceNumber
 	) throws IOException {
 		synchronized (io) {
 			Util.writeReplyHeader (io, 0, sequenceNumber);
-			io.writeInt (0);	// Reply length.
-			io.writePadBytes (24);	// Unused.
+			io.writeInt (0);	// Reply length. No hosts.
+			io.writePadBytes (22);	// Unused.
 		}
 		io.flush ();
 	}
@@ -795,23 +855,31 @@ public class XServer {
 	}
 
 	/**
-	 * Reply to a ListHosts request.
+	 * This class holds details of an extension.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
-	 * @throws IOException
+	 * @author Matthew Kwan
 	 */
-	public void
-	writeListHosts (
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
-		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
-			io.writeInt (0);	// Reply length. No hosts.
-			io.writePadBytes (22);	// Unused.
+	private class Extension {
+		private final byte		majorOpcode;
+		private final byte		firstEvent;
+		private final byte		firstError;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param pmajorOpcode	Major opcode of the extension, or zero.
+		 * @param pfirstEvent	Base event type code, or zero.
+		 * @param pfirstError	Base error code, or zero.
+		 */
+		public Extension (
+			int		pmajorOpcode,
+			int		pfirstEvent,
+			int		pfirstError
+		) {
+			majorOpcode = (byte) pmajorOpcode;
+			firstEvent = (byte) pfirstEvent;
+			firstError = (byte) pfirstError;
 		}
-		io.flush ();
 	}
 
 	/**
