@@ -39,22 +39,28 @@ public class Window extends Resource {
 	private final Set<PassiveKeyGrab>		_passiveKeyGrabs;
 	private boolean					_isMapped = false;
 	private boolean					_exposed = false;
+	private int						_visibility = NotViewable;
 
-	private static final int	AttrBackgroundPixmap = 0;
-	private static final int	AttrBackgroundPixel = 1;
-	private static final int	AttrBorderPixmap = 2;
-	private static final int	AttrBorderPixel = 3;
-	private static final int	AttrBitGravity = 4;
-	private static final int	AttrWinGravity = 5;
-	private static final int	AttrBackingStore = 6;
-	private static final int	AttrBackingPlanes = 7;
-	private static final int	AttrBackingPixel = 8;
-	private static final int	AttrOverrideRedirect = 9;
-	private static final int	AttrSaveUnder = 10;
-	private static final int	AttrEventMask = 11;
-	private static final int	AttrDoNotPropagateMask = 12;
-	private static final int	AttrColormap = 13;
-	private static final int	AttrCursor = 14;
+	private static final int		Unobscured = 0;
+	private static final int		PartiallyObscured = 1;
+	private static final int		FullyObscured = 2;
+	private static final int		NotViewable = 3;
+
+	private static final int		AttrBackgroundPixmap = 0;
+	private static final int		AttrBackgroundPixel = 1;
+	private static final int		AttrBorderPixmap = 2;
+	private static final int		AttrBorderPixel = 3;
+	private static final int		AttrBitGravity = 4;
+	private static final int		AttrWinGravity = 5;
+	private static final int		AttrBackingStore = 6;
+	private static final int		AttrBackingPlanes = 7;
+	private static final int		AttrBackingPixel = 8;
+	private static final int		AttrOverrideRedirect = 9;
+	private static final int		AttrSaveUnder = 10;
+	private static final int		AttrEventMask = 11;
+	private static final int		AttrDoNotPropagateMask = 12;
+	private static final int		AttrColormap = 13;
+	private static final int		AttrCursor = 14;
 
 	/**
 	 * Constructor.
@@ -1508,6 +1514,8 @@ public class Window extends Resource {
 		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
 			EventCode.sendMapNotify (_parent._clientComms, _parent, this,
 														_overrideRedirect);
+		updateAffectedVisibility ();
+
 		if (!_exposed) {
 			if (isSelecting (EventCode.MaskExposure))
 				EventCode.sendExpose (_clientComms, this, 0, 0,
@@ -1555,6 +1563,7 @@ public class Window extends Resource {
 		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
 			EventCode.sendUnmapNotify (_parent._clientComms, _parent, this,
 																	false);
+		updateAffectedVisibility ();
 		_screen.revertFocus (this);
 	}
 
@@ -1736,10 +1745,10 @@ public class Window extends Resource {
 			if (isSelecting (EventCode.MaskStructureNotify))
 				EventCode.sendCirculateNotify (_clientComms, this, this,
 																direction);
-
 			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
 				EventCode.sendCirculateNotify (_parent._clientComms, _parent,
 															this, direction);
+			updateAffectedVisibility ();
 
 			return true;
 		}
@@ -2040,6 +2049,7 @@ public class Window extends Resource {
 				EventCode.sendConfigureNotify (_parent._clientComms, _parent,
 								this, null, x, y, width, height, _borderWidth,
 								_overrideRedirect);
+			updateAffectedVisibility ();
 		}
 
 		if (!_exposed) {
@@ -2488,6 +2498,91 @@ public class Window extends Resource {
 			invalidate ();
 			if (updatePointer)
 				_screen.updatePointer (0);
+		}
+	}
+
+	/**
+	 * Calculate a window's visibility.
+	 *
+	 * @return	The window's visibility.
+	 */
+	private int
+	calculateVisibility () {
+		if (_inputOnly)
+			return NotViewable;
+
+		int			result = Unobscured;
+
+		for (Window aw = this; aw._parent != null; aw = aw._parent) {
+			if (!_isMapped)
+				return NotViewable;	// All ancestors must be mapped.
+
+			if (result == FullyObscured)
+				continue;	// Keep checking in case ancestor is unmapped.
+
+			boolean		above = false;
+
+			for (Window w: aw._parent._children) {
+				if (!w._isMapped)
+					continue;
+
+				if (above) {
+					if (w._orect.intersect (_orect)) {
+						if (w._orect.contains (_orect)) {
+							result = FullyObscured;
+							break;
+						}
+
+						result = PartiallyObscured;
+					}
+				} else if (w == aw) {
+					above = true;
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Update the visibility of this window and its children.
+	 */
+	private void
+	updateVisibility () {
+		if (isSelecting (EventCode.MaskVisibilityChange)) {
+			int			visibility = calculateVisibility ();
+
+			if (visibility != _visibility) {
+				_visibility = visibility;
+				if (visibility != NotViewable) {
+					try {
+						EventCode.sendVisibilityNotify (_clientComms, this,
+																visibility);
+					} catch (IOException e) {
+					}
+				}
+			}
+		}
+
+		for (Window w: _children)
+			w.updateVisibility ();
+	}
+
+	/**
+	 * Update the visibility of all the windows that might have been
+	 * affected by changes to this window.
+	 */
+	private void
+	updateAffectedVisibility () {
+		if (_parent == null) {
+			updateVisibility ();
+			return;
+		}
+
+		for (Window w: _parent._children) {
+			w.updateVisibility ();
+			if (w == this)
+				break;
 		}
 	}
 }
