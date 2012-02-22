@@ -770,9 +770,8 @@ public class ClientComms extends Thread {
 					_inputOutput.readSkip (requestLength * 4 - 4);
 					ErrorCode.write (_inputOutput, ErrorCode.Length,
 												_sequenceNumber, opcode, 0);
-				} else {	// Not allowed.
-					ErrorCode.write (_inputOutput, ErrorCode.Access,
-							_sequenceNumber, opcode, 0);
+				} else {
+					_xServer.setAccessControl (arg == 1);
 				}
 				break;
 			case RequestCode.SetCloseDownMode:

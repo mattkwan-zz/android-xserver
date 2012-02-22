@@ -5,10 +5,12 @@ package au.com.darkside.XServer;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
@@ -63,6 +65,9 @@ public class XServer {
 	private long			_screenSaverTime = 0;
 	private CountDownTimer	_screenSaverCountDownTimer = null;
 
+	private boolean					_accessControlEnabled = false;
+	private final HashSet<Integer>	_accessControlHosts;
+
 	private final Hashtable<String, Extension>	_extensions;
 
 	/**
@@ -83,6 +88,7 @@ public class XServer {
 		_atoms = new Hashtable<Integer, Atom>();
 		_atomNames = new Hashtable<String, Atom>();
 		_selections = new Hashtable<Integer, Selection>();
+		_accessControlHosts = new HashSet<Integer>();
 
 		_extensions = new Hashtable<String, Extension>();
 		_extensions.put ("dummy", new Extension (0, 0, 0));
@@ -730,7 +736,8 @@ public class XServer {
 			return;
 		}
 
-		io.readByte ();	// Family. 0=Internet, 1=DECnet, 2=Chaos.
+		int			family = io.readByte ();	// 0=Inet, 1=DECnet, 2=Chaos.
+
 		io.readSkip (1);	// Unused.
 
 		int			length = io.readShort ();	// Length of address.
@@ -744,8 +751,24 @@ public class XServer {
 			return;
 		}
 
-		io.readSkip (length);	// Address. Not implemented.
+		if (family != 0 || length != 4) {
+			io.readSkip (bytesRemaining);
+			ErrorCode.write (io, ErrorCode.Value, sequenceNumber,
+												RequestCode.ChangeHosts, 0);
+			return;
+		}
+
+		int			address = 0;
+
+		for (int i = 0; i < length; i++)
+			address = (address << 8) | io.readByte ();
+
 		io.readSkip (pad);	// Unused.
+
+		if (mode == 0)
+			_accessControlHosts.add (address);
+		else
+			_accessControlHosts.remove (address);
 	}
 
 	/**
@@ -760,12 +783,54 @@ public class XServer {
 		InputOutput		io,
 		int				sequenceNumber
 	) throws IOException {
+		int				n = _accessControlHosts.size ();
+
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
-			io.writeInt (0);	// Reply length. No hosts.
+			Util.writeReplyHeader (io, _accessControlEnabled ? 1 : 0,
+															sequenceNumber);
+			io.writeInt (n * 2);	// Reply length.
+			io.writeShort ((short) n);	// Number of hosts.
 			io.writePadBytes (22);	// Unused.
+
+			for (int addr: _accessControlHosts) {
+				io.writeByte ((byte) 0);	// Family = Internet.
+				io.writePadBytes (1);	// Unused.
+				io.writeShort ((short) 4);	// Length of address.
+				io.writeByte ((byte) ((addr >> 24) & 0xff));
+				io.writeByte ((byte) ((addr >> 16) & 0xff));
+				io.writeByte ((byte) ((addr >> 8) & 0xff));
+				io.writeByte ((byte) (addr & 0xff));
+			}
 		}
 		io.flush ();
+	}
+
+	/**
+	 * Enable/disable access control.
+	 *
+	 * @param enabled	If true, enable access control.
+	 */
+	public void
+	setAccessControl (
+		boolean		enabled
+	) {
+		_accessControlEnabled = enabled;
+	}
+
+	/**
+	 * Is a client from the specified address allowed to connect?
+	 *
+	 * @param address	The client's IP address, MSB format.
+	 * @return	True if the client is allowed to exist.
+	 */
+	private boolean
+	isAccessAllowed (
+		int			address
+	) {
+		if (!_accessControlEnabled)
+			return true;
+
+		return _accessControlHosts.contains (address);
 	}
 
 	/**
@@ -929,6 +994,27 @@ public class XServer {
 					socket = _serverSocket.accept ();
 				} catch (IOException e) {
 					break;
+				}
+
+				int					addr = 0;
+				InetSocketAddress	isa;
+				
+				isa = (InetSocketAddress) socket.getRemoteSocketAddress ();
+					
+				if (isa != null) {
+					InetAddress		ia = isa.getAddress ();
+					byte[]			bytes = ia.getAddress ();
+
+					addr = (bytes[0] << 24) | (bytes[1] << 16)
+												| (bytes[2] << 8) | bytes[3];
+				}
+
+				if (addr != 0 && !isAccessAllowed (addr)) {
+					try {
+						socket.close ();
+					} catch (IOException e) {
+					}
+					continue;
 				}
 
 				synchronized (this) {
