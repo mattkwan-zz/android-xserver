@@ -33,10 +33,10 @@ public class Pointer {
 	mapButton (
 		int			button
 	) {
-		if (button < 1 || button >= _buttonMap.length)
+		if (button < 1 || button > _buttonMap.length)
 			return 0;
 
-		return _buttonMap[button];
+		return _buttonMap[button - 1];
 	}
 
 	/**
