@@ -947,7 +947,7 @@ public class Drawable {
 						int			b1 = io.readByte ();
 						int			b2 = io.readByte ();
 
-						chars[i++] = (char) ((b1 << 8) | b2);
+						chars[i] = (char) ((b1 << 8) | b2);
 					}
 
 					bytesRemaining -= length * 2;
