@@ -567,6 +567,10 @@ public class ScreenView extends View {
 		if (_grabKeyboardWindow == null && _focusWindow == null)
 			return;
 
+		Keyboard	kb = _xServer.getKeyboard ();
+
+		keycode = kb.translateToXKeycode (keycode);
+
 		if (pressed && _grabKeyboardWindow == null) {
 			PassiveKeyGrab	pkg = _focusWindow.findPassiveKeyGrab (keycode,
 													_buttons & 0xff, null);
@@ -597,7 +601,7 @@ public class ScreenView extends View {
 										keycode, _grabKeyboardOwnerEvents);
 		}	// Else need to queue keyboard events.
 
-		_xServer.getKeyboard().updateKeymap (keycode, pressed);
+		kb.updateKeymap (keycode, pressed);
 
 		if (!pressed && _grabKeyboardPassiveGrab != null) {
 			int			rk = _grabKeyboardPassiveGrab.getKey ();

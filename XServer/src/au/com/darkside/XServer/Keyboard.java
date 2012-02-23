@@ -17,8 +17,8 @@ import android.view.KeyEvent;
  * This class handles an X keyboard.
  */
 public class Keyboard {
-	private int				_minimumKeycode = 8;
-	private int				_numKeycodes = 248;
+	private int				_minimumKeycode;
+	private int				_numKeycodes;
 	private int				_keysymsPerKeycode = 3;
 	private int[]			_keyboardMapping = null;
 	private int				_keycodesPerModifier = 2;
@@ -50,39 +50,62 @@ public class Keyboard {
 	 * Constructor.
 	 */
 	Keyboard () {
-		int			min = 255;
-		int			max = 0;
-
-		for (int i = 8; i < 256; i++) {
-			if (!KeyCharacterMap.deviceHasKey (i))
-				continue;
-
-			if (i < min)
-				min = i;
-			if (i > max)
-				max = i;
-		}
-
-		if (max != 0) {
-			_minimumKeycode = min;
-			_numKeycodes = max - min + 1;
-		}
-
+		final int			kpk = _keysymsPerKeycode;
+		int					min = 255;
+		int					max = 0;
 		int					idx = 0;
+		int[]				map = new int[256 * kpk];
 		KeyCharacterMap		kcm = KeyCharacterMap.load (
 										KeyCharacterMap.BUILT_IN_KEYBOARD);
 
-		_keyboardMapping = new int[_keysymsPerKeycode * _numKeycodes];
-		for (int i = 0; i < _numKeycodes; i++) {
-			_keyboardMapping[idx++] = kcm.get (_minimumKeycode + i, 0);
-			_keyboardMapping[idx++] = kcm.get (_minimumKeycode + i,
-													KeyEvent.META_SHIFT_ON);
-			_keyboardMapping[idx++] = kcm.get (_minimumKeycode + i,
-													KeyEvent.META_ALT_ON);
+		for (int i = 0; i < 256; i++) {
+			int			c1 = kcm.get (i, 0);
+			int			c2 = kcm.get (i, KeyEvent.META_SHIFT_ON);
+			int			c3 = kcm.get (i, KeyEvent.META_ALT_ON);
+
+			map[idx++] = c1;
+			map[idx++] = c2;
+			map[idx++] = c3;
+
+			if (c1 != 0 || c2 != 0 || c3 != 0) {
+				if (i < min)
+					min = i;
+				if (i > max)
+					max = i;
+			}
  		}
 
-		_keyboardMapping[(KeyEvent.KEYCODE_DEL - _minimumKeycode)
-												*_keysymsPerKeycode] = 127;
+		if (max == 0)
+			min = 0;
+
+		_minimumKeycode = min;
+		_numKeycodes = max - min + 1;
+		if (_numKeycodes > 248)
+			_numKeycodes = 248;
+
+		_keyboardMapping = new int[kpk * _numKeycodes];
+		System.arraycopy (map, min * kpk, _keyboardMapping, 0,
+													_keyboardMapping.length);
+
+		_keyboardMapping[(KeyEvent.KEYCODE_DEL - min) * kpk] = 127;
+		_keyboardMapping[(KeyEvent.KEYCODE_ALT_LEFT - min) * kpk] = 0xff7e;
+		_keyboardMapping[(KeyEvent.KEYCODE_ALT_RIGHT - min) * kpk] = 0xff7e;
+	}
+
+	/**
+	 * Translate an Android keycode to an X keycode.
+	 *
+	 * @param keycode	The Android keycode.
+	 * @return	The corresponding X keycode.
+	 */
+	public int
+	translateToXKeycode (
+		int			keycode
+	) {
+		if (_minimumKeycode < 8)
+			return keycode + 8 - _minimumKeycode;
+		else
+			return keycode;
 	}
 
 	/**
@@ -92,7 +115,10 @@ public class Keyboard {
 	 */
 	public int
 	getMinimumKeycode () {
-		return _minimumKeycode;
+		if (_minimumKeycode < 8)
+			return 8;
+		else
+			return _minimumKeycode;
 	}
 
 	/**
@@ -102,7 +128,7 @@ public class Keyboard {
 	 */
 	public int
 	getMaximumKeycode () {
-		return _minimumKeycode + _numKeycodes - 1;
+		return getMinimumKeycode () + _numKeycodes - 1;
 	}
 
 	/**
@@ -114,10 +140,11 @@ public class Keyboard {
 	getKeymap () {
 		byte[]		keymap = new byte[31];
 
-		System.arraycopy(_keymap, 1, keymap, 0, 31);
+		System.arraycopy (_keymap, 1, keymap, 0, 31);
 
 		return keymap;
 	}
+
 	/**
 	 * Update the keymap when a key is pressed or released.
 	 *
@@ -214,7 +241,7 @@ public class Keyboard {
 					int			keycode = io.readByte ();	// First keycode.
 					int			count = io.readByte ();	// Count.
 					int			length = count * _keysymsPerKeycode;
-					int			offset = (keycode - _minimumKeycode)
+					int			offset = (keycode - getMinimumKeycode ())
 														* _keysymsPerKeycode;
 
 					io.readSkip (2);	// Unused.
@@ -300,15 +327,32 @@ public class Keyboard {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
+					final int	kpm = _keycodesPerModifier;
+					byte[]		map = null;
+
+					if (kpm > 0) {
+						int			diff;
+
+						if (_minimumKeycode < 8)
+							diff = 8 - _minimumKeycode;
+						else
+							diff = 0;
+
+						map = new byte[kpm * 8];
+						for (int i = 0; i < map.length; i++)
+							if (_modifierMapping[i] == 0)
+								map[i] = 0;
+							else
+								map[i] = (byte) (_modifierMapping[i] + diff);
+					}
+
 					synchronized (io) {
-						Util.writeReplyHeader (io, _keycodesPerModifier,
-															sequenceNumber);
-						io.writeInt (_keycodesPerModifier * 2);	// Reply len.
+						Util.writeReplyHeader (io, kpm, sequenceNumber);
+						io.writeInt (kpm * 2);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 
-						if (_keycodesPerModifier > 0)
-							io.writeBytes (_modifierMapping, 0,
-													_keycodesPerModifier * 8);
+						if (map != null)
+							io.writeBytes (map, 0, map.length);
 					}
 					io.flush ();
 				}
