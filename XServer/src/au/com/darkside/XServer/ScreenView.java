@@ -336,6 +336,7 @@ public class ScreenView extends View {
 		_motionX = _currentCursorX;
 		_motionY = _currentCursorY;
 		_motionWindow = _rootWindow;
+		_focusWindow = _rootWindow;
 
 			// Everything set up, so start listening for clients.
 		_xServer.start ();
@@ -594,7 +595,12 @@ public class ScreenView extends View {
 		}
 
 		if (_grabKeyboardWindow == null) {
-			_focusWindow.keyNotify (pressed, _motionX, _motionY, keycode,
+			Window	w = _rootWindow.windowAtPoint (_motionX, _motionY);
+
+			if (w.isAncestor (_focusWindow))
+				w.keyNotify (pressed, _motionX, _motionY, keycode, null);
+			else
+				_focusWindow.keyNotify (pressed, _motionX, _motionY, keycode,
 																	null);
 		} else if (!_grabKeyboardSynchronous){
 			_grabKeyboardWindow.grabKeyNotify (pressed, _motionX, _motionY,
