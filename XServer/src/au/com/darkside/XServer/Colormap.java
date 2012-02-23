@@ -499,7 +499,7 @@ public class Colormap extends Resource {
 
 						String		name = new String(bytes).toLowerCase ();
 
-						if (_colorNames.contains (name)) {
+						if (_colorNames.containsKey (name)) {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
@@ -648,7 +648,7 @@ public class Colormap extends Resource {
 
 						String		name = new String(bytes).toLowerCase ();
 
-						if (_colorNames.contains (name)) {
+						if (_colorNames.containsKey (name)) {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
