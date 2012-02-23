@@ -30,11 +30,15 @@ public class Keyboard {
 		0, 0, 0, 0, 0, 0, 0, 0
 	};
 
-	private int				_bellPercent = 100;
-	private int				_bellPitch = 440;
-	private int				_bellDuration = 400;
-	private short[]			_bellBuffer = null;
-	private AudioTrack		_audioTrack = null;
+	private static final int	DefaultBellPercent = 50;
+	private int					_bellPercent = DefaultBellPercent;
+	private static final int	DefaultBellPitch = 400;
+	private int					_bellPitch = DefaultBellPitch;
+	private static final int	DefaultBellDuration = 100;
+	private int					_bellDuration = DefaultBellDuration;
+	private short[]				_bellBuffer = null;
+	private boolean				_bellBufferFilled = false;
+	private AudioTrack			_audioTrack = null;
 
 	private static final int	SAMPLE_RATE = 11025;
 	private static final int	AttrKeyClickPercent = 0;
@@ -381,31 +385,42 @@ public class Keyboard {
 	 */
 	private void
 	playBell (
-		int		percent
+		int			percent
 	) {
-		int		volume;
+		int			volume;
 
 		if (percent < 0) {
 			volume = _bellPercent + _bellPercent * percent / 100;
-			_bellBuffer = null;
+			_bellBufferFilled = false;
 		} else if (percent > 0){
 			volume = _bellPercent - _bellPercent * percent / 100 + percent;
-			_bellBuffer = null;
+			_bellBufferFilled = false;
 		} else {
 			volume = _bellPercent;
 		}
 
 		if (_bellBuffer == null) {
-			double		vol = 32767.0 * (double) volume / 100.0;
-			double		dt = _bellPitch * 2.0 * Math.PI/ SAMPLE_RATE;
-
 			_bellBuffer = new short[SAMPLE_RATE * _bellDuration / 1000];
-			for (int i = 0; i < _bellBuffer.length; i++)
-				_bellBuffer[i] = (short) (vol * Math.sin ((double) i * dt));
+			_bellBufferFilled = false;
+
 		}
 
-		if (_audioTrack == null)
-			_audioTrack = new AudioTrack (AudioManager.STREAM_SYSTEM,
+		if (!_bellBufferFilled) {
+			double		vol = 32767.0 * (double) volume / 100.0;
+			double		dt = _bellPitch * 2.0 * Math.PI / SAMPLE_RATE;
+
+			for (int i = 0; i < _bellBuffer.length; i++)
+				_bellBuffer[i] = (short) (vol * Math.sin ((double) i * dt));
+
+			_bellBufferFilled = true;
+		}
+
+		if (_audioTrack != null) {
+			_audioTrack.stop ();
+			_audioTrack.release ();
+		}
+
+		_audioTrack = new AudioTrack (AudioManager.STREAM_SYSTEM,
 					SAMPLE_RATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
 	    			AudioFormat.ENCODING_PCM_16BIT, 2 * _bellBuffer.length,
 	    			AudioTrack.MODE_STATIC);
@@ -432,22 +447,25 @@ public class Keyboard {
 				io.readSkip (3);
 				break;
 			case AttrBellPercent:
-				_bellPercent = io.readByte ();
-				_bellBuffer = null;
+				_bellPercent = (byte) io.readByte ();
+				if (_bellPercent < 0)
+					_bellPercent = DefaultBellPercent;
 				io.readSkip (3);
+				_bellBufferFilled = false;
 				break;
 			case AttrBellPitch:
-				_bellPitch = io.readShort ();
+				_bellPitch = (short) io.readShort ();
+				if (_bellPitch < 0)
+					_bellPitch = DefaultBellPitch;
 				io.readSkip (2);
+				_bellBufferFilled = false;
 				break;
 			case AttrBellDuration:
-				if (_audioTrack != null) {	// Need different buffer size.
-					_audioTrack.stop ();
-					_audioTrack.release ();
-					_audioTrack = null;
-				}
-				_bellDuration = io.readShort ();
+				_bellDuration = (short) io.readShort ();
+				if (_bellDuration < 0)
+					_bellDuration = DefaultBellDuration;
 				io.readSkip (2);
+				_bellBuffer = null;
 				break;
 			case AttrLed:
 				io.readByte ();	// Not implemented.
