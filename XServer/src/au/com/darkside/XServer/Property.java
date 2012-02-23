@@ -312,12 +312,22 @@ public class Property {
 			}
 		}
 
-		int			valueLength = (value == null) ? 0 : value.length;
-		int			pad = -valueLength & 3;
+		int			length = (value == null) ? 0 : value.length;
+		int			pad = -length & 3;
+		int			valueLength;
+
+		if (format == 8)
+			valueLength = length;
+		else if (format == 16)
+			valueLength = length / 2;
+		else if (format == 32)
+			valueLength = length / 4;
+		else
+			valueLength = 0;
 
 		synchronized (io) {
 			Util.writeReplyHeader (io, format, sequenceNumber);
-			io.writeInt ((valueLength + pad) / 4);	// Reply length.
+			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeInt (tid);	// Type.
 			io.writeInt (bytesAfter);	// Bytes after.
 			io.writeInt (valueLength);	// Value length.
