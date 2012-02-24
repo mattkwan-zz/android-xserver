@@ -19,11 +19,15 @@ import android.graphics.Typeface;
 public class Font extends Resource {
 	private static int	_dpi = 250;
 
-	private Paint		_paint;
-	private float		_minWidth;
-	private float		_maxWidth;
-	private char		_maxChar = 255;
-	private Atom		_nameAtom = null;
+	private final Paint		_paint;
+	private final float		_minWidth;
+	private final float		_maxWidth;
+	private final short		_ascent;
+	private final short		_descent;
+	private final short		_maxAscent;
+	private final short		_maxDescent;
+	private final char		_maxChar;
+	private Atom			_nameAtom = null;
 
 	private static final String[]	_allFonts = {
 		"-android-default-medium-r-normal--0-0-0-0-p-0-iso8859-1",
@@ -92,6 +96,8 @@ public class Font extends Resource {
 	) {
 		super (FONT, id, xServer, client);
 
+		char		maxChar = 255;
+
 		_paint = new Paint ();
 		if (name == null || name.equalsIgnoreCase ("cursor")) {
 			_paint.setTypeface (Typeface.DEFAULT);
@@ -128,11 +134,13 @@ public class Font extends Resource {
 					base = Typeface.create (fields[2], style);
 
 				if (fields[13].equalsIgnoreCase ("iso10646"))
-					_maxChar = 65534;
+					maxChar = 65534;
 			}
 
 			_paint.setTypeface (Typeface.create (base, style));
 		}
+
+		_maxChar = maxChar;
 
 			// Calculate the minimum and maximum widths.
 		byte[]		bytes = new byte[126 - 32 + 1];
@@ -143,18 +151,30 @@ public class Font extends Resource {
 
 		_paint.getTextWidths (new String (bytes), widths);
 
-		_minWidth = widths[0];
-		_maxWidth = widths[0];
-		for (int i = 1; i < widths.length; i++) {
-			if (widths[i] < _minWidth)
-				_minWidth = widths[i];
-			if (widths[i] > _maxWidth)
-				_maxWidth = widths[i];
+		float		minw = widths[0];
+		float		maxw = widths[0];
+
+		for (float width: widths) {
+			if (width < minw)
+				minw = width;
+			if (width > minw)
+				minw = width;
 		}
+
+		_minWidth = minw;
+		_maxWidth = maxw;
+
+		Paint.FontMetricsInt	metrics = _paint.getFontMetricsInt ();
+
+		_ascent = (short) -metrics.ascent;
+		_descent = (short) metrics.descent;
+		_maxAscent = (short) -metrics.top;
+		_maxDescent = (short) metrics.bottom;
 	}
 
 	/**
 	 * Return the font's typeface.
+	 *
 	 * @return	The font's typeface.
 	 */
 	public Typeface
@@ -164,11 +184,33 @@ public class Font extends Resource {
 
 	/**
 	 * Return the font's size.
+	 *
 	 * @return	The font's size.
 	 */
 	public int
 	getSize () {
 		return (int) _paint.getTextSize ();
+	}
+
+	/**
+	 * Calculate the bounding rectangle for text drawn at a location.
+	 *
+	 * @param s	The text.
+	 * @param x	X coordinate.
+	 * @param y	Y coordinate.
+	 * @param rect	Return value. The bounding rectangle.
+	 */
+	public void
+	getTextBounds (
+		String		s,
+		int			x,
+		int			y,
+		Rect		rect
+	) {
+		rect.left = x;
+		rect.right = x + (int) _paint.measureText (s);
+		rect.top = y - _ascent;
+		rect.bottom = y + _descent;
 	}
 
 	/**
@@ -317,7 +359,6 @@ public class Font extends Resource {
 		String			s = new String (chars);
 		Rect			bounds = new Rect ();
 		float[]			widths = new float[numCharInfos];
-		Paint.FontMetricsInt	metrics = _paint.getFontMetricsInt ();
 
 		_paint.getTextWidths (s, widths);
 
@@ -339,8 +380,8 @@ public class Font extends Resource {
 			io.writeShort ((short) 0);	// Left side bearing.
 			io.writeShort ((short) _maxWidth);	// Right side bearing.
 			io.writeShort ((short) _maxWidth);	// Character width.
-			io.writeShort ((short) -metrics.top);	// Ascent.
-			io.writeShort ((short) metrics.bottom);	// Descent.
+			io.writeShort (_maxAscent);	// Ascent.
+			io.writeShort (_maxDescent);	// Descent.
 			io.writeShort ((short) 0);	// Attributes.
 			io.writePadBytes (4);	// Unused.
 
@@ -352,8 +393,8 @@ public class Font extends Resource {
 			io.writeByte ((byte) 0);	// Min byte 1.
 			io.writeByte ((byte) 0);	// Max byte 1.
 			io.writeByte ((byte) 0);	// All chars exist = false.
-			io.writeShort ((short) -metrics.ascent);	// Font ascent.
-			io.writeShort ((short) metrics.descent);	// Font descent.
+			io.writeShort (_ascent);	// Font ascent.
+			io.writeShort (_descent);	// Font descent.
 			io.writeInt (numCharInfos);
 
 				// If name atom is specified, write the FONT property.
@@ -391,7 +432,6 @@ public class Font extends Resource {
 		int				sequenceNumber,
 		String			s
 	) throws IOException {
-		Paint.FontMetricsInt	metrics = _paint.getFontMetricsInt ();
 		int				width = (int) _paint.measureText (s);
 		Rect			bounds = new Rect ();
 
@@ -400,8 +440,8 @@ public class Font extends Resource {
 		synchronized (io) {
 			Util.writeReplyHeader (io, 0, sequenceNumber);
 			io.writeInt (0);	// Reply length.
-			io.writeShort ((short) -metrics.ascent);	// Font ascent.
-			io.writeShort ((short) metrics.descent);	// Font descent.
+			io.writeShort (_ascent);	// Font ascent.
+			io.writeShort (_descent);	// Font descent.
 			io.writeShort ((short) -bounds.top);	// Overall ascent.
 			io.writeShort ((short) bounds.bottom);	// Overall descent.
 			io.writeInt (width);	// Overall width.

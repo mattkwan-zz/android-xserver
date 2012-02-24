@@ -459,6 +459,35 @@ public class Drawable {
 	}
 
 	/**
+	 * Draw text at the specified location, on top of a bounding rectangle
+	 * drawn in the background color.
+	 *
+	 * @param s	The string to write.
+	 * @param x	X coordinate.
+	 * @param y	Y coordinate.
+	 * @param gc	Graphics context for drawing the text.
+	 */
+	private void
+	drawImageText (
+		String		s,
+		int			x,
+		int			y,
+		GContext	gc
+	) {
+		Paint		paint = gc.getPaint ();
+		Font		font = gc.getFont ();
+		Rect		rect = new Rect ();
+
+		font.getTextBounds (s, x, y, rect);
+		paint.setColor (gc.getBackgroundColor ());
+		paint.setStyle (Paint.Style.FILL);
+		_canvas.drawRect (rect, paint);
+		
+		paint.setColor (gc.getForegroundColor ());
+		_canvas.drawText (s, x, y, paint);
+	}
+
+	/**
 	 * Process an X request relating to this drawable using the
 	 * GContext provided.
 	 *
@@ -583,7 +612,7 @@ public class Drawable {
 						float		height = io.readShort ();
 
 						bytesRemaining -= 8;
-						_canvas.drawRect(x, y, x + width, y + height, paint);
+						_canvas.drawRect (x, y, x + width, y + height, paint);
 						changed = true;
 					}
 				}
@@ -672,14 +701,14 @@ public class Drawable {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					float		x = (short) io.readShort ();
-					float		y = (short) io.readShort ();
+					int			x = (short) io.readShort ();
+					int			y = (short) io.readShort ();
 					int			pad = -arg & 3;
 					byte[]		bytes = new byte[arg];
 
 					io.readBytes (bytes, 0, arg);
 					io.readSkip (pad);
-					_canvas.drawText (new String (bytes), x, y, paint);
+					drawImageText (new String (bytes), x, y, gc);
 					changed = true;
 				}
 				break;
@@ -689,8 +718,8 @@ public class Drawable {
 					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
 																opcode, 0);
 				} else {
-					float		x = (short) io.readShort ();
-					float		y = (short) io.readShort ();
+					int			x = (short) io.readShort ();
+					int			y = (short) io.readShort ();
 					int			pad = (-2 * arg) & 3;
 					char[]		chars = new char[arg];
 
@@ -702,7 +731,7 @@ public class Drawable {
 					}
 
 					io.readSkip (pad);
-					_canvas.drawText (new String (chars), x, y, paint);
+					drawImageText (new String (chars), x, y, gc);
 					changed = true;
 				}
 				break;

@@ -60,9 +60,9 @@ public class GContext extends Resource {
 	 * @param screen	The graphics context's screen.
 	 */
 	public GContext (
-		int			id,
-		XServer		xServer,
-		ClientComms	client,
+		int				id,
+		XServer			xServer,
+		ClientComms		client,
 		ScreenView		screen
 	) {
 		super (GCONTEXT, id, xServer, client);
@@ -158,7 +158,17 @@ public class GContext extends Resource {
 	}
 
 	/**
-	 * The the GContext's font.
+	 * Return the GContext's font.
+	 *
+	 * @return	The GContext's font.
+	 */
+	public Font
+	getFont () {
+		return _font;
+	}
+
+	/**
+	 * Set the GContext's font.
 	 *
 	 * @param id	The ID of the font.
 	 * @return	True if the ID refers to a valid font.
