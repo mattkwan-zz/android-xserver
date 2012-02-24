@@ -325,7 +325,7 @@ public class ScreenView extends View {
 		super.onSizeChanged (width, height, oldWidth, oldHeight);
 
 		_rootWindow = new Window (_rootId, _xServer, null, this, null,
-											0, 0, width, height, 0, false);
+										0, 0, width, height, 0, false, true);
 		_xServer.addResource (_rootWindow);
 
 		_currentCursor = _rootWindow.getCursor ();

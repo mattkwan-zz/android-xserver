@@ -286,9 +286,9 @@ public class Colormap extends Resource {
 	 * @param client	The client issuing the request.
 	 */
 	public Colormap (
-		int			id,
-		XServer		xServer,
-		ClientComms	client,
+		int				id,
+		XServer			xServer,
+		ClientComms		client,
 		ScreenView		screen
 	) {
 		super (COLORMAP, id, xServer, client);
@@ -314,33 +314,6 @@ public class Colormap extends Resource {
 	public int
 	getWhitePixel () {
 		return Color.WHITE;
-	}
-
-	/**
-	 * Return the ARGB color corresponding to the (TrueColor) pixel.
-	 * Add the alpha channel if necessary.
-	 *
-	 * @param pixel	The TrueColor pixel.
-	 * @return	The ARGB color corresponding to the pixel.
-	 */
-	public int
-	getPixelColor (
-		int		pixel
-	) {
-		if ((pixel & 0xff000000) == 0)
-			return pixel | 0xff000000;
-		else
-			return pixel;
-	}
-
-	/**
-	 * Get the colormap's screen.
-	 *
-	 * @return	The colormap's screen.
-	 */
-	public ScreenView
-	getScreen () {
-		return _screen;
 	}
 
 	/**

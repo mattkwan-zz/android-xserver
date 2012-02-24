@@ -76,6 +76,7 @@ public class Window extends Resource {
 	 * @param height	Height of the window.
 	 * @param borderWidth	Width of the window's border.
 	 * @param inputOnly	Is this an InputOnly window?
+	 * @param isRoot	Is this the root window?
 	 */
 	public Window (
 		int				id,
@@ -88,7 +89,8 @@ public class Window extends Resource {
 		int				width,
 		int				height,
 		int				borderWidth,
-		boolean			inputOnly
+		boolean			inputOnly,
+		boolean			isRoot
 	) {
 		super (WINDOW, id, xServer, client);
 
@@ -133,14 +135,17 @@ public class Window extends Resource {
 			0	// cursor = None
 		};
 
-		if (_parent == null) {	// Make the root window grey and mapped.
+		if (isRoot) {
 			_attributes[AttrBackgroundPixel] = 0xff808080;
 			_isMapped = true;
 			_cursor = (Cursor) _xServer.getResource (2);	// X cursor.
+		} else if (_parent != null) {
+			_attributes[AttrBackgroundPixel] =
+								_parent._attributes[AttrBackgroundPixel];
 		}
 
 		_drawable = new Drawable (width, height, 32,
-										_attributes[AttrBackgroundPixel]);
+							_attributes[AttrBackgroundPixel] | 0xff000000);
 		_children = new Vector<Window> ();
 		_properties = new Hashtable<Integer, Property> ();
 		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
@@ -301,7 +306,7 @@ public class Window extends Resource {
 
 			float		hbw = 0.5f * _borderWidth;
 
-			paint.setColor (_attributes[AttrBorderPixel]);
+			paint.setColor (_attributes[AttrBorderPixel] | 0xff000000);
 			paint.setStrokeWidth (_borderWidth);
 			paint.setStyle (Paint.Style.STROKE);
 			canvas.drawRect (_orect.left + hbw, _orect.top + hbw,
@@ -503,7 +508,7 @@ public class Window extends Resource {
 			inputOnly = true;
 
 		w = new Window (id, _xServer, client, _screen, this, x, y,
-									width, height, borderWidth, inputOnly);
+								width, height, borderWidth, inputOnly, false);
 		bytesRemaining -= 16;
 		if (!w.processWindowAttributes (io, sequenceNumber,
 								RequestCode.CreateWindow, bytesRemaining))
@@ -667,14 +672,10 @@ public class Window extends Resource {
 	) throws IOException {
 		boolean			ok = true;
 
-		if ((mask & (1 << AttrBackgroundPixel)) != 0) {
-			if ((_attributes[AttrBackgroundPixel] & 0xff000000) == 0)
-				_attributes[AttrBackgroundPixel] |= 0xff000000;
-		}
-
-		if ((mask & (1 << AttrBorderPixel)) != 0) {
-			if ((_attributes[AttrBorderPixel] & 0xff000000) == 0)
-				_attributes[AttrBorderPixel] |= 0xff000000;
+		if ((mask & (1 << AttrBackgroundPixmap)) != 0) {
+			if (_attributes[AttrBackgroundPixmap] == 1)	// ParentRelative.
+				_attributes[AttrBackgroundPixel] =
+									_parent._attributes[AttrBackgroundPixel];
 		}
 
 		if ((mask & (1 << AttrColormap)) != 0) {
@@ -1943,7 +1944,7 @@ public class Window extends Resource {
 											|| borderWidth != _borderWidth) {
 			if (width != oldWidth || height != oldHeight) {
 				_drawable = new Drawable (width, height, 32,
-											_attributes[AttrBackgroundPixel]);
+							_attributes[AttrBackgroundPixel] | 0xff000000);
 				_exposed = false;
 			}
 
@@ -2447,7 +2448,7 @@ public class Window extends Resource {
 					if (height == 0)
 						height = _drawable.getHeight () - y;
 					_drawable.clearArea (x, y, width, height,
-										_attributes[AttrBackgroundPixel]);
+							_attributes[AttrBackgroundPixel] | 0xff000000);
 					invalidate (x, y, width, height);
 
 					if (arg == 1)

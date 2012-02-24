@@ -18,7 +18,6 @@ import android.graphics.Region;
  * This class implements an X graphics context.
  */
 public class GContext extends Resource {
-	private final ScreenView	_screen;
 	private Paint			_paint;
 	private Font			_font = null;
 	private Path.FillType	_fillType;
@@ -57,17 +56,14 @@ public class GContext extends Resource {
 	 * @param id		The graphics context's ID.
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param screen	The graphics context's screen.
 	 */
 	public GContext (
 		int				id,
 		XServer			xServer,
-		ClientComms		client,
-		ScreenView		screen
+		ClientComms		client
 	) {
 		super (GCONTEXT, id, xServer, client);
 
-		_screen = screen;
 		_paint = new Paint ();
 		_attributes = new int[] {
 			3,	// function = Copy
@@ -337,7 +333,6 @@ public class GContext extends Resource {
 	 * @param io	The input/output stream.
 	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the GContext to create.
-	 * @param drawable	The drawable it will be drawing to.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
@@ -348,17 +343,9 @@ public class GContext extends Resource {
 		InputOutput		io,
 		int				sequenceNumber,
 		int				id,
-		Resource		drawable,
 		int				bytesRemaining
 	) throws IOException {
-		ScreenView		s;
-
-		if (drawable.getType () == Resource.WINDOW)
-			s = ((Window) drawable).getScreen ();
-		else
-			s = ((Pixmap) drawable).getScreen ();
-
-		GContext	gc = new GContext (id, xServer, client, s);
+		GContext	gc = new GContext (id, xServer, client);
 
 		if (gc.processValues (io, RequestCode.CreateGC, sequenceNumber,
 														bytesRemaining)) {
@@ -473,10 +460,9 @@ public class GContext extends Resource {
 		int				sequenceNumber
 	) throws IOException {
 		boolean		ok = true;
-		Colormap	cmap = _screen.getDefaultColormap ();
 
-		_foregroundColor = cmap.getPixelColor (_attributes[AttrForeground]);
-		_backgroundColor = cmap.getPixelColor (_attributes[AttrBackground]);
+		_foregroundColor = _attributes[AttrForeground] | 0xff000000;
+		_backgroundColor = _attributes[AttrBackground] | 0xff000000;
 
 		_paint.setColor (_foregroundColor);
 		_paint.setStrokeWidth (_attributes[AttrLineWidth]);

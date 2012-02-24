@@ -570,7 +570,7 @@ public class ClientComms extends Thread {
 								_sequenceNumber, opcode, d);
 					} else {
 						GContext.processCreateGCRequest (_xServer, this,
-								_inputOutput, _sequenceNumber, id, r,
+								_inputOutput, _sequenceNumber, id,
 								requestLength * 4 - 12);
 					}
 				}
