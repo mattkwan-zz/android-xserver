@@ -197,9 +197,15 @@ public class Cursor extends Resource {
 		if (sourceChar < 0 || sourceChar >= _glyphs.length)
 			sourceChar = 0;
 
-		_bitmap = BitmapFactory.decodeResource (
+		if (maskChar == 32) {
+			_bitmap = Bitmap.createBitmap (16, 16, Bitmap.Config.ARGB_8888);
+			_bitmap.eraseColor (0);
+		} else {
+			_bitmap = BitmapFactory.decodeResource (
 									xServer.getContext ().getResources (),
 													_glyphs[sourceChar][0]);
+		}
+
 		_foregroundColor = 0xff000000;
 		_backgroundColor = 0xffffffff;
 		setColor (foregroundColor, backgroundColor);
