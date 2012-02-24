@@ -649,19 +649,6 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Is the client selecting the specified event?
-	 *
-	 * @param mask	The event.
-	 * @return	True if the client is selection the event.
-	 */
-	public boolean
-	isSelecting (
-		int			mask
-	) {
-		return (_attributes[AttrEventMask] & mask) != 0;
-	}
-
-	/**
 	 * Apply the attribute values to the window.
 	 *
 	 * @param io	The input/output stream.
@@ -683,9 +670,6 @@ public class Window extends Resource {
 		if ((mask & (1 << AttrBackgroundPixel)) != 0) {
 			if ((_attributes[AttrBackgroundPixel] & 0xff000000) == 0)
 				_attributes[AttrBackgroundPixel] |= 0xff000000;
-
-			_drawable.getBitmap().eraseColor (
-										_attributes[AttrBackgroundPixel]);
 		}
 
 		if ((mask & (1 << AttrBorderPixel)) != 0) {
@@ -733,6 +717,19 @@ public class Window extends Resource {
 		}
 	
 		return ok;
+	}
+
+	/**
+	 * Is the client selecting the specified event?
+	 *
+	 * @param mask	The event.
+	 * @return	True if the client is selection the event.
+	 */
+	public boolean
+	isSelecting (
+		int			mask
+	) {
+		return (_attributes[AttrEventMask] & mask) != 0;
 	}
 
 	/**
