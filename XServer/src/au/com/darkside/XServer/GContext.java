@@ -207,8 +207,7 @@ public class GContext extends Resource {
 	/**
 	 * Process an X request relating to this graphics context.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -217,34 +216,33 @@ public class GContext extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.QueryFont:
 			case RequestCode.QueryTextExtents:
-				_font.processRequest (io, sequenceNumber, opcode, arg,
-															bytesRemaining);
+				_font.processRequest (client, opcode, arg, bytesRemaining);
 				return;
 			case RequestCode.ChangeGC:
-				processValues (io, opcode, sequenceNumber, bytesRemaining);
+				processValues (client, opcode, bytesRemaining);
 				break;
 			case RequestCode.CopyGC:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = io.readInt ();	// Destination GContext.
 					int			mask = io.readInt ();	// Value mask.
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.GCONTEXT) {
-						ErrorCode.write (io, ErrorCode.GContext, 
-												sequenceNumber, opcode, id);
+						ErrorCode.write (client, ErrorCode.GContext, opcode,
+																		id);
 					} else {
 						GContext	gc = (GContext) r;
 
@@ -252,15 +250,14 @@ public class GContext extends Resource {
 							if ((mask & (1 << i)) != 0)
 								gc._attributes[i] = _attributes[i];
 
-						gc.applyValues (null, opcode, sequenceNumber);
+						gc.applyValues (null, opcode);
 					}
 				}
 				break;
 			case RequestCode.SetDashes:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					io.readShort ();	// Dash offset.
 
@@ -269,16 +266,14 @@ public class GContext extends Resource {
 
 					bytesRemaining -= 4;
 					if (bytesRemaining != n + pad)
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 
 					io.readSkip (n + pad);	// Ignore the dash information.
 				}
 			case RequestCode.SetClipRectangles:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int		clipXOrigin = (short) io.readShort ();
 					int		clipYOrigin = (short) io.readShort ();
@@ -286,8 +281,7 @@ public class GContext extends Resource {
 					bytesRemaining -= 4;
 					if ((bytesRemaining & 7) != 0) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 					} else {
 						int		i = 0;
 
@@ -309,8 +303,7 @@ public class GContext extends Resource {
 			case RequestCode.FreeGC:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
 					if (_clientComms != null)
@@ -319,8 +312,7 @@ public class GContext extends Resource {
 				}
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -330,8 +322,6 @@ public class GContext extends Resource {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the GContext to create.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
@@ -340,15 +330,12 @@ public class GContext extends Resource {
 	processCreateGCRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				id,
 		int				bytesRemaining
 	) throws IOException {
 		GContext	gc = new GContext (id, xServer, client);
 
-		if (gc.processValues (io, RequestCode.CreateGC, sequenceNumber,
-														bytesRemaining)) {
+		if (gc.processValues (client, RequestCode.CreateGC, bytesRemaining)) {
 			xServer.addResource (gc);
 			client.addResource (gc);
 		}
@@ -357,23 +344,23 @@ public class GContext extends Resource {
 	/**
 	 * Process a list of GContext attribute values.
 	 *
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param opcode	The opcode being processed.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @return	True if the values are all valid.
 	 * @throws IOException
 	 */
 	private boolean
 	processValues (
-		InputOutput		io,
+		ClientComms		client,
 		byte			opcode,
-		int				sequenceNumber,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return false;
 		}
 
@@ -383,7 +370,7 @@ public class GContext extends Resource {
 		bytesRemaining -= 4;
 		if (bytesRemaining != n * 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return false;
 		}
 
@@ -391,7 +378,7 @@ public class GContext extends Resource {
 			if ((valueMask & (1 << i)) != 0)
 				processValue (io, i);
 
-		return applyValues (io, opcode, sequenceNumber);
+		return applyValues (client, opcode);
 	}
 
 	/**
@@ -447,17 +434,15 @@ public class GContext extends Resource {
 	/**
 	 * Apply the attribute values to the Paint.
 	 *
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param opcode	The opcode being processed.
-	 * @param sequenceNumber	The request sequence number.
 	 * @return	True if the values are all valid.
 	 * @throws IOException
 	 */
 	private boolean
 	applyValues (
-		InputOutput		io,
-		byte			opcode,
-		int				sequenceNumber
+		ClientComms		client,
+		byte			opcode
 	) throws IOException {
 		boolean		ok = true;
 
@@ -504,9 +489,7 @@ public class GContext extends Resource {
 
 		if (fid != 0 && !setFont (fid)) {
 			ok = false;
-			if (io != null)
-				ErrorCode.write (io, ErrorCode.Font, sequenceNumber, opcode,
-																	fid);
+			ErrorCode.write (client, ErrorCode.Font, opcode, fid);
 		}
 	
 		return ok;

@@ -130,8 +130,7 @@ public class Resource {
 	 * Process an X request relating to this resource.
 	 * This is a fallback function that does nothing.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -139,8 +138,7 @@ public class Resource {
 	 */
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining

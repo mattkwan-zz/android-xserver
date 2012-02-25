@@ -143,21 +143,21 @@ public class Atom {
 	 * Process a GetAtomName request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public static void
 	processGetAtomNameRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining != 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.GetAtomName, 0);
 			return;
 		}
@@ -166,8 +166,8 @@ public class Atom {
 		Atom		a = xServer.getAtom (id);
 
 		if (a == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
-											RequestCode.GetAtomName, id);
+			ErrorCode.write (client, ErrorCode.Atom, RequestCode.GetAtomName,
+																		id);
 			return;
 		}
 
@@ -176,7 +176,7 @@ public class Atom {
 		int			pad = -length & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeShort ((short) length);	// Name length.
 			io.writePadBytes (22);	// Unused.
@@ -191,8 +191,7 @@ public class Atom {
 	 * Return or create an atom with the specified name.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
@@ -200,15 +199,16 @@ public class Atom {
 	public static void
 	processInternAtomRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-												RequestCode.InternAtom, 0);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.InternAtom,
+																		0);
 			return;
 		}
 
@@ -221,8 +221,8 @@ public class Atom {
 
 		if (bytesRemaining != n + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-												RequestCode.InternAtom, 0);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.InternAtom,
+																		0);
 			return;
 		}
 
@@ -244,7 +244,7 @@ public class Atom {
 		}
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt (0);	// Reply length.
 			io.writeInt (id);	// The atom ID.
 			io.writePadBytes (20);	// Unused.

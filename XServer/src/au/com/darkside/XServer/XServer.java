@@ -610,20 +610,20 @@ public class XServer {
 	/**
 	 * Process a QueryExtension request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public void
 	processQueryExtensionRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.QueryExtension, 0);
 			return;
 		}
@@ -636,7 +636,7 @@ public class XServer {
 
 		if (bytesRemaining != length + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.QueryExtension, 0);
 			return;
 		}
@@ -655,7 +655,7 @@ public class XServer {
 			e = null;
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt (0);	// Reply length.
 
 			if (e == null) {
@@ -678,14 +678,12 @@ public class XServer {
 	/**
 	 * Write the list of extensions supported by the server.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public void
 	writeListExtensions (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
 		Set<String>		ss = _extensions.keySet ();
 		int				length = 0;
@@ -694,9 +692,10 @@ public class XServer {
 			length += s.length () + 1;
 
 		int				pad = -length & 3;
+		InputOutput		io = client.getInputOutput ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, ss.size (), sequenceNumber);
+			Util.writeReplyHeader (client, ss.size ());
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writePadBytes (24);	// Unused.
 
@@ -714,24 +713,23 @@ public class XServer {
 
 	/**
 	 * Process a ChangeHosts request.
-	 * Does nothing.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param mode	Change mode. 0=Insert, 1=Delete.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public void
 	processChangeHostsRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				mode,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 												RequestCode.ChangeHosts, 0);
 			return;
 		}
@@ -746,14 +744,14 @@ public class XServer {
 		bytesRemaining -= 4;
 		if (bytesRemaining != length + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 												RequestCode.ChangeHosts, 0);
 			return;
 		}
 
 		if (family != 0 || length != 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Value, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Value,
 												RequestCode.ChangeHosts, 0);
 			return;
 		}
@@ -774,20 +772,18 @@ public class XServer {
 	/**
 	 * Reply to a ListHosts request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public void
 	writeListHosts (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				n = _accessControlHosts.size ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, _accessControlEnabled ? 1 : 0,
-															sequenceNumber);
+			Util.writeReplyHeader (client, _accessControlEnabled ? 1 : 0);
 			io.writeInt (n * 2);	// Reply length.
 			io.writeShort ((short) n);	// Number of hosts.
 			io.writePadBytes (22);	// Unused.
@@ -898,17 +894,17 @@ public class XServer {
 	/**
 	 * Reply to GetScreenSaver request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public void
 	writeScreenSaver (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt (0);	// Reply length.
 			io.writeShort ((short) _screenSaverTimeout);	// Timeout.
 			io.writeShort ((short) _screenSaverInterval);	// Interval.

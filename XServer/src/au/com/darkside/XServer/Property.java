@@ -63,8 +63,7 @@ public class Property {
 	 * Process an X request relating to properties.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param arg	Optional first argument.
 	 * @param opcode	The request's opcode.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -75,8 +74,7 @@ public class Property {
 	public static void
 	processRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				arg,
 		byte			opcode,
 		int				bytesRemaining,
@@ -85,21 +83,22 @@ public class Property {
 	) throws IOException {
 		switch (opcode) {
 			case RequestCode.ChangeProperty:
-				processChangePropertyRequest (xServer, io, sequenceNumber,
-										arg, bytesRemaining, w, properties);
+				processChangePropertyRequest (xServer, client, arg,
+											bytesRemaining, w, properties);
 				break;
 			case RequestCode.GetProperty:
-				processGetPropertyRequest (xServer, io, sequenceNumber,
-									arg == 1, bytesRemaining, w, properties);
+				processGetPropertyRequest (xServer, client, arg == 1,
+											bytesRemaining, w, properties);
 				break;
 			case RequestCode.RotateProperties:
-				processRotatePropertiesRequest (xServer, io, sequenceNumber,
+				processRotatePropertiesRequest (xServer, client,
 											bytesRemaining, w, properties);
 				break;
 			default:
+				InputOutput		io = client.getInputOutput ();
+
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation, sequenceNumber,
-																opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -109,8 +108,7 @@ public class Property {
 	 * Change the owner of the specified selection.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param mode	0=Replace 1=Prepend 2=Append.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @param w	The window containing the properties.
@@ -119,17 +117,18 @@ public class Property {
 	 */
 	public static void
 	processChangePropertyRequest (
-		XServer				xServer,
-		InputOutput			io,
-		int					sequenceNumber,
-		int					mode,
-		int					bytesRemaining,
-		Window				w,
+		XServer			xServer,
+		ClientComms		client,
+		int				mode,
+		int				bytesRemaining,
+		Window			w,
 		Hashtable<Integer, Property>	properties
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 16) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.ChangeProperty, 0);
 			return;
 		}
@@ -155,7 +154,7 @@ public class Property {
 		bytesRemaining -= 16;
 		if (bytesRemaining != n + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.ChangeProperty, 0);
 			return;
 		}
@@ -168,13 +167,13 @@ public class Property {
 		Atom		property = xServer.getAtom (pid);
 
 		if (property == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.ChangeProperty, pid);
 			return;
 		}
 
 		if (!xServer.atomExists (tid)) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.ChangeProperty, tid);
 			return;
 		}
@@ -194,7 +193,7 @@ public class Property {
 			p._data = data;
 		} else {
 			if (tid != p._type || format != p._format) {
-				ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Match,
 											RequestCode.ChangeProperty, 0);
 				return;
 			}
@@ -221,15 +220,13 @@ public class Property {
 		if (w.isSelecting (EventCode.MaskPropertyChange))
 			EventCode.sendPropertyNotify (w.getClientComms (), w, property,
 												xServer.getTimestamp (), 0);
-
 	}
 
 	/**
 	 * Process a GetProperty request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param delete	Delete flag.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @param w	The window containing the properties.
@@ -238,18 +235,19 @@ public class Property {
 	 */
 	public static void
 	processGetPropertyRequest (
-		XServer				xServer,
-		InputOutput			io,
-		int					sequenceNumber,
-		boolean				delete,
-		int					bytesRemaining,
-		Window				w,
+		XServer			xServer,
+		ClientComms		client,
+		boolean			delete,
+		int				bytesRemaining,
+		Window			w,
 		Hashtable<Integer, Property>	properties
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining != 16) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-											RequestCode.GetProperty, 0);
+			ErrorCode.write (client, ErrorCode.Length,
+												RequestCode.GetProperty, 0);
 			return;
 		}
 
@@ -260,11 +258,11 @@ public class Property {
 		Atom		property = xServer.getAtom (pid);
 
 		if (property == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.GetProperty, pid);
 			return;
 		} else if (tid != 0 && !xServer.atomExists (tid)) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.GetProperty, tid);
 			return;
 		}
@@ -297,7 +295,7 @@ public class Property {
 				bytesAfter = n - (i + l);
 
 				if (l < 0) {
-					ErrorCode.write (io, ErrorCode.Value, sequenceNumber,
+					ErrorCode.write (client, ErrorCode.Value,
 												RequestCode.GetProperty, 0);
 					return;
 				}
@@ -326,7 +324,7 @@ public class Property {
 			valueLength = 0;
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, format, sequenceNumber);
+			Util.writeReplyHeader (client, format);
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeInt (tid);	// Type.
 			io.writeInt (bytesAfter);	// Bytes after.
@@ -349,8 +347,7 @@ public class Property {
 	 * Process a RotateProperties request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @param w	The window containing the properties.
 	 * @param properties	Hash table of the window's properties.
@@ -358,16 +355,17 @@ public class Property {
 	 */
 	public static void
 	processRotatePropertiesRequest (
-		XServer				xServer,
-		InputOutput			io,
-		int					sequenceNumber,
-		int					bytesRemaining,
-		Window				w,
+		XServer			xServer,
+		ClientComms		client,
+		int				bytesRemaining,
+		Window			w,
 		Hashtable<Integer, Property>	properties
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 										RequestCode.RotateProperties, 0);
 			return;
 		}
@@ -378,7 +376,7 @@ public class Property {
 		bytesRemaining -= 4;
 		if (bytesRemaining != n * 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 										RequestCode.RotateProperties, 0);
 			return;
 		}
@@ -395,11 +393,11 @@ public class Property {
 
 		for (int i = 0; i < n; i++) {
 			if (!xServer.atomExists (aids[i])) {
-				ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Atom,
 									RequestCode.RotateProperties, aids[i]);
 				return;
 			} else if (!properties.containsKey (aids[i])) {
-				ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Match,
 									RequestCode.RotateProperties, aids[i]);
 				return;
 			} else {

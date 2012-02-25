@@ -34,20 +34,21 @@ public class Util {
 	/**
 	 * Write the header of a reply.
 	 *
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param arg	Optional argument.
-	 * @param sequenceNumber	The request sequence number.
 	 * @throws IOException
 	 */
 	public static void
 	writeReplyHeader (
-		InputOutput		io,
-		int				arg,
-		int				sequenceNumber
+		ClientComms		client,
+		int				arg
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+		short			sn = (short) (client.getSequenceNumber () & 0xffff);
+
 		io.writeByte ((byte) 1);	// Reply.
 		io.writeByte ((byte) arg);
-		io.writeShort ((short) (sequenceNumber & 0xffff));
+		io.writeShort (sn);
 	}
 
 	/**

@@ -787,19 +787,18 @@ public class ScreenView extends View {
 	/**
 	 * Write the screen's installed colormaps.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public void
 	writeInstalledColormaps (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
-		int			n = _installedColormaps.size ();
+		InputOutput		io = client.getInputOutput ();
+		int				n = _installedColormaps.size ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt (n);	// Reply length.
 			io.writeShort ((short) n);	// Number of colormaps.
 			io.writePadBytes (22);	// Unused.
@@ -814,8 +813,7 @@ public class ScreenView extends View {
 	 * Process a screen-related request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg	Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -824,38 +822,34 @@ public class ScreenView extends View {
 	public void
 	processRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.SendEvent:
 				if (bytesRemaining != 40) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processSendEventRequest (_xServer, io, sequenceNumber,
-																arg == 1);
+					processSendEventRequest (_xServer, client, arg == 1);
 				}
 				break;
 			case RequestCode.GrabPointer:
 				if (bytesRemaining != 20) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processGrabPointerRequest (_xServer, io, sequenceNumber,
-																arg == 1);
+					processGrabPointerRequest (_xServer, client, arg == 1);
 				}
 				break;
 			case RequestCode.UngrabPointer:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			time = io.readInt ();	// Time.
 					int			now = _xServer.getTimestamp ();
@@ -874,18 +868,15 @@ public class ScreenView extends View {
 			case RequestCode.GrabButton:
 				if (bytesRemaining != 20) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processGrabButtonRequest (_xServer, io, sequenceNumber,
-																arg == 1);
+					processGrabButtonRequest (_xServer, client, arg == 1);
 				}
 				break;
 			case RequestCode.UngrabButton:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			wid = io.readInt ();	// Grab window.
 					int			modifiers = io.readShort ();	// Modifiers.
@@ -894,8 +885,7 @@ public class ScreenView extends View {
 					io.readSkip (2);	// Unused.
 
 					if (r == null || r.getType () != Resource.WINDOW) {
-						ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-																opcode, wid);
+						ErrorCode.write (client, ErrorCode.Window, opcode, wid);
 					} else {
 						Window		w = (Window) r;
 
@@ -906,8 +896,7 @@ public class ScreenView extends View {
 			case RequestCode.ChangeActivePointerGrab:
 				if (bytesRemaining != 12) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			cid = io.readInt ();	// Cursor.
 					int			time = io.readInt ();	// Time.
@@ -920,8 +909,8 @@ public class ScreenView extends View {
 						Resource	r = _xServer.getResource (cid);
 
 						if (r == null)
-							ErrorCode.write (io, ErrorCode.Cursor,
-												sequenceNumber, opcode, 0);
+							ErrorCode.write (client, ErrorCode.Cursor, opcode,
+																		0);
 						else
 							c = (Cursor) r;
 					}
@@ -945,18 +934,15 @@ public class ScreenView extends View {
 			case RequestCode.GrabKeyboard:
 				if (bytesRemaining != 20) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processGrabKeyboardRequest (_xServer, io, sequenceNumber,
-																arg == 1);
+					processGrabKeyboardRequest (_xServer, client, arg == 1);
 				}
 				break;
 			case RequestCode.UngrabKeyboard:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			time = io.readInt ();	// Time.
 					int			now = _xServer.getTimestamp ();
@@ -977,18 +963,15 @@ public class ScreenView extends View {
 			case RequestCode.GrabKey:
 				if (bytesRemaining != 12) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processGrabKeyRequest (_xServer, io, sequenceNumber,
-																arg == 1);
+					processGrabKeyRequest (_xServer, client, arg == 1);
 				}
 				break;
 			case RequestCode.UngrabKey:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			wid = io.readInt ();	// Grab window.
 					int			modifiers = io.readShort ();	// Modifiers.
@@ -997,8 +980,8 @@ public class ScreenView extends View {
 					io.readSkip (2);	// Unused.
 
 					if (r == null || r.getType () != Resource.WINDOW) {
-						ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-																opcode, wid);
+						ErrorCode.write (client, ErrorCode.Window, opcode,
+																		wid);
 					} else {
 						Window		w = (Window) r;
 
@@ -1009,8 +992,7 @@ public class ScreenView extends View {
 			case RequestCode.AllowEvents:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			time = io.readInt ();	// Time.
 					int			now = _xServer.getTimestamp ();
@@ -1027,18 +1009,15 @@ public class ScreenView extends View {
 			case RequestCode.SetInputFocus:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processSetInputFocusRequest (_xServer, io, sequenceNumber,
-																		arg);
+					processSetInputFocusRequest (_xServer, client, arg);
 				}
 				break;
 			case RequestCode.GetInputFocus:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			wid;
 
@@ -1050,8 +1029,7 @@ public class ScreenView extends View {
 						wid = _focusWindow.getId ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, _focusRevertTo,
-															sequenceNumber);
+						Util.writeReplyHeader (client, _focusRevertTo);
 						io.writeInt (0);	// Reply length.
 						io.writeInt (wid);	// Focus window.
 						io.writePadBytes (20);	// Unused.
@@ -1066,18 +1044,17 @@ public class ScreenView extends View {
 	 * Process a SendEvent request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param propagate	Propagate flag.
 	 * @throws IOException
 	 */
 	private void
 	processSendEventRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		boolean			propagate
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Destination window.
 		int				mask = io.readInt ();	// Event mask.
 		byte[]			event = new byte[32];
@@ -1089,7 +1066,7 @@ public class ScreenView extends View {
 			w = _rootWindow.windowAtPoint (_motionX, _motionY);
 		} else if (wid == 1) {	// Input focus.
 			if (_focusWindow == null) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 												RequestCode.SendEvent, wid);
 				return;
 			}
@@ -1104,24 +1081,24 @@ public class ScreenView extends View {
 			Resource		r = _xServer.getResource (wid);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-											RequestCode.SendEvent, wid);
+				ErrorCode.write (client, ErrorCode.Window,
+												RequestCode.SendEvent, wid);
 				return;
 			} else
 				w = (Window) r;
 		}
 
-		ClientComms		client = null;
+		ClientComms		dc = null;
 
 		if (mask == 0) {
-			client = w._clientComms;
+			dc = w.getClientComms ();
 		} else if (!propagate) {
 			if ((mask & w.getEventMask ()) != 0)
-				client = w._clientComms;
+				dc = w.getClientComms ();
 		} else {
 			for (;;) {
 				if ((mask & w.getEventMask ()) != 0) {
-					client = w._clientComms;
+					dc = w.getClientComms ();
 					break;
 				}
 
@@ -1137,10 +1114,10 @@ public class ScreenView extends View {
 			}
 		}
 
-		if (client == null)
+		if (dc == null)
 			return;
 
-		InputOutput		dio = client.getInputOutput ();
+		InputOutput		dio = dc.getInputOutput ();
 
 		synchronized (dio) {
 			dio.writeByte ((byte) (event[0] | 128));
@@ -1149,7 +1126,7 @@ public class ScreenView extends View {
 				dio.writeBytes (event, 1, 31);
 			} else {
 				dio.writeByte (event[1]);
-				dio.writeShort ((short) (client.getSequenceNumber() & 0xffff));
+				dio.writeShort ((short) (dc.getSequenceNumber() & 0xffff));
 				dio.writeBytes (event, 4, 28);
 			}
 		}
@@ -1160,18 +1137,17 @@ public class ScreenView extends View {
 	 * Process a GrabPointer request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param ownerEvents	Owner-events flag.
 	 * @throws IOException
 	 */
 	private void
 	processGrabPointerRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		boolean			ownerEvents
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Grab window.
 		int				mask = io.readShort ();	// Event mask.
 		boolean			psync = (io.readByte () == 0);	// Pointer mode.
@@ -1182,7 +1158,7 @@ public class ScreenView extends View {
 		Resource		r = _xServer.getResource (wid);
 
 		if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, wid);
 			return;
 		}
@@ -1195,7 +1171,7 @@ public class ScreenView extends View {
 			r = _xServer.getResource (cwid);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, cwid);
 				return;
 			}
@@ -1205,7 +1181,7 @@ public class ScreenView extends View {
 		if (cid != 0) {
 			r = _xServer.getResource (cid);
 			if (r != null && r.getType () == Resource.CURSOR) {
-				ErrorCode.write (io, ErrorCode.Cursor, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Cursor,
 										RequestCode.GrabPointer, cid);
 				return;
 			}
@@ -1239,7 +1215,7 @@ public class ScreenView extends View {
 		}
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, status, sequenceNumber);
+			Util.writeReplyHeader (client, status);
 			io.writeInt (0);	// Reply length.
 			io.writePadBytes (24);	// Unused.
 		}
@@ -1253,18 +1229,17 @@ public class ScreenView extends View {
 	 * Process a GrabButton request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param ownerEvents	Owner-events flag.
 	 * @throws IOException
 	 */
 	private void
 	processGrabButtonRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		boolean			ownerEvents
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Grab window.
 		int				mask = io.readShort ();	// Event mask.
 		boolean			psync = (io.readByte () == 0);	// Pointer mode.
@@ -1279,7 +1254,7 @@ public class ScreenView extends View {
 		modifiers = io.readShort ();	// Modifiers.
 
 		if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, wid);
 			return;
 		}
@@ -1292,7 +1267,7 @@ public class ScreenView extends View {
 			r = _xServer.getResource (cwid);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, cwid);
 				return;
 			}
@@ -1303,8 +1278,8 @@ public class ScreenView extends View {
 			r = _xServer.getResource (cid);
 
 			if (r != null && r.getType () == Resource.CURSOR) {
-				ErrorCode.write (io, ErrorCode.Cursor, sequenceNumber,
-										RequestCode.GrabPointer, cid);
+				ErrorCode.write (client, ErrorCode.Cursor,
+											RequestCode.GrabPointer, cid);
 				return;
 			}
 			c = (Cursor) r;
@@ -1318,18 +1293,17 @@ public class ScreenView extends View {
 	 * Process a GrabKeyboard request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param ownerEvents	Owner-events flag.
 	 * @throws IOException
 	 */
 	private void
 	processGrabKeyboardRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		boolean			ownerEvents
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Grab window.
 		int				time = io.readInt ();	// Time.
 		boolean			psync = (io.readByte () == 0);	// Pointer mode.
@@ -1339,7 +1313,7 @@ public class ScreenView extends View {
 		io.readSkip (2);	// Unused.
 
 		if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabKeyboard, wid);
 			return;
 		}
@@ -1364,7 +1338,7 @@ public class ScreenView extends View {
 		}
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, status, sequenceNumber);
+			Util.writeReplyHeader (client, status);
 			io.writeInt (0);	// Reply length.
 			io.writePadBytes (24);	// Unused.
 		}
@@ -1380,18 +1354,17 @@ public class ScreenView extends View {
 	 * Process a GrabKey request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param ownerEvents	Owner-events flag.
 	 * @throws IOException
 	 */
 	private void
 	processGrabKeyRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		boolean			ownerEvents
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Grab window.
 		int				modifiers = io.readShort ();	// Modifiers.
 		int				keycode = io.readByte ();	// Key.
@@ -1402,7 +1375,7 @@ public class ScreenView extends View {
 		io.readSkip (3);	// Unused.
 
 		if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, wid);
 			return;
 		}
@@ -1417,8 +1390,7 @@ public class ScreenView extends View {
 	 * Process a SetInputFocus request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
+	 * @param client	The remote client.
 	 * @param revertTo	0=None, 1=Root, 2=Parent.
 
 	 * @throws IOException
@@ -1426,10 +1398,10 @@ public class ScreenView extends View {
 	private void
 	processSetInputFocusRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				revertTo
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Focus window.
 		int				time = io.readInt ();	// Time.
 		Window			w;
@@ -1444,7 +1416,7 @@ public class ScreenView extends View {
 			Resource	r = xServer.getResource (wid);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.GrabPointer, wid);
 				return;
 			}

@@ -279,8 +279,7 @@ public class ClientComms extends Thread {
 			case RequestCode.CreateWindow:
 				if (requestLength < 8) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// Window ID.
 					int			parent = _inputOutput.readInt ();	// Parent.
@@ -288,12 +287,11 @@ public class ClientComms extends Thread {
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else if (r == null || r.getType () != Resource.WINDOW) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.Window,
-											_sequenceNumber, opcode, parent);
+						ErrorCode.write (this, ErrorCode.Window, opcode,
+																	parent);
 					} else {
 						Window		w = (Window) r;
 
@@ -327,19 +325,17 @@ public class ClientComms extends Thread {
 			case RequestCode.ListInstalledColormaps:
 			case RequestCode.RotateProperties:
 				if (requestLength < 2) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.WINDOW) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.Window,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Window, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
@@ -362,35 +358,33 @@ public class ClientComms extends Thread {
 			case RequestCode.ImageText16:
 			case RequestCode.QueryBestSize:
 				if (requestLength < 2) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || !r.isDrawable ()) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.Drawable,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Drawable, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
 			case RequestCode.InternAtom:
-				Atom.processInternAtomRequest (_xServer, _inputOutput,
-								_sequenceNumber, arg, requestLength * 4 - 4);
+				Atom.processInternAtomRequest (_xServer, this, arg,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.GetAtomName:
-				Atom.processGetAtomNameRequest (_xServer, _inputOutput,
-									_sequenceNumber, requestLength * 4 - 4);
+				Atom.processGetAtomNameRequest (_xServer, this,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.GetSelectionOwner:
 			case RequestCode.SetSelectionOwner:
 			case RequestCode.ConvertSelection:
-				Selection.processRequest (_xServer, this, _inputOutput,
-							_sequenceNumber, opcode, requestLength * 4 - 4);
+				Selection.processRequest (_xServer, this, opcode,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.SendEvent:
 			case RequestCode.GrabPointer:
@@ -405,14 +399,13 @@ public class ClientComms extends Thread {
 			case RequestCode.AllowEvents:
 			case RequestCode.SetInputFocus:
 			case RequestCode.GetInputFocus:
-				_xServer.getScreen().processRequest (_xServer, _inputOutput,
-						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
+				_xServer.getScreen().processRequest (_xServer, this, opcode,
+												arg, requestLength * 4 - 4);
 				break;
 			case RequestCode.GrabServer:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.grabServer (this);
 				}
@@ -420,8 +413,7 @@ public class ClientComms extends Thread {
 			case RequestCode.UngrabServer:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.ungrabServer (this);
 				}
@@ -431,24 +423,21 @@ public class ClientComms extends Thread {
 			case RequestCode.GetPointerControl:
 			case RequestCode.SetPointerMapping:
 			case RequestCode.GetPointerMapping:
-				_xServer.getPointer().processRequest (_xServer, _inputOutput,
-						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
+				_xServer.getPointer().processRequest (_xServer, this, opcode,
+												arg, requestLength * 4 - 4);
 				break;				
 			case RequestCode.OpenFont:
 				if (requestLength < 3) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// Font ID.
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else {
-						Font.processOpenFontRequest (_xServer, this,
-										_inputOutput, _sequenceNumber, id,
+						Font.processOpenFontRequest (_xServer, this, id,
 										requestLength * 4 - 8);
 					}
 				}
@@ -456,64 +445,56 @@ public class ClientComms extends Thread {
 			case RequestCode.CloseFont:
 				if (requestLength != 2) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.FONT)
-						ErrorCode.write (_inputOutput, ErrorCode.Font,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Font, opcode, id);
 					else
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 				}
 				break;
 			case RequestCode.QueryFont:
 			case RequestCode.QueryTextExtents:
 				if (requestLength != 2) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || !r.isFontable ()) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.Font,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Font, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
 			case RequestCode.ListFonts:
 			case RequestCode.ListFontsWithInfo:
-				Font.processListFonts (_inputOutput, _sequenceNumber, opcode,
-													requestLength * 4 - 4);
+				Font.processListFonts (this, opcode, requestLength * 4 - 4);
 				break;
 			case RequestCode.SetFontPath:
-				Font.processSetFontPath (_xServer, _inputOutput,
-									_sequenceNumber, requestLength * 4 - 4);
+				Font.processSetFontPath (_xServer, this,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.GetFontPath:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
-					Font.processGetFontPath (_xServer, _inputOutput,
-															_sequenceNumber);
+					Font.processGetFontPath (_xServer, this);
 				}
 				break;
 			case RequestCode.CreatePixmap:
 				if (requestLength != 4) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// Pixmap ID.
 					int			did = _inputOutput.readInt ();	// Drawable ID.
@@ -521,40 +502,36 @@ public class ClientComms extends Thread {
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else if (r == null || !r.isDrawable ()) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.Drawable,
-								_sequenceNumber, opcode, did);
+						ErrorCode.write (this, ErrorCode.Drawable, opcode,
+																		did);
 					} else {
 						Pixmap.processCreatePixmapRequest (_xServer, this,
-								_inputOutput, _sequenceNumber, id, arg, r);
+																id, arg, r);
 					}
 				}
 				break;
 			case RequestCode.FreePixmap:
 				if (requestLength != 2) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.PIXMAP)
-						ErrorCode.write (_inputOutput, ErrorCode.Pixmap,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Pixmap, opcode, id);
 					else
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 				}
 				break;
 			case RequestCode.CreateGC:
 				if (requestLength < 4) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// GContext ID.
 					int			d = _inputOutput.readInt ();	// Drawable ID.
@@ -562,16 +539,13 @@ public class ClientComms extends Thread {
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else if (r == null || !r.isDrawable ()) {
 						_inputOutput.readSkip (requestLength * 4 - 12);
-						ErrorCode.write (_inputOutput, ErrorCode.Drawable,
-								_sequenceNumber, opcode, d);
+						ErrorCode.write (this, ErrorCode.Drawable, opcode, d);
 					} else {
-						GContext.processCreateGCRequest (_xServer, this,
-								_inputOutput, _sequenceNumber, id,
-								requestLength * 4 - 12);
+						GContext.processCreateGCRequest (_xServer, this, id,
+													requestLength * 4 - 12);
 					}
 				}
 				break;
@@ -581,58 +555,52 @@ public class ClientComms extends Thread {
 			case RequestCode.SetClipRectangles:
 			case RequestCode.FreeGC:
 				if (requestLength < 2) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.GCONTEXT) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.GContext,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.GContext, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
 			case RequestCode.CreateColormap:
 				if (requestLength != 4) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// Colormap ID.
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else {
 						Colormap.processCreateColormapRequest (_xServer, this,
-								_inputOutput, _sequenceNumber, id, arg);
+																	id, arg);
 					}
 				}
 				break;
 			case RequestCode.CopyColormapAndFree:
 				if (requestLength != 3) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id1 = _inputOutput.readInt ();
 					int			id2 = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id2);
 
 					if (r == null || r.getType () != Resource.COLORMAP)
-						ErrorCode.write (_inputOutput, ErrorCode.Colormap,
-											_sequenceNumber, opcode, id2);
+						ErrorCode.write (this, ErrorCode.Colormap, opcode,
+																		id2);
 					else if (!validResourceId (id1))
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-										_sequenceNumber, opcode, id1);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode,
+																		id1);
 					else
-						((Colormap) r).processCopyColormapAndFree (this,
-										_inputOutput, _sequenceNumber, id1);
+						((Colormap) r).processCopyColormapAndFree (this, id1);
 				}
 				break;
 			case RequestCode.FreeColormap:
@@ -648,19 +616,17 @@ public class ClientComms extends Thread {
 			case RequestCode.QueryColors:
 			case RequestCode.LookupColor:
 				if (requestLength < 2) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.COLORMAP) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.Colormap,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Colormap, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
@@ -668,53 +634,46 @@ public class ClientComms extends Thread {
 			case RequestCode.CreateGlyphCursor:
 				if (requestLength != 8) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();	// Cursor ID.
 
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.IDChoice,
-								_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else {
-						Cursor.processCreateRequest (_xServer, this,
-								_inputOutput, _sequenceNumber, opcode, id,
-								requestLength * 4 - 8);
+						Cursor.processCreateRequest (_xServer, this, opcode,
+												id, requestLength * 4 - 8);
 					}
 				}
 				break;
 			case RequestCode.FreeCursor:
 			case RequestCode.RecolorCursor:
 				if (requestLength < 2) {
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-											_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = _inputOutput.readInt ();
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.CURSOR) {
 						_inputOutput.readSkip (requestLength * 4 - 8);
-						ErrorCode.write (_inputOutput, ErrorCode.Colormap,
-											_sequenceNumber, opcode, id);
+						ErrorCode.write (this, ErrorCode.Colormap, opcode, id);
 					} else {
-						r.processRequest (_inputOutput, _sequenceNumber,
-										opcode, arg, requestLength * 4 - 8);
+						r.processRequest (this, opcode, arg,
+													requestLength * 4 - 8);
 					}
 				}
 				break;
 			case RequestCode.QueryExtension:
-				_xServer.processQueryExtensionRequest (_inputOutput,
-									_sequenceNumber, requestLength * 4 - 4);
+				_xServer.processQueryExtensionRequest (this,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.ListExtensions:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length,  opcode, 0);
 				} else {
-					_xServer.writeListExtensions (_inputOutput,
-															_sequenceNumber);
+					_xServer.writeListExtensions (this);
 				}
 				break;
 			case RequestCode.QueryKeymap:
@@ -725,14 +684,13 @@ public class ClientComms extends Thread {
 			case RequestCode.GetModifierMapping:
 			case RequestCode.GetKeyboardControl:
 			case RequestCode.Bell:
-				_xServer.getKeyboard().processRequest (_xServer, _inputOutput,
-						_sequenceNumber, opcode, arg, requestLength * 4 - 4);
+				_xServer.getKeyboard().processRequest (_xServer, this, opcode,
+												arg, requestLength * 4 - 4);
 				break;
 			case RequestCode.SetScreenSaver:
 				if (requestLength != 3) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					int		timeout = _inputOutput.readShort ();	// Timeout.
 					int		interval = _inputOutput.readShort ();	// Interval
@@ -746,47 +704,41 @@ public class ClientComms extends Thread {
 			case RequestCode.GetScreenSaver:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
-					_xServer.writeScreenSaver (_inputOutput, _sequenceNumber);
+					_xServer.writeScreenSaver (this);
 				}
 				break;				
 			case RequestCode.ChangeHosts:
-				_xServer.processChangeHostsRequest (_inputOutput,
-								_sequenceNumber, arg, requestLength * 4 - 4);
+				_xServer.processChangeHostsRequest (this, arg,
+													requestLength * 4 - 4);
 				break;
 			case RequestCode.ListHosts:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
-					_xServer.writeListHosts (_inputOutput, _sequenceNumber);
+					_xServer.writeListHosts (this);
 				}
 				break;
 			case RequestCode.SetAccessControl:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.setAccessControl (arg == 1);
 				}
 				break;
 			case RequestCode.SetCloseDownMode:
-				processSetCloseDownModeRequest (_inputOutput, _sequenceNumber,
-												arg, requestLength * 4 - 4);
+				processSetCloseDownModeRequest (arg, requestLength * 4 - 4);
 				break;
 			case RequestCode.KillClient:
-				processKillClientRequest (_inputOutput, _sequenceNumber,
-													requestLength * 4 - 4);
+				processKillClientRequest (requestLength * 4 - 4);
 				break;
 			case RequestCode.ForceScreenSaver:
 				if (requestLength != 1) {
 					_inputOutput.readSkip (requestLength * 4 - 4);
-					ErrorCode.write (_inputOutput, ErrorCode.Length,
-												_sequenceNumber, opcode, 0);
+					ErrorCode.write (this, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.getScreen().blank (arg == 1);
 				}
@@ -796,8 +748,7 @@ public class ClientComms extends Thread {
 				break;
 			default:	// Opcode not implemented.
 				_inputOutput.readSkip (requestLength * 4 - 4);
-				ErrorCode.write (_inputOutput, ErrorCode.Implementation,
-												_sequenceNumber, opcode, 0);
+				ErrorCode.write (this, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -805,23 +756,19 @@ public class ClientComms extends Thread {
 	/**
 	 * Process a SetCloseDownMode request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
 	 * @param mode	The close down mode.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public void
 	processSetCloseDownModeRequest (
-		InputOutput		io,
-		int				sequenceNumber,
 		int				mode,
 		int				bytesRemaining
 	) throws IOException {
 		if (bytesRemaining != 0) {
-			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-											RequestCode.SetCloseDownMode, 0);
+			_inputOutput.readSkip (bytesRemaining);
+			ErrorCode.write (this, ErrorCode.Length,
+										RequestCode.SetCloseDownMode, 0);
 			return;
 		}
 
@@ -831,34 +778,30 @@ public class ClientComms extends Thread {
 	}
 
 	/**
-	 * Process a SetCloseDownMode request.
+	 * Process a KillClient request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The sequence number of the request.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public void
 	processKillClientRequest (
-		InputOutput		io,
-		int				sequenceNumber,
 		int				bytesRemaining
 	) throws IOException {
 		if (bytesRemaining != 4) {
-			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-												RequestCode.KillClient, 0);
+			_inputOutput.readSkip (bytesRemaining);
+			ErrorCode.write (this, ErrorCode.Length, RequestCode.KillClient,
+																		0);
 			return;
 		}
 
-		int			id = io.readInt ();
+		int			id = _inputOutput.readInt ();
 		ClientComms	client = null;
 
 		if (id != 0) {
 			Resource	r = _xServer.getResource (id);
 
 			if (r == null) {
-				ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+				ErrorCode.write (this, ErrorCode.Length,
 												RequestCode.KillClient, 0);
 				return;
 			}

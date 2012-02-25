@@ -281,8 +281,7 @@ public class Cursor extends Resource {
 	/**
 	 * Process an X request relating to this cursor.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -291,18 +290,18 @@ public class Cursor extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.FreeCursor:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
 					if (_clientComms != null)
@@ -312,8 +311,7 @@ public class Cursor extends Resource {
 			case RequestCode.RecolorCursor:
 				if (bytesRemaining != 12) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int		fgRed = io.readShort ();
 					int		fgGreen = io.readShort ();
@@ -328,8 +326,8 @@ public class Cursor extends Resource {
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-										sequenceNumber, opcode, _id);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode,
+																	_id);
 				break;
 		}
 	}
@@ -339,8 +337,6 @@ public class Cursor extends Resource {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param opcode	The request opcode.
 	 * @param id	The ID of the cursor to create.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -350,12 +346,12 @@ public class Cursor extends Resource {
 	processCreateRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		byte			opcode,
 		int				id,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (opcode == RequestCode.CreateCursor) {
 			int			sid = io.readInt ();	// Source pixmap ID.
 			int			mid = io.readInt ();	// Mask pixmap ID.
@@ -371,14 +367,12 @@ public class Cursor extends Resource {
 			Resource	mr = null;
 
 			if (r == null || r.getType () != Resource.PIXMAP) {
-				ErrorCode.write (io, ErrorCode.Pixmap, sequenceNumber, opcode,
-																		sid);
+				ErrorCode.write (client, ErrorCode.Pixmap, opcode, sid);
 				return;
 			} else if (mid != 0) {
 				mr = xServer.getResource (mid);
 				if (mr == null || mr.getType () != Resource.PIXMAP) {
-					ErrorCode.write (io, ErrorCode.Pixmap, sequenceNumber,
-															opcode, mid);
+					ErrorCode.write (client, ErrorCode.Pixmap, opcode, mid);
 					return;
 				}
 			}
@@ -387,13 +381,11 @@ public class Cursor extends Resource {
 			Pixmap		mp = (Pixmap) mr;
 
 			if (p.getDepth () != 1) {
-				ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-															opcode, sid);
+				ErrorCode.write (client, ErrorCode.Match, opcode, sid);
 				return;
 			} else if (mp != null) {
 				if (mp.getDepth () != 1) {
-					ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-															opcode, mid);
+					ErrorCode.write (client, ErrorCode.Match, opcode, mid);
 					return;
 				}
 
@@ -402,8 +394,7 @@ public class Cursor extends Resource {
 
 				if (bm1.getWidth () != bm2.getWidth ()
 									|| bm1.getHeight () != bm2.getHeight ()) {
-					ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-															opcode, mid);
+					ErrorCode.write (client, ErrorCode.Match, opcode, mid);
 					return;
 				}
 			}
@@ -430,14 +421,12 @@ public class Cursor extends Resource {
 			Resource	mr = null;
 
 			if (r == null || r.getType () != Resource.FONT) {
-				ErrorCode.write (io, ErrorCode.Font, sequenceNumber, opcode,
-																		sid);
+				ErrorCode.write (client, ErrorCode.Font, opcode, sid);
 				return;
 			} else if (mid != 0) {
 				mr = xServer.getResource (mid);
 				if (mr == null || mr.getType () != Resource.FONT) {
-					ErrorCode.write (io, ErrorCode.Font, sequenceNumber,
-															opcode, mid);
+					ErrorCode.write (client, ErrorCode.Font, opcode, mid);
 					return;
 				}
 			}

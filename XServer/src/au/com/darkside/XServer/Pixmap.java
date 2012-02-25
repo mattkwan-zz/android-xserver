@@ -75,8 +75,7 @@ public class Pixmap extends Resource {
 	/**
 	 * Process an X request relating to this pixmap.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -85,18 +84,18 @@ public class Pixmap extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.FreePixmap:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
 					if (_clientComms != null)
@@ -106,10 +105,9 @@ public class Pixmap extends Resource {
 			case RequestCode.GetGeometry:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					writeGeometry (io, sequenceNumber);
+					writeGeometry (client);
 				}
 				break;
 			case RequestCode.CopyArea:
@@ -129,14 +127,13 @@ public class Pixmap extends Resource {
 			case RequestCode.ImageText8:
 			case RequestCode.ImageText16:
 			case RequestCode.QueryBestSize:
-				_drawable.processRequest (_xServer, io, _id, sequenceNumber,
-											opcode, arg, bytesRemaining);
+				_drawable.processRequest (_xServer, client, _id, opcode, arg,
+															bytesRemaining);
 				return;
 			default:
 				io.readSkip (bytesRemaining);
 				bytesRemaining = 0;
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -145,17 +142,17 @@ public class Pixmap extends Resource {
 	 * Write details of the pixmap's geometry in response to a GetGeometry
 	 * request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	private void
 	writeGeometry (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		synchronized (io) {
-			Util.writeReplyHeader (io, 32, sequenceNumber);
+			Util.writeReplyHeader (client, 32);
 			io.writeInt (0);	// Reply length.
 			io.writeInt (_screen.getRootWindow().getId ());	// Root window.
 			io.writeShort ((short) 0);	// X.
@@ -173,8 +170,6 @@ public class Pixmap extends Resource {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the pixmap to create.
 	 * @param depth		The depth of the pixmap.
 	 * @param drawable	The drawable whose depth it must match.
@@ -184,16 +179,15 @@ public class Pixmap extends Resource {
 	processCreatePixmapRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				id,
 		int				depth,
 		Resource		drawable
 	) throws IOException {
-		int			width = io.readShort ();	// Width.
-		int			height = io.readShort ();	// Height.
-		ScreenView	screen;
-		Pixmap		p;
+		InputOutput		io = client.getInputOutput ();
+		int				width = io.readShort ();	// Width.
+		int				height = io.readShort ();	// Height.
+		ScreenView		screen;
+		Pixmap			p;
 
 		if (drawable.getType () == Resource.PIXMAP)
 			screen = ((Pixmap) drawable).getScreen ();

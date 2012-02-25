@@ -87,9 +87,8 @@ public class Drawable {
 	 * Process an X request relating to this drawable.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param id	The ID of the pixmap or window using this drawable.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -99,21 +98,20 @@ public class Drawable {
 	public boolean
 	processRequest (
 		XServer			xServer,
-		InputOutput		io,
+		ClientComms		client,
 		int				id,
-		int				sequenceNumber,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
 		boolean			changed = false;
+		InputOutput		io = client.getInputOutput ();
 
 		switch (opcode) {
 			case RequestCode.CopyArea:
 				if (bytesRemaining != 20) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			did = io.readInt ();	// Dest drawable.
 					int			gcid = io.readInt ();	// GC.
@@ -127,23 +125,22 @@ public class Drawable {
 					Resource	r2 = xServer.getResource (gcid);
 
 					if (r1 == null || !r1.isDrawable ()) {
-						ErrorCode.write (io, ErrorCode.Drawable,
-												sequenceNumber, opcode, did);
+						ErrorCode.write (client, ErrorCode.Drawable, opcode,
+																		did);
 					} else if (r2 == null
 									|| r2.getType () != Resource.GCONTEXT) {
-						ErrorCode.write (io, ErrorCode.GContext,
-												sequenceNumber, opcode, gcid);
+						ErrorCode.write (client, ErrorCode.GContext, opcode,
+																		gcid);
 					} else if (width > 0 && height > 0){
-						copyArea (io, sequenceNumber, sx, sy, width, height,
-												r1, dx, dy, (GContext) r2);
+						copyArea (sx, sy, width, height, r1, dx, dy,
+															(GContext) r2);
 					}
 				}
 				break;
 			case RequestCode.CopyPlane:
 				if (bytesRemaining != 24) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, id);
+					ErrorCode.write (client, ErrorCode.Length, opcode, id);
 				} else {
 					int			did = io.readInt ();	// Dest drawable.
 					int			gcid = io.readInt ();	// GC.
@@ -158,43 +155,40 @@ public class Drawable {
 					Resource	r2 = xServer.getResource (gcid);
 
 					if (r1 == null || !r1.isDrawable ()) {
-						ErrorCode.write (io, ErrorCode.Drawable,
-												sequenceNumber, opcode, did);
+						ErrorCode.write (client, ErrorCode.Drawable, opcode,
+																		did);
 					} else if (r2 == null
 									|| r2.getType () != Resource.GCONTEXT) {
-						ErrorCode.write (io, ErrorCode.GContext,
-												sequenceNumber, opcode, gcid);
+						ErrorCode.write (client, ErrorCode.GContext, opcode,
+																		gcid);
 					} else {
 						if (_depth != 32)
-							copyPlane (io, sequenceNumber, sx, sy, width,
-										height, bitPlane, r1, dx, dy,
-										(GContext) r2);
+							copyPlane (sx, sy, width, height, bitPlane, r1,
+													dx, dy, (GContext) r2);
 						else
-							copyArea (io, sequenceNumber, sx, sy, width,
-										height, r1, dx, dy, (GContext) r2);
+							copyArea (sx, sy, width, height, r1, dx, dy,
+															(GContext) r2);
 					}
 				}
 				break;
 			case RequestCode.GetImage:
 				if (bytesRemaining != 12) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processGetImageRequest (io, sequenceNumber, arg);
+					processGetImageRequest (client, arg);
 				}
 				break;
 			case RequestCode.QueryBestSize:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			width = io.readShort ();	// Width.
 					int			height = io.readShort ();	// Height.
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) width);	// Width.
 						io.writeShort ((short) height);	// Height.
@@ -218,8 +212,7 @@ public class Drawable {
 			case RequestCode.ImageText16:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			gcid = io.readInt ();	// GContext.
 					Resource	r = xServer.getResource (gcid);
@@ -227,20 +220,18 @@ public class Drawable {
 					bytesRemaining -= 4;
 					if (r == null || r.getType () != Resource.GCONTEXT) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.GContext,
-												sequenceNumber, opcode, 0);
+						ErrorCode.write (client, ErrorCode.GContext, opcode,
+																		0);
 
 					} else {
-						changed = processGCRequest (xServer, io, id,
-								(GContext) r, sequenceNumber, opcode, arg,
-								bytesRemaining);
+						changed = processGCRequest (xServer, client, id,
+								(GContext) r, opcode, arg, bytesRemaining);
 					}
 				}
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 
@@ -250,26 +241,25 @@ public class Drawable {
 	/**
 	 * Process a GetImage request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param format	1=XYPixmap, 2=ZPixmap.
 	 * @throws IOException
 	 */
 	private void
 	processGetImageRequest (
-		InputOutput	io,
-		int			sequenceNumber,
-		int			format
+		ClientComms		client,
+		int				format
 	) throws IOException {
-		short		x = (short) io.readShort ();	// X.
-		short		y = (short) io.readShort ();	// Y.
-		int			width = io.readShort ();	// Width.
-		int			height = io.readShort ();	// Height.
-		int			planeMask = io.readInt ();	// Plane mask.
-		int			wh = width * height;
-		int			n, pad;
-		int[]		pixels = new int[wh];
-		byte[]		bytes = null;
+		InputOutput		io = client.getInputOutput ();
+		short			x = (short) io.readShort ();	// X.
+		short			y = (short) io.readShort ();	// Y.
+		int				width = io.readShort ();	// Width.
+		int				height = io.readShort ();	// Height.
+		int				planeMask = io.readInt ();	// Plane mask.
+		int				wh = width * height;
+		int				n, pad;
+		int[]			pixels = new int[wh];
+		byte[]			bytes = null;
 
 		_bitmap.getPixels (pixels, 0, width, x, y, width, height);
 
@@ -309,7 +299,7 @@ public class Drawable {
 		pad = -n & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 32, sequenceNumber);
+			Util.writeReplyHeader (client, 32);
 			io.writeInt ((n + pad) / 4);	// Reply length.
 			io.writeInt (0);	// Visual ID.
 			io.writePadBytes (20);	// Unused.
@@ -328,8 +318,8 @@ public class Drawable {
 			io.writePadBytes (pad);	// Unused.
 		}
 		io.flush ();
-
 	}
+
 	/**
 	 * Clear a rectangular region of the drawable.
 	 *
@@ -358,8 +348,6 @@ public class Drawable {
 	/**
 	 * Copy a rectangle from this drawable to another.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param sx	X coordinate of this rectangle.
 	 * @param sy	Y coordinate of this rectangle.
 	 * @param width	Width of the rectangle.
@@ -372,8 +360,6 @@ public class Drawable {
 	 */
 	private void
 	copyArea (
-		InputOutput	io,
-		int			sequenceNumber,
 		int			sx,
 		int			sy,
 		int			width,
@@ -405,8 +391,6 @@ public class Drawable {
 	/**
 	 * Copy a rectangle from a plane of this drawable to another rectangle.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param sx	X coordinate of this rectangle.
 	 * @param sy	Y coordinate of this rectangle.
 	 * @param width	Width of the rectangle.
@@ -420,8 +404,6 @@ public class Drawable {
 	 */
 	private void
 	copyPlane (
-		InputOutput	io,
-		int			sequenceNumber,
 		int			sx,
 		int			sy,
 		int			width,
@@ -492,10 +474,9 @@ public class Drawable {
 	 * GContext provided.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param id	The ID of the pixmap or window using this drawable.
 	 * @param gc	The GContext to use for drawing.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -505,14 +486,14 @@ public class Drawable {
 	public boolean
 	processGCRequest (
 		XServer			xServer,
-		InputOutput		io,
+		ClientComms		client,
 		int				id,
 		GContext		gc,
-		int				sequenceNumber,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		Paint			paint = gc.getPaint ();
 		boolean			changed = false;
 		int				originalColor = paint.getColor ();
@@ -527,8 +508,7 @@ public class Drawable {
 			case RequestCode.PolyPoint:
 				if ((bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					float[]		points = new float[bytesRemaining / 2];
 					int			i = 0;
@@ -551,8 +531,7 @@ public class Drawable {
 			case RequestCode.PolyLine:
 				if ((bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					Path		path = new Path ();
 					int			i = 0;
@@ -578,8 +557,7 @@ public class Drawable {
 			case RequestCode.PolySegment:
 				if ((bytesRemaining & 7) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					float[]		points = new float[bytesRemaining / 2];
 					int			i = 0;
@@ -597,8 +575,7 @@ public class Drawable {
 			case RequestCode.PolyFillRectangle:
 				if ((bytesRemaining & 7) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					if (opcode == RequestCode.PolyRectangle)
 						paint.setStyle (Paint.Style.STROKE);
@@ -620,8 +597,7 @@ public class Drawable {
 			case RequestCode.FillPoly:
 				if (bytesRemaining < 4 || (bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					io.readByte ();		// Shape.
 
@@ -657,8 +633,7 @@ public class Drawable {
 			case RequestCode.PolyFillArc:
 				if ((bytesRemaining % 12) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					boolean		useCenter = false;
 
@@ -687,19 +662,16 @@ public class Drawable {
 				}
 				break;
 			case RequestCode.PutImage:
-				changed = processPutImage (io, sequenceNumber, gc, arg,
-															bytesRemaining);
+				changed = processPutImage (client, gc, arg, bytesRemaining);
 				break;
 			case RequestCode.PolyText8:
 			case RequestCode.PolyText16:
-				changed = processPolyText (io, sequenceNumber, gc, opcode,
-															bytesRemaining);
+				changed = processPolyText (client, gc, opcode, bytesRemaining);
 				break;
 			case RequestCode.ImageText8:
 				if (bytesRemaining != 4 + arg + (-arg & 3)) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			x = (short) io.readShort ();
 					int			y = (short) io.readShort ();
@@ -715,8 +687,7 @@ public class Drawable {
 			case RequestCode.ImageText16:
 				if (bytesRemaining != 4 + 2 * arg + (-(2 * arg) & 3)) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			x = (short) io.readShort ();
 					int			y = (short) io.readShort ();
@@ -737,8 +708,7 @@ public class Drawable {
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 
@@ -753,8 +723,7 @@ public class Drawable {
 	/**
 	 * Process a PutImage request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param gc	The GContext to use for drawing.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @return	True if the drawable is modified.
@@ -762,16 +731,17 @@ public class Drawable {
 	 */
 	private boolean
 	processPutImage (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		GContext		gc,
 		int				format,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 12) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-													RequestCode.PutImage, 0);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.PutImage,
+																		0);
 			return false;
 		}
 
@@ -797,8 +767,8 @@ public class Drawable {
 
 		if (bytesRemaining != n + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-													RequestCode.PutImage, 0);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.PutImage,
+																		0);
 			return false;
 		}
 
@@ -819,8 +789,7 @@ public class Drawable {
 
 		if (badMatch) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-													RequestCode.PutImage, 0);
+			ErrorCode.write (client, ErrorCode.Match, RequestCode.PutImage, 0);
 			return false;
 		}
 
@@ -902,8 +871,7 @@ public class Drawable {
 	/**
 	 * Process a PolyText8 or PolyText16 request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param gc	The GContext to use for drawing.
 	 * @param opcode	The request's opcode.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -912,16 +880,16 @@ public class Drawable {
 	 */
 	private boolean
 	processPolyText (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		GContext		gc,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-													opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return false;
 		}
 
@@ -943,8 +911,7 @@ public class Drawable {
 
 			if (bytesRemaining < minBytes) {
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+				ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				return false;
 			}
 
@@ -956,8 +923,7 @@ public class Drawable {
 
 				bytesRemaining -= 4;
 				if (!gc.setFont (fid))
-					ErrorCode.write (io, ErrorCode.Font, sequenceNumber,
-																opcode, fid);
+					ErrorCode.write (client, ErrorCode.Font, opcode, fid);
 			} else {	// It's a string.
 				int			delta = io.readByte ();
 				String		s;

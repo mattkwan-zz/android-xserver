@@ -33,25 +33,26 @@ public class ErrorCode {
 	/**
 	 * Write an X error.
 	 *
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param error	The error code.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param opcode	The opcode of the error request.
 	 * @param resourceId	The (optional) resource ID that cause the error.
 	 * @throws IOException
 	 */
 	public static void
 	write (
-		InputOutput		io,
+		ClientComms		client,
 		byte			error,
-		int				sequenceNumber,
 		byte			opcode,
 		int				resourceId
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+		short			sn = (short) (client.getSequenceNumber () & 0xffff);
+
 		synchronized (io) {
 			io.writeByte ((byte) 0);	// Indicates an error.
 			io.writeByte (error);		// Error code.
-			io.writeShort ((short) (sequenceNumber & 0xffff));	// Seq number.
+			io.writeShort (sn);			// Sequence number.
 			io.writeInt (resourceId);	// Bad resource ID.
 			io.writeShort ((short) 0);	// Minor opcode.
 			io.writeByte (opcode);		// Major opcode.

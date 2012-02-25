@@ -59,8 +59,6 @@ public class Selection {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param opcode	The request's opcode.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
@@ -69,26 +67,25 @@ public class Selection {
 	processRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.SetSelectionOwner:
-				processSetSelectionOwnerRequest (xServer, client, io,
-											sequenceNumber, bytesRemaining);
+				processSetSelectionOwnerRequest (xServer, client,
+															bytesRemaining);
 				break;
 			case RequestCode.GetSelectionOwner:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			aid = io.readInt ();	// Selection atom.
 
 					if (!xServer.atomExists (aid)) {
-						ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+						ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.SetSelectionOwner, aid);
 					} else {
 						int			wid = 0;
@@ -98,7 +95,7 @@ public class Selection {
 							wid = sel._ownerWindow.getId ();
 
 						synchronized (io) {
-							Util.writeReplyHeader (io, 0, sequenceNumber);
+							Util.writeReplyHeader (client, 0);
 							io.writeInt (0);	// Reply length.
 							io.writeInt (wid);	// Owner.
 							io.writePadBytes (20);	// Unused.
@@ -108,13 +105,12 @@ public class Selection {
 				}
 				break;
 			case RequestCode.ConvertSelection:
-				processConvertSelectionRequest (xServer, client, io,
-											sequenceNumber, bytesRemaining);
+				processConvertSelectionRequest (xServer, client,
+															bytesRemaining);
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -125,8 +121,6 @@ public class Selection {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
@@ -134,13 +128,13 @@ public class Selection {
 	processSetSelectionOwnerRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining != 12) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 										RequestCode.SetSelectionOwner, 0);
 			return;
 		}
@@ -154,7 +148,7 @@ public class Selection {
 			Resource	r = xServer.getResource (wid);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 									RequestCode.SetSelectionOwner, wid);
 				return;
 			}
@@ -165,7 +159,7 @@ public class Selection {
 		Atom		a = xServer.getAtom (aid);
 
 		if (a == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 									RequestCode.SetSelectionOwner, aid);
 			return;
 		}
@@ -200,8 +194,6 @@ public class Selection {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
@@ -209,13 +201,13 @@ public class Selection {
 	processConvertSelectionRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining != 20) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.ConvertSelection, 0);
 			return;
 		}
@@ -230,7 +222,7 @@ public class Selection {
 		Atom		selectionAtom, targetAtom, propertyAtom;
 
 		if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Window,
 										RequestCode.ConvertSelection, wid);
 			return;
 		} else {
@@ -239,21 +231,21 @@ public class Selection {
 
 		selectionAtom = xServer.getAtom (sid);
 		if (selectionAtom == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.ConvertSelection, sid);
 			return;
 		}
 
 		targetAtom = xServer.getAtom (tid);
 		if (targetAtom == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.ConvertSelection, tid);
 			return;
 		}
 
 		propertyAtom = null;
 		if (pid != 0 && (propertyAtom = xServer.getAtom (pid)) == null) {
-			ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Atom,
 										RequestCode.ConvertSelection, pid);
 			return;
 		}

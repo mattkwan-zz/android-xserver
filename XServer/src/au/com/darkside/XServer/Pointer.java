@@ -43,27 +43,26 @@ public class Pointer {
 	 * Process a WarpPointer request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public void
 	processWarpPointer (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
-		int			swin = io.readInt ();	// Source window.
-		int			dwin = io.readInt ();	// Destination window.
-		int			sx = io.readShort ();	// Source X.
-		int			sy = io.readShort ();	// Source Y.
-		int			width = io.readShort ();	// Source width.
-		int			height = io.readShort ();	// Source height.
-		int			dx = io.readShort ();	// Destination X.
-		int			dy = io.readShort ();	// Destination Y.
-		ScreenView	screen = xServer.getScreen ();
-		boolean		ok = true;
-		int			x, y;
+		InputOutput		io = client.getInputOutput ();
+		int				swin = io.readInt ();	// Source window.
+		int				dwin = io.readInt ();	// Destination window.
+		int				sx = io.readShort ();	// Source X.
+		int				sy = io.readShort ();	// Source Y.
+		int				width = io.readShort ();	// Source width.
+		int				height = io.readShort ();	// Source height.
+		int				dx = io.readShort ();	// Destination X.
+		int				dy = io.readShort ();	// Destination Y.
+		ScreenView		screen = xServer.getScreen ();
+		boolean			ok = true;
+		int				x, y;
 
 		if (dwin == 0) {
 			x = screen.getPointerX () + dx;
@@ -72,7 +71,7 @@ public class Pointer {
 			Resource	r = xServer.getResource (dwin);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.WarpPointer, dwin);
 				ok = false;
 			}
@@ -87,7 +86,7 @@ public class Pointer {
 			Resource	r = xServer.getResource (swin);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.WarpPointer, swin);
 				ok = false;
 			} else {
@@ -115,8 +114,7 @@ public class Pointer {
 	 * Process an X request relating to the pointers.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -125,36 +123,34 @@ public class Pointer {
 	public void
 	processRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.WarpPointer:
 				if (bytesRemaining != 20) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length,
-												sequenceNumber, opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processWarpPointer (xServer, io, sequenceNumber);
+					processWarpPointer (xServer, client);
 				}
 				break;
 			case RequestCode.ChangePointerControl:
 				if (bytesRemaining != 8)
-					ErrorCode.write (io, ErrorCode.Length,
-												sequenceNumber, opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				io.readSkip (bytesRemaining);
 				break;	// Do nothing.
 			case RequestCode.GetPointerControl:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length,
-												sequenceNumber, opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) 1);	// Acceleration numerator.
 						io.writeShort ((short) 1);	// Acceleration denom.
@@ -167,17 +163,15 @@ public class Pointer {
 			case RequestCode.SetPointerMapping:
 				if (bytesRemaining != arg + (-arg & 3)) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else if (arg != _buttonMap.length) {
-					ErrorCode.write (io, ErrorCode.Value, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Value, opcode, 0);
 				} else {
 					io.readBytes (_buttonMap, 0, arg);
 					io.readSkip (-arg & 3);	// Unused.
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (0);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 					}
@@ -189,14 +183,13 @@ public class Pointer {
 			case RequestCode.GetPointerMapping:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			n = _buttonMap.length;
 					int			pad = -n & 3;
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, n, sequenceNumber);
+						Util.writeReplyHeader (client, n);
 						io.writeInt ((n + pad) / 4);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 
@@ -208,8 +201,7 @@ public class Pointer {
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}

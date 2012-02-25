@@ -216,8 +216,7 @@ public class Font extends Resource {
 	/**
 	 * Process an X request relating to this font.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -226,18 +225,18 @@ public class Font extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.CloseFont:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
 					if (_clientComms != null)
@@ -247,17 +246,15 @@ public class Font extends Resource {
 			case RequestCode.QueryFont:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					processQueryFontRequest (io, sequenceNumber);
+					processQueryFontRequest (client);
 				}
 				break;
 			case RequestCode.QueryTextExtents:
 				if (bytesRemaining < 4 || (bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			pad = (arg == 0) ? 0 : 2;
 					int			length = (bytesRemaining - pad) / 2;
@@ -271,14 +268,13 @@ public class Font extends Resource {
 					}
 
 					io.readSkip (pad);
-					processQueryTextExtentsRequest (io, sequenceNumber,
+					processQueryTextExtentsRequest (client,
 														new String (chars));
 				}
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -288,8 +284,6 @@ public class Font extends Resource {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the font to create.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
@@ -298,11 +292,10 @@ public class Font extends Resource {
 	processOpenFontRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				id,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				length = io.readShort ();	// Length of name.
 		int				pad = -length & 3;
 
@@ -310,8 +303,8 @@ public class Font extends Resource {
 		bytesRemaining -= 4;
 		if (bytesRemaining != length + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-												RequestCode.OpenFont, 0);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.OpenFont,
+																		0);
 			return;
 		}
 
@@ -340,15 +333,14 @@ public class Font extends Resource {
 	/**
 	 * Process a QueryFont request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The client issuing the request.
 	 * @throws IOException
 	 */
 	private void
 	processQueryFontRequest (
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				numFontProperties = (_nameAtom == null) ? 0 : 1;
 		int				numCharInfos = _maxChar - 31;
 		char[]			chars = new char[numCharInfos];
@@ -363,7 +355,7 @@ public class Font extends Resource {
 		_paint.getTextWidths (s, widths);
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 				// Reply length.
 			io.writeInt (7 + numFontProperties * 2 + numCharInfos * 3);
 
@@ -421,24 +413,23 @@ public class Font extends Resource {
 	/**
 	 * Process a QueryTextExtents request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param s		The string whose extents are being queried.
 	 * @throws IOException
 	 */
 	private void
 	processQueryTextExtentsRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		String			s
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		int				width = (int) _paint.measureText (s);
 		Rect			bounds = new Rect ();
 
 		_paint.getTextBounds (s, 0, s.length (), bounds);
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt (0);	// Reply length.
 			io.writeShort (_ascent);	// Font ascent.
 			io.writeShort (_descent);	// Font descent.
@@ -456,19 +447,18 @@ public class Font extends Resource {
 	 * Process a GetFontPath request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	public static void
 	processGetFontPath (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber
+		ClientComms		client
 	) throws IOException {
-		String[]	fontPaths = xServer.getFontPath ();
-		int			numPaths = 0;
-		int			length = 0;
+		InputOutput		io = client.getInputOutput ();
+		String[]		fontPaths = xServer.getFontPath ();
+		int				numPaths = 0;
+		int				length = 0;
 
 		if (fontPaths != null)
 			numPaths = fontPaths.length;
@@ -479,7 +469,7 @@ public class Font extends Resource {
 		int			pad = -length & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, 0, sequenceNumber);
+			Util.writeReplyHeader (client, 0);
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeShort ((short) numPaths);	// Number of STRs in path.
 			io.writePadBytes (22);	// Unused.
@@ -499,21 +489,21 @@ public class Font extends Resource {
 	 * Process a SetFontPath request.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public static void
 	processSetFontPath (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 												RequestCode.SetFontPath, 0);
 			return;
 		}
@@ -550,7 +540,7 @@ public class Font extends Resource {
 
 		io.readSkip (bytesRemaining);
 		if (lengthError)
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 												RequestCode.SetFontPath, 0);
 		else
 			xServer.setFontPath (fontPaths);
@@ -654,22 +644,22 @@ public class Font extends Resource {
 	/**
 	 * Process a ListFonts or ListFontsWithInfo request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public static void
 	processListFonts (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return;
 		}
 
@@ -680,7 +670,7 @@ public class Font extends Resource {
 		bytesRemaining -= 4;
 		if (bytesRemaining != length + pad) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return;
 		}
 
@@ -711,7 +701,7 @@ public class Font extends Resource {
 			pad = -length & 3;
 
 			synchronized (io) {
-				Util.writeReplyHeader (io, 0, sequenceNumber);
+				Util.writeReplyHeader (client, 0);
 				io.writeInt ((length + pad) / 4);	// Reply length.
 				io.writeShort ((short) fonts.size ());	// Number of names.
 				io.writePadBytes (22);	// Unused.
@@ -730,11 +720,11 @@ public class Font extends Resource {
 			int		remaining = fonts.size ();
 
 			for (String s: fonts)
-				writeFontWithInfo (io, sequenceNumber, s, remaining--);
+				writeFontWithInfo (client, s, remaining--);
 
 				// Last in series indicator.
 			synchronized (io) {
-				Util.writeReplyHeader (io, 0, sequenceNumber);
+				Util.writeReplyHeader (client, 0);
 				io.writeInt (7);	// Reply length.
 				io.writePadBytes (52);	// Unused.
 			}
@@ -746,19 +736,18 @@ public class Font extends Resource {
 	 * Write information about a named font.
 	 * This is one of multiple replies to a ListFontsWithInfo request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param name	The name of the font.
 	 * @param fontsRemaining	Number of replies before request is complete.
 	 * @throws IOException
 	 */
 	private static void
 	writeFontWithInfo (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		String			name,
 		int				fontsRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
 		Font			font = new Font (0, null, null, name);
 		int				numFontProperties = 0;
 		int				nameLength = name.length ();
@@ -766,7 +755,7 @@ public class Font extends Resource {
 		Paint.FontMetricsInt	metrics = font._paint.getFontMetricsInt ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (io, nameLength, sequenceNumber);
+			Util.writeReplyHeader (client, nameLength);
 				// Reply length.
 			io.writeInt (7 + numFontProperties * 2 + (nameLength + pad) / 4);
 

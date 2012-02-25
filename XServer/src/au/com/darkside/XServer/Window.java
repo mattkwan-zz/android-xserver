@@ -510,8 +510,8 @@ public class Window extends Resource {
 		w = new Window (id, _xServer, client, _screen, this, x, y,
 								width, height, borderWidth, inputOnly, false);
 		bytesRemaining -= 16;
-		if (!w.processWindowAttributes (io, sequenceNumber,
-								RequestCode.CreateWindow, bytesRemaining))
+		if (!w.processWindowAttributes (client, RequestCode.CreateWindow,
+															bytesRemaining))
 			return false;
 
 		_xServer.addResource (w);
@@ -577,8 +577,7 @@ public class Window extends Resource {
 	/**
 	 * Process a list of window attributes.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The opcode being processed.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @return	True if the window is successfully created.
@@ -586,14 +585,15 @@ public class Window extends Resource {
 	 */
 	private boolean
 	processWindowAttributes (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return false;
 		}
 
@@ -603,7 +603,7 @@ public class Window extends Resource {
 		bytesRemaining -= 4;
 		if (bytesRemaining != n * 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber, opcode, 0);
+			ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 			return false;
 		}
 
@@ -614,7 +614,7 @@ public class Window extends Resource {
 		if (opcode == RequestCode.CreateWindow)	// Apply all values on create.
 			valueMask = 0xffffffff;
 
-		return applyValues (io, opcode, sequenceNumber, valueMask);
+		return applyValues (client, opcode, valueMask);
 	}
 
 	/**
@@ -656,18 +656,16 @@ public class Window extends Resource {
 	/**
 	 * Apply the attribute values to the window.
 	 *
-	 * @param io	The input/output stream.
+	 * @param client	The remote client.
 	 * @param opcode	The opcode being processed.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param mask	Bit mask of the attributes that have changed.
 	 * @return	True if the values are all valid.
 	 * @throws IOException
 	 */
 	private boolean
 	applyValues (
-		InputOutput		io,
+		ClientComms		client,
 		byte			opcode,
-		int				sequenceNumber,
 		int				mask
 	) throws IOException {
 		boolean			ok = true;
@@ -687,8 +685,7 @@ public class Window extends Resource {
 				if (r != null && r.getType () == Resource.COLORMAP) {
 					_colormap = (Colormap) r;
 				} else {
-					ErrorCode.write (io, ErrorCode.Colormap, sequenceNumber,
-																opcode, cid);
+					ErrorCode.write (client, ErrorCode.Colormap, opcode, cid);
 					ok = false;
 				}
 			} else if (_parent != null) {
@@ -708,8 +705,7 @@ public class Window extends Resource {
 				if (r != null && r.getType () == Resource.CURSOR) {
 					_cursor = (Cursor) r;
 				} else {
-					ErrorCode.write (io, ErrorCode.Cursor, sequenceNumber,
-																opcode, cid);
+					ErrorCode.write (client, ErrorCode.Cursor, opcode, cid);
 					ok = false;
 				}
 			} else {
@@ -1487,15 +1483,10 @@ public class Window extends Resource {
 	/**
 	 * Map the window.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @throws IOException
 	 */
 	private void
-	map (
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
+	map () throws IOException {
 		if (_isMapped)
 			return;
 
@@ -1525,33 +1516,23 @@ public class Window extends Resource {
 	/**
 	 * Map the children of this window.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @throws IOException
 	 */
 	private void
-	mapSubwindows (
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
+	mapSubwindows () throws IOException {
 		for (Window w: _children) {
-			w.map (io, sequenceNumber);
-			w.mapSubwindows (io, sequenceNumber);
+			w.map ();
+			w.mapSubwindows ();
 		}
 	}
 
 	/**
 	 * Unmap the window.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @throws IOException
 	 */
 	private void
-	unmap (
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
+	unmap () throws IOException {
 		if (!_isMapped)
 			return;
 
@@ -1568,33 +1549,24 @@ public class Window extends Resource {
 	/**
 	 * Unmap the children of this window.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @throws IOException
 	 */
 	private void
-	unmapSubwindows (
-		InputOutput		io,
-		int				sequenceNumber
-	) throws IOException {
+	unmapSubwindows () throws IOException {
 		for (Window w: _children) {
-			w.unmap (io, sequenceNumber);
-			w.unmapSubwindows (io, sequenceNumber);
+			w.unmap ();
+			w.unmapSubwindows ();
 		}
 	}
 
 	/**
 	 * Destroy the window and all its children.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param removeFromParent	If true, remove it from its parent.
 	 * @throws IOException
 	 */
 	private void
 	destroy (
-		InputOutput		io,
-		int				sequenceNumber,
 		boolean			removeFromParent
 	) throws IOException {
 		if (_parent == null)	// No effect on root window.
@@ -1602,10 +1574,10 @@ public class Window extends Resource {
 
 		_xServer.freeResource (_id);
 		if (_isMapped)
-			unmap (io, sequenceNumber);
+			unmap ();
 
 		for (Window w: _children)
-			w.destroy (io, sequenceNumber, false);
+			w.destroy (false);
 
 		_children.clear ();
 
@@ -1621,8 +1593,6 @@ public class Window extends Resource {
 	/**
 	 * Change the window's parent.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param parent	New parent.
 	 * @param x	New X position relative to new parent.
 	 * @param y	New Y position relative to new parent.
@@ -1630,8 +1600,6 @@ public class Window extends Resource {
 	 */
 	private void
 	reparent (
-		InputOutput		io,
-		int				sequenceNumber,
 		Window			parent,
 		int				x,
 		int				y
@@ -1639,7 +1607,7 @@ public class Window extends Resource {
 		boolean		mapped = _isMapped;
 
 		if (mapped)
-			unmap (io, sequenceNumber);
+			unmap ();
 
 		Rect		orig = new Rect (_orect);
 		int			dx = parent._irect.left + x - _orect.left;
@@ -1671,7 +1639,7 @@ public class Window extends Resource {
 
 		_parent = parent;
 		if (mapped) {
-			map (io, sequenceNumber);
+			map ();
 			if (!_inputOnly)
 				_screen.postInvalidate (orig.left, orig.top, orig.right,
 															orig.bottom);
@@ -1681,16 +1649,12 @@ public class Window extends Resource {
 	/**
 	 * Circulate occluded windows.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param direction	0=RaiseLowest, 1=LowerHighest.
 	 * @return	True if a window is restacked.
 	 * @throws IOException
 	 */
 	private boolean
 	circulate (
-		InputOutput		io,
-		int				sequenceNumber,
 		int				direction
 	) throws IOException {
 		boolean			changed = false;
@@ -1838,8 +1802,7 @@ public class Window extends Resource {
 	/**
 	 * Process a ConfigureWindow request.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The opcode being processed.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @return	True if the window needs to be redrawn.
@@ -1847,13 +1810,14 @@ public class Window extends Resource {
 	 */
 	private boolean
 	processConfigureWindow (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		if (bytesRemaining < 4) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.ConfigureWindow, 0);
 			return false;
 		}
@@ -1865,7 +1829,7 @@ public class Window extends Resource {
 		bytesRemaining -= 4;
 		if (bytesRemaining != 4 * n) {
 			io.readSkip (bytesRemaining);
-			ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
+			ErrorCode.write (client, ErrorCode.Length,
 											RequestCode.ConfigureWindow, 0);
 			return false;
 		} else if (_parent == null) {	// No effect on root window.
@@ -1912,7 +1876,7 @@ public class Window extends Resource {
 			Resource	r = _xServer.getResource (id);
 
 			if (r == null || r.getType () != Resource.WINDOW) {
-				ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Window,
 											RequestCode.ConfigureWindow, id);
 				io.readSkip (bytesRemaining);
 				return false;
@@ -1967,7 +1931,7 @@ public class Window extends Resource {
 
 		if ((mask & 0x60) != 0) {
 			if ((sibling != null && sibling._parent != _parent)) {
-				ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
+				ErrorCode.write (client, ErrorCode.Match,
 											RequestCode.ConfigureWindow, 0);
 				return false;
 			}
@@ -2067,8 +2031,7 @@ public class Window extends Resource {
 	/**
 	 * Process an X request relating to this window.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -2077,32 +2040,33 @@ public class Window extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
 		boolean			redraw = false;
 		boolean			updatePointer = false;
+		InputOutput		io = client.getInputOutput ();
 
 		switch (opcode) {
 			case RequestCode.ChangeWindowAttributes:
-				redraw = processWindowAttributes (io, sequenceNumber,
+				redraw = processWindowAttributes (client,
 						RequestCode.ChangeWindowAttributes, bytesRemaining);
+				if (_clientComms == null)
+					_clientComms = client;	// Window manager "owns" root.
 				updatePointer = true;
 				break;
 			case RequestCode.GetWindowAttributes:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			vid = _xServer.getRootVisual().getId ();
 					int			mapState = _isMapped ? 0 : 2;
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 2, sequenceNumber);
+						Util.writeReplyHeader (client, 2);
 						io.writeInt (3);	// Reply length.
 						io.writeInt (vid);	// Visual.
 						io.writeShort ((short)
@@ -2128,10 +2092,9 @@ public class Window extends Resource {
 			case RequestCode.DestroyWindow:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					destroy (io, sequenceNumber, true);
+					destroy (true);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2139,11 +2102,10 @@ public class Window extends Resource {
 			case RequestCode.DestroySubwindows:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					for (Window w: _children)
-						w.destroy (io, sequenceNumber, false);
+						w.destroy (false);
 					_children.clear ();
 					redraw = true;
 					updatePointer = true;
@@ -2152,8 +2114,7 @@ public class Window extends Resource {
 			case RequestCode.ChangeSaveSet:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					// Do nothing.
 				}
@@ -2161,8 +2122,7 @@ public class Window extends Resource {
 			case RequestCode.ReparentWindow:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = io.readInt ();	// Parent.
 					int			x = (short) io.readShort ();	// X.
@@ -2170,10 +2130,9 @@ public class Window extends Resource {
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.WINDOW) {
-						ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-																opcode, id);
+						ErrorCode.write (client, ErrorCode.Window, opcode, id);
 					} else {
-						reparent (io, sequenceNumber, (Window) r, x, y);
+						reparent ((Window) r, x, y);
 						redraw = true;
 						updatePointer = true;
 					}
@@ -2182,10 +2141,9 @@ public class Window extends Resource {
 			case RequestCode.MapWindow:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					map (io, sequenceNumber);
+					map ();
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2193,10 +2151,9 @@ public class Window extends Resource {
 			case RequestCode.MapSubwindows:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					mapSubwindows (io, sequenceNumber);
+					mapSubwindows ();
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2204,10 +2161,9 @@ public class Window extends Resource {
 			case RequestCode.UnmapWindow:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					unmap (io, sequenceNumber);
+					unmap ();
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2215,34 +2171,30 @@ public class Window extends Resource {
 			case RequestCode.UnmapSubwindows:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					unmapSubwindows (io, sequenceNumber);
+					unmapSubwindows ();
 					redraw = true;
 					updatePointer = true;
 				}
 				break;
 			case RequestCode.ConfigureWindow:
-				redraw = processConfigureWindow (io, sequenceNumber,
-															bytesRemaining);
+				redraw = processConfigureWindow (client, bytesRemaining);
 				updatePointer = true;
 				break;
 			case RequestCode.CirculateWindow:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					redraw = circulate (io, sequenceNumber, arg);
+					redraw = circulate (arg);
 					updatePointer = true;
 				}
 				break;
 			case RequestCode.GetGeometry:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			rid = _screen.getRootWindow().getId ();
 					int			depth = _xServer.getRootVisual().getDepth ();
@@ -2259,7 +2211,7 @@ public class Window extends Resource {
 					}
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, depth, sequenceNumber);
+						Util.writeReplyHeader (client, depth);
 						io.writeInt (0);	// Reply length.
 						io.writeInt (rid);	// Root.
 						io.writeShort ((short) x);	// X.
@@ -2275,15 +2227,14 @@ public class Window extends Resource {
 			case RequestCode.QueryTree:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			rid = _screen.getRootWindow().getId ();
 					int			pid =  (_parent == null) ? 0
 														: _parent.getId ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (_children.size ());	// Reply length.
 						io.writeInt (rid);	// Root.
 						io.writeInt (pid);	// Parent.
@@ -2300,21 +2251,19 @@ public class Window extends Resource {
 			case RequestCode.ChangeProperty:
 			case RequestCode.GetProperty:
 			case RequestCode.RotateProperties:
-				Property.processRequest(_xServer, io, sequenceNumber, arg,
-							opcode, bytesRemaining, this, _properties);
+				Property.processRequest(_xServer, client, arg, opcode,
+										bytesRemaining, this, _properties);
 				break;
 			case RequestCode.DeleteProperty:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = io.readInt ();	// Property.
 					Atom		a = _xServer.getAtom (id);
 
 					if (a == null) {
-						ErrorCode.write (io, ErrorCode.Atom, sequenceNumber,
-																opcode, id);
+						ErrorCode.write (client, ErrorCode.Atom, opcode, id);
 					} else if (_properties.containsKey (id)) {
 						_properties.remove (id);
 						if (isSelecting (EventCode.MaskPropertyChange))
@@ -2326,13 +2275,12 @@ public class Window extends Resource {
 			case RequestCode.ListProperties:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			n = _properties.size ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (n);	// Reply length.
 						io.writeShort ((short) n);	// Num atoms.
 						io.writePadBytes (22);	// Unused.
@@ -2346,8 +2294,7 @@ public class Window extends Resource {
 			case RequestCode.QueryPointer:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			rid = _screen.getRootWindow().getId ();
 					int			rx = _screen.getPointerX ();
@@ -2362,7 +2309,7 @@ public class Window extends Resource {
 						cid = w.getId ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 1, sequenceNumber);
+						Util.writeReplyHeader (client, 1);
 						io.writeInt (0);	// Reply length.
 						io.writeInt (rid);	// Root.
 						io.writeInt (cid);	// Child.
@@ -2379,8 +2326,7 @@ public class Window extends Resource {
 			case RequestCode.GetMotionEvents:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			numEvents = 0;	// Do nothing.
 
@@ -2388,7 +2334,7 @@ public class Window extends Resource {
 					io.readInt ();	// Stop time.
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (numEvents * 2);	// Reply length.
 						io.writeInt (numEvents);	// Number of events.
 						io.writePadBytes (20);	// Unused.
@@ -2399,8 +2345,7 @@ public class Window extends Resource {
 			case RequestCode.TranslateCoordinates:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			id = io.readInt ();	// Destination window.
 					int			x = (short) io.readShort ();	// Source X.
@@ -2408,8 +2353,7 @@ public class Window extends Resource {
 					Resource	r = _xServer.getResource (id);
 
 					if (r == null || r.getType () != Resource.WINDOW) {
-						ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-																opcode, id);
+						ErrorCode.write (client, ErrorCode.Window, opcode, id);
 					} else {
 						Window		w = (Window) r;
 						int			dx = _irect.left + x - w._irect.left;
@@ -2421,7 +2365,7 @@ public class Window extends Resource {
 								child = c._id;
 
 						synchronized (io) {
-							Util.writeReplyHeader (io, 1, sequenceNumber);
+							Util.writeReplyHeader (client, 1);
 							io.writeInt (0);	// Reply length.
 							io.writeInt (child);	// Child.
 							io.writeShort ((short) dx);	// Dest X.
@@ -2435,8 +2379,7 @@ public class Window extends Resource {
 			case RequestCode.ClearArea:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			x = (short) io.readShort ();	// Source X.
 					int			y = (short) io.readShort ();	// Source Y.
@@ -2473,22 +2416,20 @@ public class Window extends Resource {
 			case RequestCode.ImageText8:
 			case RequestCode.ImageText16:
 			case RequestCode.QueryBestSize:
-				redraw = _drawable.processRequest (_xServer, io, _id,
-								sequenceNumber, opcode, arg, bytesRemaining);
+				redraw = _drawable.processRequest (_xServer, client, _id,
+												opcode, arg, bytesRemaining);
 				break;
 			case RequestCode.ListInstalledColormaps:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					_screen.writeInstalledColormaps (io, sequenceNumber);
+					_screen.writeInstalledColormaps (client);
 				}
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 

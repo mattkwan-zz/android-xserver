@@ -376,8 +376,7 @@ public class Colormap extends Resource {
 	/**
 	 * Process an X request relating to this colormap.
 	 *
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -386,18 +385,18 @@ public class Colormap extends Resource {
 	@Override
 	public void
 	processRequest (
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.FreeColormap:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else if (_id != _screen.getDefaultColormap().getId ()) {
 					_xServer.freeResource (_id);
 					if (_clientComms != null)
@@ -407,8 +406,7 @@ public class Colormap extends Resource {
 			case RequestCode.InstallColormap:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					setInstalled (true);
 				}
@@ -416,8 +414,7 @@ public class Colormap extends Resource {
 			case RequestCode.UninstallColormap:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					setInstalled (false);
 				}
@@ -425,8 +422,7 @@ public class Colormap extends Resource {
 			case RequestCode.AllocColor:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			r = io.readShort ();	// Red.
 					int			g = io.readShort ();	// Green.
@@ -435,7 +431,7 @@ public class Colormap extends Resource {
 
 					io.readSkip (2);	// Unused.
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) r);	// Red.
 						io.writeShort ((short) g);	// Green.
@@ -450,8 +446,7 @@ public class Colormap extends Resource {
 			case RequestCode.AllocNamedColor:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			n = io.readShort ();	// Length of name.
 					int			pad = -n & 3;
@@ -460,8 +455,7 @@ public class Colormap extends Resource {
 					bytesRemaining -= 4;
 					if (bytesRemaining != n + pad) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 					} else {
 						byte[]		bytes = new byte[n];
 
@@ -476,7 +470,7 @@ public class Colormap extends Resource {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
-								Util.writeReplyHeader (io, 0, sequenceNumber);
+								Util.writeReplyHeader (client, 0);
 								io.writeInt (0);	// Reply length.
 								io.writeInt (color);	// Pixel.
 
@@ -496,8 +490,8 @@ public class Colormap extends Resource {
 							}
 							io.flush ();
 						} else {
-							ErrorCode.write (io, ErrorCode.Name,
-												sequenceNumber, opcode, 0);
+							ErrorCode.write (client, ErrorCode.Name, opcode,
+																		0);
 						}
 					}
 				}
@@ -505,69 +499,58 @@ public class Colormap extends Resource {
 			case RequestCode.AllocColorCells:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot allocate from a TrueColor colormap.
 					io.readShort ();	// Number of colors.
 					io.readShort ();	// Number of planes.
 
-					ErrorCode.write (io, ErrorCode.Access, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.AllocColorPlanes:
 				if (bytesRemaining != 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot allocate from a TrueColor colormap.
 					io.readShort ();	// Colors.
 					io.readShort ();	// Reds.
 					io.readShort ();	// Greens.
 					io.readShort ();	// Blues.
 
-					ErrorCode.write (io, ErrorCode.Access, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.FreeColors:
 				if (bytesRemaining < 4 || (bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot modify a TrueColor colormap.
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Access, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.StoreColors:
 				if ((bytesRemaining % 12) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot modify a TrueColor colormap.
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Access, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.StoreNamedColor:
 				if (bytesRemaining < 8) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot modify a TrueColor colormap.
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Access, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.QueryColors:
 				if ((bytesRemaining & 3) != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			n = bytesRemaining / 4;
 					int[]		pixels = new int[n];
@@ -576,7 +559,7 @@ public class Colormap extends Resource {
 						pixels[i] = io.readInt ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (n * 2);	// Reply length.
 						io.writeShort ((short) n);	// Number of RGBs.
 						io.writePadBytes (22);	// Unused.
@@ -599,8 +582,7 @@ public class Colormap extends Resource {
 			case RequestCode.LookupColor:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			n = io.readShort ();	// Length of name.
 					int			pad = -n & 3;
@@ -609,8 +591,7 @@ public class Colormap extends Resource {
 					bytesRemaining -= 4;
 					if (bytesRemaining != n + pad) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 					} else {
 						byte[]		bytes = new byte[n];
 
@@ -625,7 +606,7 @@ public class Colormap extends Resource {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
-								Util.writeReplyHeader (io, 0, sequenceNumber);
+								Util.writeReplyHeader (client, 0);
 								io.writeInt (0);	// Reply length.
 
 								int		r = (color & 0xff0000) >> 16;
@@ -644,16 +625,15 @@ public class Colormap extends Resource {
 							}
 							io.flush ();
 						} else {
-							ErrorCode.write (io, ErrorCode.Name,
-												sequenceNumber, opcode, 0);
+							ErrorCode.write (client, ErrorCode.Name, opcode,
+																		0);
 						}
 					}
 				}
 				break;
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation, sequenceNumber,
-																opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
@@ -663,8 +643,6 @@ public class Colormap extends Resource {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the colormap to create.
 	 * @param alloc		Allocate colours; 0=None, 1=All.
 	 * @throws IOException
@@ -673,24 +651,23 @@ public class Colormap extends Resource {
 	processCreateColormapRequest (
 		XServer			xServer,
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				id,
 		int				alloc
 	) throws IOException {
-		int			wid = io.readInt ();	// Window.
-		int			vid = io.readInt ();	// Visual.
-		Resource	r = xServer.getResource (wid);
+		InputOutput		io = client.getInputOutput ();
+		int				wid = io.readInt ();	// Window.
+		int				vid = io.readInt ();	// Visual.
+		Resource		r = xServer.getResource (wid);
 
 		if (alloc != 0)	{	// Only TrueColor supported.
-			ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-									RequestCode.CreateColormap, id);
+			ErrorCode.write (client, ErrorCode.Match,
+											RequestCode.CreateColormap, id);
 		} else if (r == null || r.getType () != Resource.WINDOW) {
-			ErrorCode.write (io, ErrorCode.Window, sequenceNumber,
-									RequestCode.CreateColormap, wid);
+			ErrorCode.write (client, ErrorCode.Window,
+											RequestCode.CreateColormap, wid);
 		} else if (vid != xServer.getRootVisual().getId ()) {
-			ErrorCode.write (io, ErrorCode.Match, sequenceNumber,
-									RequestCode.CreateColormap, wid);
+			ErrorCode.write (client, ErrorCode.Match,
+											RequestCode.CreateColormap, wid);
 		} else {
 			ScreenView		s = ((Window) r).getScreen ();
 			Colormap	cmap = new Colormap (id, xServer, client, s);
@@ -704,16 +681,12 @@ public class Colormap extends Resource {
 	 * Process a CopyColormapAndFree request.
 	 *
 	 * @param client	The client issuing the request.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
 	 * @param id	The ID of the colormap to create.
 	 * @throws IOException
 	 */
 	public void
 	processCopyColormapAndFree (
 		ClientComms		client,
-		InputOutput		io,
-		int				sequenceNumber,
 		int				id
 	) throws IOException {
 		Colormap	cmap = new Colormap (id, _xServer, client, _screen);

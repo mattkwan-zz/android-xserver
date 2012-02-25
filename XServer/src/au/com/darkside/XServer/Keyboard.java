@@ -176,8 +176,7 @@ public class Keyboard {
 	 * Process an X request relating to this keyboard.
 	 *
 	 * @param xServer	The X server.
-	 * @param io	The input/output stream.
-	 * @param sequenceNumber	The request sequence number.
+	 * @param client	The remote client.
 	 * @param opcode	The request's opcode.
 	 * @param arg		Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
@@ -186,21 +185,21 @@ public class Keyboard {
 	public void
 	processRequest (
 		XServer			xServer,
-		InputOutput		io,
-		int				sequenceNumber,
+		ClientComms		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {
+		InputOutput		io = client.getInputOutput ();
+
 		switch (opcode) {
 			case RequestCode.QueryKeymap:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					synchronized (io) {
-						Util.writeReplyHeader (io, 0, sequenceNumber);
+						Util.writeReplyHeader (client, 0);
 						io.writeInt (2);	// Reply length.
 						io.writeBytes (_keymap, 0, 32);	// Keys.
 					}
@@ -210,8 +209,7 @@ public class Keyboard {
 			case RequestCode.ChangeKeyboardMapping:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			keycodeCount = arg;
 					int			keycode = io.readByte ();	// First keycode.
@@ -222,8 +220,7 @@ public class Keyboard {
 
 					if (bytesRemaining != keycodeCount * kspkc * 4) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 					} else {
 						_minimumKeycode = keycode;
 						_numKeycodes = keycodeCount;
@@ -239,8 +236,7 @@ public class Keyboard {
 			case RequestCode.GetKeyboardMapping:
 				if (bytesRemaining != 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			keycode = io.readByte ();	// First keycode.
 					int			count = io.readByte ();	// Count.
@@ -251,8 +247,7 @@ public class Keyboard {
 					io.readSkip (2);	// Unused.
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, _keysymsPerKeycode,
-															sequenceNumber);
+						Util.writeReplyHeader (client , _keysymsPerKeycode);
 						io.writeInt (length);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 
@@ -271,8 +266,7 @@ public class Keyboard {
 			case RequestCode.ChangeKeyboardControl:
 				if (bytesRemaining < 4) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					int			valueMask = io.readInt ();	// Value mask.
 					int			nbits = Util.bitcount (valueMask);
@@ -280,8 +274,7 @@ public class Keyboard {
 					bytesRemaining -= 4;
 					if (bytesRemaining != nbits * 4) {
 						io.readSkip (bytesRemaining);
-						ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+						ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 					} else {
 						for (int i = 0; i < 23; i++)
 							if ((valueMask & (1 << i)) != 0)
@@ -292,12 +285,10 @@ public class Keyboard {
 			case RequestCode.GetKeyboardControl:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					synchronized (io) {
-						Util.writeReplyHeader (io, _keysymsPerKeycode,
-															sequenceNumber);
+						Util.writeReplyHeader (client, _keysymsPerKeycode);
 						io.writeInt (5);	// Reply length.
 						io.writeInt (0);	// LED mask.
 						io.writeByte ((byte) 0);	// Key click percent.
@@ -313,12 +304,11 @@ public class Keyboard {
 			case RequestCode.SetModifierMapping:
 				if (bytesRemaining != 8 * arg) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Not supported. Always fails.
 					io.readSkip (bytesRemaining);
 					synchronized (io) {
-						Util.writeReplyHeader (io, 2, sequenceNumber);
+						Util.writeReplyHeader (client, 2);
 						io.writeInt (0);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 					}
@@ -328,8 +318,7 @@ public class Keyboard {
 			case RequestCode.GetModifierMapping:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					final int	kpm = _keycodesPerModifier;
 					byte[]		map = null;
@@ -351,7 +340,7 @@ public class Keyboard {
 					}
 
 					synchronized (io) {
-						Util.writeReplyHeader (io, kpm, sequenceNumber);
+						Util.writeReplyHeader (client, kpm);
 						io.writeInt (kpm * 2);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 
@@ -364,16 +353,14 @@ public class Keyboard {
 			case RequestCode.Bell:
 				if (bytesRemaining != 0) {
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (io, ErrorCode.Length, sequenceNumber,
-																opcode, 0);
+					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					playBell ((byte) arg);
 				}
 				break;				
 			default:
 				io.readSkip (bytesRemaining);
-				ErrorCode.write (io, ErrorCode.Implementation,
-												sequenceNumber, opcode, 0);
+				ErrorCode.write (client, ErrorCode.Implementation, opcode, 0);
 				break;
 		}
 	}
