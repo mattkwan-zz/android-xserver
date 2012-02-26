@@ -150,7 +150,7 @@ public class Atom {
 	public static void
 	processGetAtomNameRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -192,14 +192,14 @@ public class Atom {
 	 *
 	 * @param xServer	The X server.
 	 * @param client	The remote client.
-	 * @param arg		Optional first argument.
+	 * @param arg	Optional first argument.
 	 * @param bytesRemaining	Bytes yet to be read in the request.
 	 * @throws IOException
 	 */
 	public static void
 	processInternAtomRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				arg,
 		int				bytesRemaining
 	) throws IOException {

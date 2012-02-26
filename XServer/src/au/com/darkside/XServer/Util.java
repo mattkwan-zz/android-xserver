@@ -40,7 +40,7 @@ public class Util {
 	 */
 	public static void
 	writeReplyHeader (
-		ClientComms		client,
+		Client			client,
 		int				arg
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -50,28 +50,4 @@ public class Util {
 		io.writeByte ((byte) arg);
 		io.writeShort (sn);
 	}
-
-	/**
-	 * Sample code for setting a view from a non-GUI thread.
-	 *
-	 * @param visibility	The view's visibility.
-	 *
-	public void
-	handlerSetVisibility (
-		final int	visibility
-	) {
-		final View	view = this;
-		Handler		handler = getHandler ();
-
-		if (handler == null) {
-			setVisibility (visibility);
-		} else {
-			getHandler().post (new Runnable () {
-				public void run () {
-					view.setVisibility (visibility);
-				}
-			});
-		}
-	} */
-
 }

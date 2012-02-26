@@ -40,6 +40,8 @@ public class Window extends Resource {
 	private boolean					_isMapped = false;
 	private boolean					_exposed = false;
 	private int						_visibility = NotViewable;
+	private int						_eventMask = 0;
+	private final Hashtable<Client, Integer>	_clientMasks;
 
 	private static final int		Unobscured = 0;
 	private static final int		PartiallyObscured = 1;
@@ -81,7 +83,7 @@ public class Window extends Resource {
 	public Window (
 		int				id,
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		ScreenView		screen,
 		Window			parent,
 		int				x,
@@ -150,6 +152,7 @@ public class Window extends Resource {
 		_properties = new Hashtable<Integer, Property> ();
 		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
 		_passiveKeyGrabs = new HashSet<PassiveKeyGrab>();
+		_clientMasks = new Hashtable<Client, Integer>();
 	}
 
 	/**
@@ -216,13 +219,71 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Return the window's event mask.
+	 * Return the window's cumulative event mask.
 	 *
 	 * @return	The window's event mask.
 	 */
 	public int
 	getEventMask () {
-		return _attributes[AttrEventMask];
+		return _eventMask;
+	}
+
+	/**
+	 * Return the list of clients selecting on the events.
+	 *
+	 * @param mask	The event mask.
+	 * @return	List of clients, or null if none selecting.
+	 */
+	public Vector<Client>
+	getSelectingClients (
+		int			mask
+	) {
+		if ((mask & _eventMask) == 0)
+			return null;
+
+		Vector<Client>		rc = new Vector<Client>();
+		Set<Client>			sc = _clientMasks.keySet ();
+
+		for (Client c: sc)
+			if ((_clientMasks.get (c) & mask) != 0)
+				rc.add (c);
+
+		return rc;
+	}
+
+	/**
+	 * Remove a client from the event selection list.
+	 * Usually occurs after an I/O error on the client.
+	 *
+	 * @param client	The client to remove.
+	 */
+	private void
+	removeSelectingClient (
+		Client		client
+	) {
+		_clientMasks.remove (client);
+
+		Set<Client>		sc = _clientMasks.keySet ();
+
+		_eventMask = 0;
+		for (Client c: sc)
+			_eventMask |= _clientMasks.get (c);
+	}
+
+	/**
+	 * Return the event mask that the client is selecting on.
+	 *
+	 * @param client	The client selecting on the events.
+	 * @return	The event mask, or zero if the client is selecting.
+	 */
+	public int
+	getClientEventMask (
+		Client		client
+	) {
+		if (_clientMasks.containsKey (client))
+			return _clientMasks.get (client);
+		else
+			return 0;
 	}
 
 	/**
@@ -483,7 +544,7 @@ public class Window extends Resource {
 	public boolean
 	processCreateWindowRequest (
 		InputOutput		io,
-		ClientComms		client,
+		Client			client,
 		int				sequenceNumber,
 		int				id,
 		int				depth,
@@ -519,9 +580,14 @@ public class Window extends Resource {
 		_children.add (w);
 		w.invalidate ();
 
-		if (isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendCreateNotify (_clientComms, this, w, x, y, width,
-									height, borderWidth, _overrideRedirect);
+		Vector<Client>		sc;
+
+		if ((sc = getSelectingClients (EventCode.MaskSubstructureNotify))
+																!= null) {
+			for (Client c: sc)
+				EventCode.sendCreateNotify (c, this, w, x, y, width, height,
+											borderWidth, _overrideRedirect);
+		}
 
 		return true;
 	}
@@ -585,7 +651,7 @@ public class Window extends Resource {
 	 */
 	private boolean
 	processWindowAttributes (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
@@ -664,11 +730,11 @@ public class Window extends Resource {
 	 */
 	private boolean
 	applyValues (
-		ClientComms		client,
-		byte			opcode,
-		int				mask
+		Client		client,
+		byte		opcode,
+		int			mask
 	) throws IOException {
-		boolean			ok = true;
+		boolean		ok = true;
 
 		if ((mask & (1 << AttrBackgroundPixmap)) != 0) {
 			if (_attributes[AttrBackgroundPixmap] == 1)	// ParentRelative.
@@ -691,6 +757,16 @@ public class Window extends Resource {
 			} else if (_parent != null) {
 				_colormap = _parent._colormap;
 			}
+		}
+
+		if ((mask & (1 << AttrEventMask)) != 0) {
+			_clientMasks.put (client, _attributes[AttrEventMask]);
+
+			Set<Client>		sc = _clientMasks.keySet ();
+
+			_eventMask = 0;
+			for (Client c: sc)
+				_eventMask |= _clientMasks.get (c);
 		}
 
 		if ((mask & (1 << AttrOverrideRedirect)) != 0)
@@ -717,24 +793,12 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Is the client selecting the specified event?
-	 *
-	 * @param mask	The event.
-	 * @return	True if the client is selection the event.
-	 */
-	public boolean
-	isSelecting (
-		int			mask
-	) {
-		return (_attributes[AttrEventMask] & mask) != 0;
-	}
-
-	/**
 	 * Notify that the pointer has entered this window.
 	 *
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
-	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear, 4=NonlinearVirtual.
+	 * @param detail	0=Ancestor, 1=Virtual, 2=Inferior, 3=Nonlinear,
+	 * 					4=NonlinearVirtual.
 	 * @param toWindow	Window containing pointer.
 	 * @param mode	0=Normal, 1=Grab, 2=Ungrab.
 	 */
@@ -746,7 +810,12 @@ public class Window extends Resource {
 		Window		toWindow,
 		int			mode
 	) {
-		if (!isSelecting (EventCode.MaskEnterWindow) || !_isMapped)
+		if (!_isMapped)
+			return;
+
+		Vector<Client>		sc;
+
+		if ((sc = getSelectingClients (EventCode.MaskEnterWindow)) == null)
 			return;
 
 		Window		child = (toWindow._parent == this) ? toWindow : null;
@@ -756,18 +825,28 @@ public class Window extends Resource {
 		if (fw != null)
 			focus = (fw == this) || isAncestor (fw);
 
-		try {
-			EventCode.sendEnterNotify (_clientComms, _xServer.getTimestamp (),
+		for (Client c: sc) {
+			try {
+				EventCode.sendEnterNotify (c, _xServer.getTimestamp (),
 						detail, _screen.getRootWindow (), this, child, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons (), mode, focus);
-
-			if (isSelecting (EventCode.MaskKeymapState)) {
-				Keyboard	kb = _xServer.getKeyboard ();
-
-				EventCode.sendKeymapNotify (_clientComms, kb.getKeymap ());
+			} catch (IOException e) {
+				removeSelectingClient (c);
 			}
-		} catch (IOException e) {
+		}
+
+		sc = getSelectingClients (EventCode.MaskKeymapState);
+		if (sc != null) {
+			Keyboard	kb = _xServer.getKeyboard ();
+
+			for (Client c: sc) {
+				try {
+					EventCode.sendKeymapNotify (c, kb.getKeymap ());
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
 		}
 	}
 
@@ -788,7 +867,12 @@ public class Window extends Resource {
 		Window		fromWindow,
 		int			mode
 	) {
-		if (!isSelecting (EventCode.MaskLeaveWindow) || !_isMapped)
+		if (!_isMapped)
+			return;
+
+		Vector<Client>		sc;
+
+		if ((sc = getSelectingClients (EventCode.MaskLeaveWindow)) == null)
 			return;
 
 		Window		child = (fromWindow._parent == this) ? fromWindow : null;
@@ -798,12 +882,15 @@ public class Window extends Resource {
 		if (fw != null)
 			focus = (fw == this) || isAncestor (fw);
 
-		try {
-			EventCode.sendLeaveNotify (_clientComms, _xServer.getTimestamp (),
+		for (Client c: sc) {
+			try {
+				EventCode.sendLeaveNotify (c, _xServer.getTimestamp (),
 						detail, _screen.getRootWindow (), this, child, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons (), mode, focus);
-		} catch (IOException e) {
+			} catch (IOException e) {
+				removeSelectingClient (c);
+			}
 		}
 	}
 
@@ -884,19 +971,34 @@ public class Window extends Resource {
 		int			detail,
 		int			mode
 	) {
-		if (!isSelecting (EventCode.MaskFocusChange) || !_isMapped)
+		if (!_isMapped)
 			return;
 
-		try {
-			EventCode.sendFocusIn (_clientComms, _xServer.getTimestamp (),
-						detail, this, mode);
+		Vector<Client>		sc;
 
-			if (isSelecting (EventCode.MaskKeymapState)) {
-				Keyboard	kb = _xServer.getKeyboard ();
+		if ((sc = getSelectingClients (EventCode.MaskFocusChange)) == null)
+			return;
 
-				EventCode.sendKeymapNotify (_clientComms, kb.getKeymap ());
+		for (Client c: sc) {
+			try {
+				EventCode.sendFocusIn (c, _xServer.getTimestamp (), detail,
+																this, mode);
+			} catch (IOException e) {
+				removeSelectingClient (c);
 			}
-		} catch (IOException e) {
+		}
+
+		sc = getSelectingClients (EventCode.MaskKeymapState);
+		if (sc != null) {
+			Keyboard	kb = _xServer.getKeyboard ();
+
+			for (Client c: sc) {
+				try {
+					EventCode.sendKeymapNotify (c, kb.getKeymap ());
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
 		}
 	}
 
@@ -912,13 +1014,21 @@ public class Window extends Resource {
 		int			detail,
 		int			mode
 	) {
-		if (!isSelecting (EventCode.MaskFocusChange) || !_isMapped)
+		if (!_isMapped)
 			return;
 
-		try {
-			EventCode.sendFocusOut (_clientComms, _xServer.getTimestamp (),
-														detail, this, mode);
-		} catch (IOException e) {
+		Vector<Client>		sc;
+
+		if ((sc = getSelectingClients (EventCode.MaskFocusChange)) == null)
+			return;
+
+		for (Client c: sc) {
+			try {
+				EventCode.sendFocusOut (c, _xServer.getTimestamp (), detail,
+																this, mode);
+			} catch (IOException e) {
+				removeSelectingClient (c);
+			}
 		}
 	}
 
@@ -1138,57 +1248,67 @@ public class Window extends Resource {
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
 	 * @param button	Button that was pressed/released.
-	 * @param client	Only send notification to this client. Can be null.
+	 * @param grabClient	Only send to this client if it isn't null.
 	 *
-	 * @return	True if an event is sent.
+	 * @return	The window it was sent to, or null if not sent.
 	 */
-	public boolean
+	public Window
 	buttonNotify (
 		boolean		pressed,
 		int			x,
 		int			y,
 		int			button,
-		ClientComms	client
+		Client		grabClient
 	) {
 		Window		evw = this;
 		Window		child = null;
 		int			mask = pressed ? EventCode.MaskButtonPress
 										: EventCode.MaskButtonRelease;
+		Vector<Client>	sc;
 
 		for (;;) {
-			if (evw._isMapped && evw.isSelecting (mask))
-				break;
+			if (evw._isMapped) {
+				sc = evw.getSelectingClients (mask);
+				if (sc != null)
+					break;
+			}
 
 			if (evw._parent == null)
-				return false;
+				return null;
 
 			if ((evw._attributes[AttrDoNotPropagateMask] & mask) != 0)
-				return false;
+				return null;
 
 			child = evw;
 			evw = evw._parent;
 		}
 
-		if (client != null && client != evw._clientComms)
-			return false;
+		Window		sentWindow = null;
 
-		try {
-			if (pressed)
-				EventCode.sendButtonPress (evw._clientComms,
+		for (Client c: sc) {
+			if (grabClient != null && grabClient != c)
+				continue;
+
+			try {
+				if (pressed)
+					EventCode.sendButtonPress (c,
 						_xServer.getTimestamp (), button,
 						_screen.getRootWindow (), evw, child, x, y,
 						x - evw._irect.left, y - evw._irect.top,
 						_screen.getButtons ());
-			else
-				EventCode.sendButtonRelease (evw._clientComms,
+				else
+					EventCode.sendButtonRelease (c,
 						_xServer.getTimestamp (), button,
 						_screen.getRootWindow (), evw, child, x, y,
 						x - evw._irect.left, y - evw._irect.top,
 						_screen.getButtons ());
-		} catch (IOException e) {
+				sentWindow = evw;
+			} catch (IOException e) {
+				evw.removeSelectingClient (c);
+			}
 		}
 
-		return true;
+		return sentWindow;
 	}
 
 	/**
@@ -1200,6 +1320,7 @@ public class Window extends Resource {
 	 * @param y	Pointer Y coordinate.
 	 * @param button	Button that was pressed/released.
 	 * @param eventMask	The events the window is interested in.
+	 * @param grabClient	The grabbing client.
 	 * @param ownerEvents	Owner-events flag.
 	 */
 	public void
@@ -1209,35 +1330,37 @@ public class Window extends Resource {
 		int			y,
 		int			button,
 		int			eventMask,
+		Client		grabClient,
 		boolean		ownerEvents
 	) {
 		if (ownerEvents) {
 			Window		w = _screen.getRootWindow().windowAtPoint (x, y);
 
-			if (w.buttonNotify (pressed, x, y, button, _clientComms))
+			if (w.buttonNotify (pressed, x, y, button, grabClient) != null)
 				return;
 		}
 
 		int			mask = pressed ? EventCode.MaskButtonPress
-										: EventCode.MaskButtonRelease;
+											: EventCode.MaskButtonRelease;
 
 		if ((eventMask & mask) == 0)
 			return;
 
 		try {
 			if (pressed)
-				EventCode.sendButtonPress (_clientComms,
+				EventCode.sendButtonPress (grabClient,
 						_xServer.getTimestamp (), button,
 						_screen.getRootWindow (), this, null, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons ());
 			else
-				EventCode.sendButtonRelease (_clientComms,
+				EventCode.sendButtonRelease (grabClient,
 						_xServer.getTimestamp (), button,
 						_screen.getRootWindow (), this, null, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons ());
 		} catch (IOException e) {
+			removeSelectingClient (grabClient);
 		}
 	}
 
@@ -1248,7 +1371,7 @@ public class Window extends Resource {
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
 	 * @param keycode	Keycode of the key.
-	 * @param client	Only send notification to this client. Can be null.
+	 * @param grabClient	Only notify this client if it isn't null.
 	 *
 	 * @return	True if an event is sent.
 	 */
@@ -1258,16 +1381,20 @@ public class Window extends Resource {
 		int			x,
 		int			y,
 		int			keycode,
-		ClientComms	client
+		Client		grabClient
 	) {
 		Window		evw = this;
 		Window		child = null;
 		int			mask = pressed ? EventCode.MaskKeyPress
 												: EventCode.MaskKeyRelease;
+		Vector<Client>	sc;
 
 		for (;;) {
-			if (evw._isMapped && evw.isSelecting (mask))
-				break;
+			if (evw._isMapped) {
+				sc = evw.getSelectingClients (mask);
+				if (sc != null)
+					break;
+			}
 
 			if (evw._parent == null)
 				return false;
@@ -1279,26 +1406,32 @@ public class Window extends Resource {
 			evw = evw._parent;
 		}
 
-		if (client != null && client != evw._clientComms)
-			return false;
+		boolean		sent = false;
 
-		try {
-			if (pressed)
-				EventCode.sendKeyPress (evw._clientComms,
-						_xServer.getTimestamp (), keycode,
-						_screen.getRootWindow (), evw, child, x, y,
-						x - evw._irect.left, y - evw._irect.top,
-						_screen.getButtons ());
-			else
-				EventCode.sendKeyRelease (evw._clientComms,
-						_xServer.getTimestamp (), keycode,
-						_screen.getRootWindow (), evw, child, x, y,
-						x - evw._irect.left, y - evw._irect.top,
-						_screen.getButtons ());
-		} catch (IOException e) {
+		for (Client c: sc) {
+			if (grabClient != null && grabClient != c)
+				continue;
+
+			try {
+				if (pressed)
+					EventCode.sendKeyPress (c,
+							_xServer.getTimestamp (), keycode,
+							_screen.getRootWindow (), evw, child, x, y,
+							x - evw._irect.left, y - evw._irect.top,
+							_screen.getButtons ());
+				else
+					EventCode.sendKeyRelease (c,
+							_xServer.getTimestamp (), keycode,
+							_screen.getRootWindow (), evw, child, x, y,
+							x - evw._irect.left, y - evw._irect.top,
+							_screen.getButtons ());
+				sent = true;
+			} catch (IOException e) {
+				evw.removeSelectingClient (c);
+			}
 		}
 
-		return true;
+		return sent;
 	}
 
 	/**
@@ -1308,6 +1441,7 @@ public class Window extends Resource {
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
 	 * @param keycode	Keycode of the key.
+	 * @param grabClient	The grabbing client.
 	 * @param ownerEvents	Owner-events flag.
 	 */
 	public void
@@ -1316,68 +1450,58 @@ public class Window extends Resource {
 		int			x,
 		int			y,
 		int			keycode,
+		Client		grabClient,
 		boolean		ownerEvents
 	) {
 		if (ownerEvents) {
 			Window		w = _screen.getRootWindow().windowAtPoint (x, y);
 
-			if (w.keyNotify (pressed, x, y, keycode, _clientComms))
+			if (w.keyNotify (pressed, x, y, keycode, grabClient))
 				return;
 		}
 
 		try {
 			if (pressed)
-				EventCode.sendKeyPress (_clientComms,
-						_xServer.getTimestamp (), keycode,
-						_screen.getRootWindow (), this, null, x, y,
+				EventCode.sendKeyPress (grabClient, _xServer.getTimestamp (),
+						keycode, _screen.getRootWindow (), this, null, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons ());
 			else
-				EventCode.sendKeyRelease (_clientComms,
-						_xServer.getTimestamp (), keycode,
-						_screen.getRootWindow (), this, null, x, y,
+				EventCode.sendKeyRelease (grabClient, _xServer.getTimestamp (),
+						keycode, _screen.getRootWindow (), this, null, x, y,
 						x - _irect.left, y - _irect.top,
 						_screen.getButtons ());
 		} catch (IOException e) {
+			removeSelectingClient (grabClient);
 		}
 	}
 
 	/**
-	 * Check if the window is interested in the motion event.
+	 * Return the event mask that would select on the buttons.
 	 *
 	 * @param buttonMask	Currently pressed pointer buttons.
 	 *
-	 * @return	True if the window is interested in the event.
+	 * @return	The event mask that would select on the buttons.
 	 */
-	private boolean
-	interestedInMotionEvent (
+	private int
+	buttonEventMask (
 		int			buttonMask
 	) {
-		if (!_isMapped)
-			return false;
+		int			mask = EventCode.MaskPointerMotion
+										| EventCode.MaskPointerMotionHint;
 
-		if (isSelecting (EventCode.MaskPointerMotion)) {
-			return true;
-		} else if (isSelecting (EventCode.MaskPointerMotionHint)) {
-			return true;
-		} else {
-			if ((buttonMask & 0x700) == 0)
-				return false;
+		if ((buttonMask & 0x700) == 0)
+			return mask;
 
-			if (isSelecting (EventCode.MaskButtonMotion))
-				return true;
-			else if ((buttonMask & 0x100) != 0
-								&& isSelecting (EventCode.MaskButton1Motion))
-				return true;
-			else if ((buttonMask & 0x200) != 0
-								&& isSelecting (EventCode.MaskButton2Motion))
-				return true;
-			else if ((buttonMask & 0x400) != 0
-								&& isSelecting (EventCode.MaskButton3Motion))
-				return true;
-		}
+		mask |= EventCode.MaskButtonMotion;
+		if ((buttonMask & 0x100) != 0)
+			mask |= EventCode.MaskButton1Motion;
+		if ((buttonMask & 0x200) != 0)
+			mask |= EventCode.MaskButton2Motion;
+		if ((buttonMask & 0x400) != 0)
+			mask |= EventCode.MaskButton3Motion;
 
-		return false;
+		return mask;
 	}
 
 	/**
@@ -1386,7 +1510,7 @@ public class Window extends Resource {
 	 * @param x	Pointer X coordinate.
 	 * @param y	Pointer Y coordinate.
 	 * @param buttonMask	Currently pressed pointer buttons.
-	 * @param client	Only send notification to this client. Can be null.
+	 * @param grabClient	Only send notify this client if it isn't null.
 	 *
 	 * @return	True if an event is sent.
 	 */
@@ -1395,14 +1519,19 @@ public class Window extends Resource {
 		int			x,
 		int			y,
 		int			buttonMask,
-		ClientComms	client
+		Client		grabClient
 	) {
 		Window		evw = this;
 		Window		child = null;
+		int			mask = buttonEventMask (buttonMask);
+		Vector<Client>	sc;
 
 		for (;;) {
-			if (evw.interestedInMotionEvent (buttonMask))
-				break;
+			if (evw._isMapped) {
+				sc = evw.getSelectingClients (mask);
+				if (sc != null)
+					break;
+			}
 
 			if (evw._parent == null)
 				return false;
@@ -1415,24 +1544,29 @@ public class Window extends Resource {
 			evw = evw._parent;
 		}
 
-		if (client != null && client != evw._clientComms)
-			return false;
+		boolean		sent = false;
 
-		int			detail = 0;	// Normal.
+		for (Client c: sc) {
+			if (grabClient != null && grabClient != c)
+				continue;
 
-		if (evw.isSelecting (EventCode.MaskPointerMotionHint)
-						&& !evw.isSelecting (EventCode.MaskPointerMotion))
-			detail = 1;		// Hint.
+			int			detail = 0;	// Normal.
+			int			em = evw.getClientEventMask (c);
 
-		try {
-			EventCode.sendMotionNotify (evw._clientComms,
-						_xServer.getTimestamp (), detail,
-						_screen.getRootWindow (), evw, child, x, y,
+			if ((em & EventCode.MaskPointerMotionHint) != 0
+								&& (em & EventCode.MaskPointerMotion) == 0)
+				detail = 1;		// Hint.
+
+			try {
+				EventCode.sendMotionNotify (c, _xServer.getTimestamp (),
+						detail, _screen.getRootWindow (), evw, child, x, y,
 						x - evw._irect.left, y - evw._irect.top, buttonMask);
-		} catch (IOException e) {
+			} catch (IOException e) {
+				evw.removeSelectingClient (c);
+			}
 		}
 
-		return true;
+		return sent;
 	}
 
 	/**
@@ -1442,6 +1576,7 @@ public class Window extends Resource {
 	 * @param y	Pointer Y coordinate.
 	 * @param buttonMask	Currently pressed pointer buttons.
 	 * @param eventMask	The events the window is interested in.
+	 * @param grabClient	The grabbing client.
 	 * @param ownerEvents	Owner-events flag.
 	 */
 	public void
@@ -1450,65 +1585,104 @@ public class Window extends Resource {
 		int			y,
 		int			buttonMask,
 		int			eventMask,
+		Client		grabClient,
 		boolean		ownerEvents
 	) {
 		if (ownerEvents) {
 			Window		w = _screen.getRootWindow().windowAtPoint (x, y);
 
-			if (w.motionNotify (x, y, buttonMask, _clientComms))
+			if (w.motionNotify (x, y, buttonMask, grabClient))
 				return;
 		}
 
-		int			tmpMask = _attributes[AttrEventMask];
+		int			em = buttonEventMask (buttonMask) & eventMask;
 
-		_attributes[AttrEventMask] = eventMask;
-		if (interestedInMotionEvent (buttonMask)) {
+		if (em != 0) {
 			int			detail = 0;	// Normal.
 
-			if (isSelecting (EventCode.MaskPointerMotionHint)
-							&& !isSelecting (EventCode.MaskPointerMotion))
+			if ((em & EventCode.MaskPointerMotionHint) != 0
+								&& (em & EventCode.MaskPointerMotion) == 0)
 				detail = 1;		// Hint.
 
 			try {
-				EventCode.sendMotionNotify (_clientComms,
+				EventCode.sendMotionNotify (grabClient,
 								_xServer.getTimestamp (), detail,
 								_screen.getRootWindow (), this, null, x, y,
 								x - _irect.left, y - _irect.top, buttonMask);
 			} catch (IOException e) {
+				removeSelectingClient (grabClient);
 			}
 		}
-		_attributes[AttrEventMask] = tmpMask;
 	}
 
 	/**
 	 * Map the window.
 	 *
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	private void
-	map () throws IOException {
+	map (
+		Client		client
+	) throws IOException {
 		if (_isMapped)
 			return;
 
-		if (!_overrideRedirect && _parent != null
-				&& _parent.isSelecting (EventCode.MaskSubstructureRedirect)) {
-			EventCode.sendMapRequest(_parent._clientComms, _parent, this);
-			return;
+		Vector<Client>		sc;
+
+		if (!_overrideRedirect) {
+			sc = _parent.getSelectingClients (
+										EventCode.MaskSubstructureRedirect);
+			if (sc != null) {
+				for (Client c: sc) {
+					if (c != client) {
+						EventCode.sendMapRequest(c, _parent, this);
+						return;
+					}
+				}
+			}
 		}
 
 		_isMapped = true;
-		if (isSelecting (EventCode.MaskStructureNotify))
-			EventCode.sendMapNotify (_clientComms, this, this,
+
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendMapNotify (c, this, this, _overrideRedirect);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendMapNotify (c, _parent, this,
 														_overrideRedirect);
-		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendMapNotify (_parent._clientComms, _parent, this,
-														_overrideRedirect);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
 		updateAffectedVisibility ();
 
 		if (!_exposed) {
-			if (isSelecting (EventCode.MaskExposure))
-				EventCode.sendExpose (_clientComms, this, 0, 0,
-							_drawable.getWidth (), _drawable.getHeight (), 0);
+			sc = getSelectingClients (EventCode.MaskExposure);
+			if (sc != null) {
+				for (Client c: sc) {
+					try {
+						EventCode.sendExpose (c, this, 0, 0,
+												_drawable.getWidth (),
+												_drawable.getHeight (), 0);
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
+				}
+			}
 			_exposed = true;
 		}
 	}
@@ -1516,13 +1690,16 @@ public class Window extends Resource {
 	/**
 	 * Map the children of this window.
 	 *
+	 * @param client	The remote client.
 	 * @throws IOException
 	 */
 	private void
-	mapSubwindows () throws IOException {
+	mapSubwindows (
+		Client		client
+	) throws IOException {
 		for (Window w: _children) {
-			w.map ();
-			w.mapSubwindows ();
+			w.map (client);
+			w.mapSubwindows (client);
 		}
 	}
 
@@ -1537,11 +1714,31 @@ public class Window extends Resource {
 			return;
 
 		_isMapped = false;
-		if (isSelecting (EventCode.MaskStructureNotify))
-			EventCode.sendUnmapNotify (_clientComms, this, this, false);
-		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendUnmapNotify (_parent._clientComms, _parent, this,
-																	false);
+
+		Vector<Client>		sc;
+
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendUnmapNotify (c, this, this, false);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendUnmapNotify (c, _parent, this, false);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
 		updateAffectedVisibility ();
 		_screen.revertFocus (this);
 	}
@@ -1584,15 +1781,35 @@ public class Window extends Resource {
 		if (removeFromParent)
 			_parent._children.remove (this);
 
-		if (isSelecting (EventCode.MaskStructureNotify))
-			EventCode.sendDestroyNotify (_clientComms, this, this);
-		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendDestroyNotify (_parent._clientComms, _parent, this);
+		Vector<Client>		sc;
+
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendDestroyNotify (c, this, this);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendDestroyNotify (c, _parent, this);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
 	}
 
 	/**
 	 * Change the window's parent.
 	 *
+	 * @param client	The remote client.
 	 * @param parent	New parent.
 	 * @param x	New X position relative to new parent.
 	 * @param y	New Y position relative to new parent.
@@ -1600,9 +1817,10 @@ public class Window extends Resource {
 	 */
 	private void
 	reparent (
-		Window			parent,
-		int				x,
-		int				y
+		Client		client,
+		Window		parent,
+		int			x,
+		int			y
 	) throws IOException {
 		boolean		mapped = _isMapped;
 
@@ -1625,21 +1843,47 @@ public class Window extends Resource {
 		_parent._children.remove (this);
 		parent._children.add (this);
 
-		if (isSelecting (EventCode.MaskStructureNotify))
-			EventCode.sendReparentNotify (_clientComms, this, this, parent,
-													x, y, _overrideRedirect);
+		Vector<Client>		sc;
 
-		if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendReparentNotify (_parent._clientComms, _parent, this,
-											parent, x, y, _overrideRedirect);
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendReparentNotify (c, this, this, parent, x, y,
+														_overrideRedirect);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
 
-		if (parent.isSelecting (EventCode.MaskSubstructureNotify))
-			EventCode.sendReparentNotify (parent._clientComms, parent, this,
-											parent, x, y, _overrideRedirect);
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendReparentNotify (c, _parent, this, parent,
+												x, y, _overrideRedirect);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		sc = parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendReparentNotify (c, parent, this, parent,
+												x, y, _overrideRedirect);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
 
 		_parent = parent;
 		if (mapped) {
-			map ();
+			map (client);
 			if (!_inputOnly)
 				_screen.postInvalidate (orig.left, orig.top, orig.right,
 															orig.bottom);
@@ -1649,73 +1893,89 @@ public class Window extends Resource {
 	/**
 	 * Circulate occluded windows.
 	 *
+	 * @param client	The remote client.
 	 * @param direction	0=RaiseLowest, 1=LowerHighest.
 	 * @return	True if a window is restacked.
 	 * @throws IOException
 	 */
 	private boolean
 	circulate (
-		int				direction
+		Client		client,
+		int			direction
 	) throws IOException {
-		boolean			changed = false;
+		Window		sw = null;
 
 		if (direction == 0) {	// Raise lowest occluded.
-			Window		lowest = null;
-
 			for (Window w: _children) {
 				if (occludes (null, w)) {
-					lowest = w;
+					sw = w;
 					break;
 				}
 			}
-
-			if (lowest != null) {
-				if (isSelecting (EventCode.MaskSubstructureRedirect)) {
-					EventCode.sendCirculateRequest (_clientComms, this,
-														lowest, direction);
-				} else {
-					_children.remove (lowest);
-					_children.add (lowest);
-					changed = true;
-				}
-			}
 		} else {	// Lower highest occluding.
-			Window		highest = null;
-
 			for (int i = _children.size () - 1; i >= 0; i--) {
 				Window		w = _children.elementAt (i);
 
 				if (occludes (w, null)) {
-					highest = w;
+					sw = w;
 					break;
 				}
 			}
+		}
 
-			if (highest != null) {
-				if (isSelecting (EventCode.MaskSubstructureRedirect)) {
-					EventCode.sendCirculateRequest (_clientComms, this,
-														highest, direction);
-				} else {
-					_children.remove (highest);
-					_children.add (0, highest);
-					changed = true;
+		if (sw == null)
+			return false;
+
+		Vector<Client>	sc;
+
+		sc = getSelectingClients (EventCode.MaskSubstructureRedirect);
+		if (sc != null) {
+			for (Client c: sc) {
+				if (c != client) {
+					try {
+						EventCode.sendCirculateRequest (c, this, sw,
+																direction);
+						return false;
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
 				}
 			}
 		}
 
-		if (changed) {
-			if (isSelecting (EventCode.MaskStructureNotify))
-				EventCode.sendCirculateNotify (_clientComms, this, this,
-																direction);
-			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-				EventCode.sendCirculateNotify (_parent._clientComms, _parent,
-															this, direction);
-			updateAffectedVisibility ();
-
-			return true;
+		if (direction == 0) {
+			_children.remove (sw);
+			_children.add (sw);
+		} else {
+			_children.remove (sw);
+			_children.add (0, sw);
 		}
 
-		return false;
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendCirculateNotify (c, this, sw, direction);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendCirculateNotify (c, _parent, sw, direction);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		updateAffectedVisibility ();
+
+		return true;
 	}
 
 	/**
@@ -1810,7 +2070,7 @@ public class Window extends Resource {
 	 */
 	private boolean
 	processConfigureWindow (
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1889,19 +2149,38 @@ public class Window extends Resource {
 			io.readSkip (3);	// Unused.
 		}
 
-		if (_parent.isSelecting (EventCode.MaskSubstructureRedirect)
-												&& !_overrideRedirect) {
-			EventCode.sendConfigureRequest (_parent._clientComms, stackMode,
-					_parent, this, sibling, x, y, width, height, borderWidth,
-					mask);
-			return false;
+		if (!_overrideRedirect) {
+			Vector<Client>		sc;
+
+			sc = _parent.getSelectingClients (
+										EventCode.MaskSubstructureRedirect);
+			if (sc != null) {
+				for (Client c: sc) {
+					if (c != client) {
+						EventCode.sendConfigureRequest (c, stackMode, _parent,
+										this, sibling, x, y, width, height,
+														borderWidth, mask);
+						return false;
+
+					}
+				}
+			}
 		}
 
-		if (isSelecting (EventCode.MaskResizeRedirect)
-							&& (width != oldWidth || height != oldHeight)) {
-			EventCode.sendResizeRequest (_clientComms, this, width, height);
-			width = oldWidth;
-			height = oldHeight;
+		if (width != oldWidth || height != oldHeight) {
+			Vector<Client>		sc;
+
+			sc = getSelectingClients (EventCode.MaskResizeRedirect);
+			if (sc != null) {
+				for (Client c: sc) {
+					if (c != client) {
+						EventCode.sendResizeRequest (c, this, width, height);
+						width = oldWidth;
+						height = oldHeight;
+						break;
+					}
+				}
+			}
 		}
 
 		if (x != oldX || y != oldY || width != oldWidth || height != oldHeight
@@ -2009,21 +2288,35 @@ public class Window extends Resource {
 		}
 
 		if (changed) {
-			if (isSelecting (EventCode.MaskStructureNotify))
-				EventCode.sendConfigureNotify (_clientComms, this, this,
-								null, x, y, width, height, _borderWidth,
-								_overrideRedirect);
-			if (_parent.isSelecting (EventCode.MaskSubstructureNotify))
-				EventCode.sendConfigureNotify (_parent._clientComms, _parent,
+			Vector<Client>		sc;
+
+			sc = getSelectingClients (EventCode.MaskStructureNotify);
+			if (sc != null) {
+				for (Client c: sc)
+					EventCode.sendConfigureNotify (c, this, this, null, x, y,
+							width, height, _borderWidth, _overrideRedirect);
+			}
+
+			sc = _parent.getSelectingClients (
+											EventCode.MaskSubstructureNotify);
+			if (sc != null) {
+				for (Client c: sc)
+					EventCode.sendConfigureNotify (c, _parent,
 								this, null, x, y, width, height, _borderWidth,
 								_overrideRedirect);
+			}
+
 			updateAffectedVisibility ();
 		}
 
 		if (!_exposed) {
-			if (isSelecting (EventCode.MaskExposure))
-				EventCode.sendExpose (_clientComms, this, 0, 0,
-						_drawable.getWidth (), _drawable.getHeight (), 0);
+			Vector<Client>		sc;
+
+			if ((sc = getSelectingClients (EventCode.MaskExposure)) != null) {
+				for (Client c: sc)
+					EventCode.sendExpose (c, this, 0, 0,
+							_drawable.getWidth (), _drawable.getHeight (), 0);
+			}
 			_exposed = true;
 		}
 
@@ -2046,7 +2339,7 @@ public class Window extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client		client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -2059,8 +2352,6 @@ public class Window extends Resource {
 			case RequestCode.ChangeWindowAttributes:
 				redraw = processWindowAttributes (client,
 						RequestCode.ChangeWindowAttributes, bytesRemaining);
-				if (_clientComms == null)
-					_clientComms = client;	// Window manager "owns" root.
 				updatePointer = true;
 				break;
 			case RequestCode.GetWindowAttributes:
@@ -2138,7 +2429,7 @@ public class Window extends Resource {
 					if (r == null || r.getType () != Resource.WINDOW) {
 						ErrorCode.write (client, ErrorCode.Window, opcode, id);
 					} else {
-						reparent ((Window) r, x, y);
+						reparent (client, (Window) r, x, y);
 						redraw = true;
 						updatePointer = true;
 					}
@@ -2149,7 +2440,7 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					map ();
+					map (client);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2159,7 +2450,7 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					mapSubwindows ();
+					mapSubwindows (client);
 					redraw = true;
 					updatePointer = true;
 				}
@@ -2193,7 +2484,7 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					redraw = circulate (arg);
+					redraw = circulate (client, arg);
 					updatePointer = true;
 				}
 				break;
@@ -2271,10 +2562,20 @@ public class Window extends Resource {
 					if (a == null) {
 						ErrorCode.write (client, ErrorCode.Atom, opcode, id);
 					} else if (_properties.containsKey (id)) {
+						Vector<Client>	sc = getSelectingClients (
+												EventCode.MaskPropertyChange);
+
 						_properties.remove (id);
-						if (isSelecting (EventCode.MaskPropertyChange))
-							EventCode.sendPropertyNotify (_clientComms,
-										this, a, _xServer.getTimestamp(), 1);
+						if (sc != null) {
+							for (Client c: sc) {
+								try {
+									EventCode.sendPropertyNotify (c, this, a,
+												_xServer.getTimestamp(), 1);
+								} catch (IOException e) {
+									removeSelectingClient (c);
+								}
+							}
+						}
 					}
 				}
 				break;
@@ -2400,8 +2701,8 @@ public class Window extends Resource {
 							_attributes[AttrBackgroundPixel] | 0xff000000);
 					invalidate (x, y, width, height);
 
-					if (arg == 1)
-						EventCode.sendExpose (_clientComms, this, x, y, width,
+					if (arg == 1)	// All clients or just those selecting? - MKWAN
+						EventCode.sendExpose (client, this, x, y, width,
 																height, 0);
 				}
 				break;
@@ -2494,16 +2795,22 @@ public class Window extends Resource {
 	 */
 	private void
 	updateVisibility () {
-		if (isSelecting (EventCode.MaskVisibilityChange)) {
+		Vector<Client>		sc = getSelectingClients (
+											EventCode.MaskVisibilityChange);
+
+		if (sc != null) {
 			int			visibility = calculateVisibility ();
 
 			if (visibility != _visibility) {
 				_visibility = visibility;
 				if (visibility != NotViewable) {
-					try {
-						EventCode.sendVisibilityNotify (_clientComms, this,
+					for (Client c: sc) {
+						try {
+							EventCode.sendVisibilityNotify (c, this,
 																visibility);
-					} catch (IOException e) {
+						} catch (IOException e) {
+							removeSelectingClient (c);
+						}
 					}
 				}
 			}

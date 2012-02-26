@@ -9,6 +9,7 @@ package au.com.darkside.XServer;
  * This class records details of a passive button grab.
  */
 public class PassiveButtonGrab {
+	private final Client		_grabClient;
 	private final Window		_grabWindow;
 	private final int			_button;
 	private final int			_modifiers;
@@ -22,6 +23,7 @@ public class PassiveButtonGrab {
 	/**
 	 * Constructor.
 	 *
+	 * @param grabClient	The grabbing client.
 	 * @param grabWindow	The grab window.
 	 * @param button	The button being grabbed, or 0 for any.
 	 * @param modifiers	The modifier mask, or 0x8000 for any.
@@ -33,6 +35,7 @@ public class PassiveButtonGrab {
 	 * @param cursor	The cursor to use during the grab. Can be null.
 	 */
 	public PassiveButtonGrab (
+		Client		grabClient,
 		Window		grabWindow,
 		int			button,
 		int			modifiers,
@@ -43,6 +46,7 @@ public class PassiveButtonGrab {
 		Window		confineWindow,
 		Cursor		cursor
 	) {
+		_grabClient = grabClient;
 		_grabWindow = grabWindow;
 		_button = button;
 		_modifiers = modifiers;
@@ -113,6 +117,16 @@ public class PassiveButtonGrab {
 	public int
 	getModifiers () {
 		return _modifiers;
+	}
+
+	/**
+	 * Return the grab client.
+	 *
+	 * @return	The grab client.
+	 */
+	public Client
+	getGrabClient () {
+		return _grabClient;
 	}
 
 	/**

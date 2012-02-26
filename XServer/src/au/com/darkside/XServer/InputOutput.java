@@ -28,7 +28,8 @@ public class InputOutput {
 		Socket		socket
 	) throws IOException {
 		_inStream = new BufferedInputStream (socket.getInputStream (), 1024);
-		_outStream = new BufferedOutputStream (socket.getOutputStream (), 1024);
+		_outStream = new BufferedOutputStream (socket.getOutputStream (),
+																		1024);
 	}
 
 	/**

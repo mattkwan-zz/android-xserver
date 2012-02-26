@@ -86,7 +86,7 @@ public class EventCode {
 	 */
 	private static void
 	writeHeader (
-		ClientComms		client,
+		Client			client,
 		byte			code,
 		int				arg
 	) throws IOException {
@@ -115,7 +115,7 @@ public class EventCode {
 	 */
 	public static void
 	sendKeyPress (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				keycode,
 		Window			root,
@@ -164,7 +164,7 @@ public class EventCode {
 	 */
 	public static void
 	sendKeyRelease (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				keycode,
 		Window			root,
@@ -213,7 +213,7 @@ public class EventCode {
 	 */
 	public static void
 	sendButtonPress (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				button,
 		Window			root,
@@ -262,7 +262,7 @@ public class EventCode {
 	 */
 	public static void
 	sendButtonRelease (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				button,
 		Window			root,
@@ -311,7 +311,7 @@ public class EventCode {
 	 */
 	public static void
 	sendMotionNotify (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				detail,
 		Window			root,
@@ -362,7 +362,7 @@ public class EventCode {
 	 */
 	public static void
 	sendEnterNotify (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				detail,
 		Window			root,
@@ -416,7 +416,7 @@ public class EventCode {
 	 */
 	public static void
 	sendLeaveNotify (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				detail,
 		Window			root,
@@ -462,7 +462,7 @@ public class EventCode {
 	 */
 	public static void
 	sendFocusIn (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				detail,
 		Window			eventWindow,
@@ -492,7 +492,7 @@ public class EventCode {
 	 */
 	public static void
 	sendFocusOut (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		int				detail,
 		Window			eventWindow,
@@ -518,7 +518,7 @@ public class EventCode {
 	 */
 	public static void
 	sendKeymapNotify (
-		ClientComms		client,
+		Client			client,
 		byte[]			keys
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -544,7 +544,7 @@ public class EventCode {
 	 */
 	public static void
 	sendExpose (
-		ClientComms		client,
+		Client			client,
 		Window			window,
 		int				x,
 		int				y,
@@ -583,7 +583,7 @@ public class EventCode {
 	 */
 	public static void
 	sendGraphicsExposure (
-		ClientComms		client,
+		Client			client,
 		Resource		drawable,
 		byte			majorOpcode,
 		int				x,
@@ -620,7 +620,7 @@ public class EventCode {
 	 */
 	public static void
 	sendNoExposure (
-		ClientComms		client,
+		Client			client,
 		Resource		drawable,
 		byte			majorOpcode
 	) throws IOException {
@@ -646,7 +646,7 @@ public class EventCode {
 	 */
 	public static void
 	sendVisibilityNotify (
-		ClientComms		client,
+		Client			client,
 		Window			window,
 		int				state
 	) throws IOException {
@@ -677,7 +677,7 @@ public class EventCode {
 	 */
 	public static void
 	sendCreateNotify (
-		ClientComms		client,
+		Client			client,
 		Window			parent,
 		Window			window,
 		int				x,
@@ -714,7 +714,7 @@ public class EventCode {
 	 */
 	public static void
 	sendDestroyNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window
 	) throws IOException {
@@ -740,7 +740,7 @@ public class EventCode {
 	 */
 	public static void
 	sendUnmapNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		boolean			fromConfigure
@@ -768,7 +768,7 @@ public class EventCode {
 	 */
 	public static void
 	sendMapNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		boolean			overrideRedirect
@@ -795,7 +795,7 @@ public class EventCode {
 	 */
 	public static void
 	sendMapRequest (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window
 	) throws IOException {
@@ -824,7 +824,7 @@ public class EventCode {
 	 */
 	public static void
 	sendReparentNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		Window			parent,
@@ -864,7 +864,7 @@ public class EventCode {
 	 */
 	public static void
 	sendConfigureNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		Window			aboveSibling,
@@ -911,7 +911,7 @@ public class EventCode {
 	 */
 	public static void
 	sendConfigureRequest (
-		ClientComms		client,
+		Client			client,
 		int				stackMode,
 		Window			parent,
 		Window			window,
@@ -953,7 +953,7 @@ public class EventCode {
 	 */
 	public static void
 	sendGravityNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		int				x,
@@ -983,7 +983,7 @@ public class EventCode {
 	 */
 	public static void
 	sendResizeRequest (
-		ClientComms		client,
+		Client			client,
 		Window			window,
 		int				width,
 		int				height
@@ -1011,7 +1011,7 @@ public class EventCode {
 	 */
 	public static void
 	sendCirculateNotify (
-		ClientComms		client,
+		Client			client,
 		Window			eventWindow,
 		Window			window,
 		int				place
@@ -1040,7 +1040,7 @@ public class EventCode {
 	 */
 	public static void
 	sendCirculateRequest (
-		ClientComms		client,
+		Client			client,
 		Window			parent,
 		Window			window,
 		int				place
@@ -1070,7 +1070,7 @@ public class EventCode {
 	 */
 	public static void
 	sendPropertyNotify (
-		ClientComms		client,
+		Client			client,
 		Window			window,
 		Atom			atom,
 		int				timestamp,
@@ -1100,7 +1100,7 @@ public class EventCode {
 	 */
 	public static void
 	sendSelectionClear (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		Window			window,
 		Atom			atom
@@ -1131,7 +1131,7 @@ public class EventCode {
 	 */
 	public static void
 	sendSelectionRequest (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		Window			owner,
 		Window			requestor,
@@ -1167,7 +1167,7 @@ public class EventCode {
 	 */
 	public static void
 	sendSelectionNotify (
-		ClientComms		client,
+		Client			client,
 		int				timestamp,
 		Window			requestor,
 		Atom			selection,
@@ -1200,7 +1200,7 @@ public class EventCode {
 	 */
 	public static void
 	sendColormapNotify (
-		ClientComms		client,
+		Client			client,
 		Window			window,
 		Colormap		cmap,
 		boolean			isNew,
@@ -1230,7 +1230,7 @@ public class EventCode {
 	 */
 	public static void
 	sendMappingNotify (
-		ClientComms		client,
+		Client			client,
 		int				request,
 		int				firstKeycode,
 		int				count

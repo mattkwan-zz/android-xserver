@@ -30,7 +30,7 @@ public class Pixmap extends Resource {
 	public Pixmap (
 		int			id,
 		XServer		xServer,
-		ClientComms	client,
+		Client		client,
 		ScreenView	screen,
 		int			width,
 		int			height,
@@ -84,7 +84,7 @@ public class Pixmap extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -98,8 +98,8 @@ public class Pixmap extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
-					if (_clientComms != null)
-						_clientComms.freeResource (this);
+					if (_client != null)
+						_client.freeResource (this);
 				}
 				break;
 			case RequestCode.GetGeometry:
@@ -147,7 +147,7 @@ public class Pixmap extends Resource {
 	 */
 	private void
 	writeGeometry (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 
@@ -178,7 +178,7 @@ public class Pixmap extends Resource {
 	public static void
 	processCreatePixmapRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		int				depth,
 		Resource		drawable

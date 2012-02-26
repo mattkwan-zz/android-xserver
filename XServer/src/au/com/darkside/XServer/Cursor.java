@@ -117,7 +117,7 @@ public class Cursor extends Resource {
 	public Cursor (
 		int			id,
 		XServer		xServer,
-		ClientComms	client,
+		Client		client,
 		Pixmap		p,
 		Pixmap		mp,
 		int			x,
@@ -183,7 +183,7 @@ public class Cursor extends Resource {
 	public Cursor (
 		int			id,
 		XServer		xServer,
-		ClientComms	client,
+		Client		client,
 		Font		sourceFont,
 		Font		maskFont,
 		int			sourceChar,
@@ -290,7 +290,7 @@ public class Cursor extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -304,8 +304,8 @@ public class Cursor extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
-					if (_clientComms != null)
-						_clientComms.freeResource (this);
+					if (_client != null)
+						_client.freeResource (this);
 					break;
 				}
 			case RequestCode.RecolorCursor:
@@ -345,7 +345,7 @@ public class Cursor extends Resource {
 	public static void
 	processCreateRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				id,
 		int				bytesRemaining

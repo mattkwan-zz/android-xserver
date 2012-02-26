@@ -58,9 +58,9 @@ public class GContext extends Resource {
 	 * @param client	The client issuing the request.
 	 */
 	public GContext (
-		int				id,
-		XServer			xServer,
-		ClientComms		client
+		int			id,
+		XServer		xServer,
+		Client		client
 	) {
 		super (GCONTEXT, id, xServer, client);
 
@@ -216,7 +216,7 @@ public class GContext extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -306,8 +306,8 @@ public class GContext extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
-					if (_clientComms != null)
-						_clientComms.freeResource (this);
+					if (_client != null)
+						_client.freeResource (this);
 					break;
 				}
 			default:
@@ -329,7 +329,7 @@ public class GContext extends Resource {
 	public static void
 	processCreateGCRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		int				bytesRemaining
 	) throws IOException {
@@ -352,7 +352,7 @@ public class GContext extends Resource {
 	 */
 	private boolean
 	processValues (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
@@ -441,8 +441,8 @@ public class GContext extends Resource {
 	 */
 	private boolean
 	applyValues (
-		ClientComms		client,
-		byte			opcode
+		Client		client,
+		byte		opcode
 	) throws IOException {
 		boolean		ok = true;
 

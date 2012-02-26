@@ -38,7 +38,7 @@ public class XServer {
 	private final Vector<Format>				_formats;
 	private final Hashtable<Integer, Resource>	_resources;
 
-	private final Vector<ClientComms>		_clients;
+	private final Vector<Client>	_clients;
 	private final int			_clientIdBits = 20;
 	private final int			_clientIdStep = (1 << _clientIdBits);
 	private int					_clientIdBase = _clientIdStep;
@@ -56,7 +56,7 @@ public class XServer {
 	private String[]			_fontPath = null;
 	private AcceptThread		_acceptThread = null;
 	private Date				_timestamp;
-	private ClientComms			_grabClient;
+	private Client				_grabClient;
 
 	private int				_screenSaverTimeout = 0;
 	private int				_screenSaverInterval = 0;
@@ -84,7 +84,7 @@ public class XServer {
 		_windowManagerClass = windowManagerClass;
 		_formats = new Vector<Format>();
 		_resources = new Hashtable<Integer, Resource>();
-		_clients = new Vector<ClientComms>();
+		_clients = new Vector<Client>();
 		_atoms = new Hashtable<Integer, Atom>();
 		_atomNames = new Hashtable<String, Atom>();
 		_selections = new Hashtable<Integer, Selection>();
@@ -153,7 +153,7 @@ public class XServer {
 		}
 
 		synchronized (this) {
-			for (ClientComms c: _clients)
+			for (Client c: _clients)
 				c.cancel ();
 	
 			_clients.clear ();
@@ -236,7 +236,7 @@ public class XServer {
 	 */
 	public void
 	removeClient (
-		ClientComms		client
+		Client		client
 	) {
 		for (Selection sel: _selections.values ())
 			sel.clearClient (client);
@@ -245,7 +245,7 @@ public class XServer {
 		if (_grabClient == client)
 			_grabClient = null;
 
-		if (client.getCloseDownMode () == ClientComms.Destroy
+		if (client.getCloseDownMode () == Client.Destroy
 												&& _clients.size () == 0)
 			reset ();
 	}
@@ -257,7 +257,7 @@ public class XServer {
 	 */
 	public void
 	grabServer (
-		ClientComms		client
+		Client		client
 	) {
 		_grabClient = client;
 	}
@@ -269,7 +269,7 @@ public class XServer {
 	 */
 	public void
 	ungrabServer (
-		ClientComms		client
+		Client		client
 	) {
 		if (_grabClient == client)
 			_grabClient = null;
@@ -285,7 +285,7 @@ public class XServer {
 	 */
 	public boolean
 	processingAllowed (
-		ClientComms		client
+		Client		client
 	) {
 		if (_grabClient == null)
 			return true;
@@ -568,21 +568,21 @@ public class XServer {
 	 */
 	public void
 	destroyClientResources (
-		ClientComms		client
+		Client		client
 	) {
 		Collection<Resource>	rc = _resources.values ();
 
 		if (client == null) {
 			for (Resource r: rc) {
-				ClientComms		c = r.getClientComms ();
+				Client		c = r.getClient ();
 
 				if (!c.isConnected () && r.getCloseDownMode ()
-											== ClientComms.RetainTemporary)
+											== Client.RetainTemporary)
 					r.delete ();
 			}
 		} else {
 			for (Resource r: rc)
-				if (r.getClientComms () == client)
+				if (r.getClient () == client)
 					r.delete ();
 		}
 	}
@@ -600,7 +600,7 @@ public class XServer {
 		int			firstKeycode,
 		int			keycodeCount
 	) {
-		for (ClientComms c: _clients) {
+		for (Client c: _clients) {
 			try {
 				EventCode.sendMappingNotify (c, request, firstKeycode,
 															keycodeCount);
@@ -618,7 +618,7 @@ public class XServer {
 	 */
 	public void
 	processQueryExtensionRequest (
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -685,7 +685,7 @@ public class XServer {
 	 */
 	public void
 	writeListExtensions (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		Set<String>		ss = _extensions.keySet ();
 		int				length = 0;
@@ -723,7 +723,7 @@ public class XServer {
 	 */
 	public void
 	processChangeHostsRequest (
-		ClientComms		client,
+		Client			client,
 		int				mode,
 		int				bytesRemaining
 	) throws IOException {
@@ -779,7 +779,7 @@ public class XServer {
 	 */
 	public void
 	writeListHosts (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		int				n = _accessControlHosts.size ();
@@ -901,7 +901,7 @@ public class XServer {
 	 */
 	public void
 	writeScreenSaver (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 
@@ -1016,10 +1016,10 @@ public class XServer {
 				}
 
 				synchronized (this) {
-					ClientComms		c;
+					Client		c;
 
 					try {
-						c = new ClientComms (XServer.this, socket,
+						c = new Client (XServer.this, socket,
 											_clientIdBase, _clientIdStep - 1);
 						_clients.add (c);
 						c.start ();

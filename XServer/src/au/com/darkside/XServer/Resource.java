@@ -21,14 +21,14 @@ public class Resource {
 	private final int			_type;
 	protected final int			_id;
 	protected final XServer		_xServer;
-	protected ClientComms		_clientComms;
-	private int					_closeDownMode = ClientComms.Destroy;
+	protected Client			_client;
+	private int					_closeDownMode = Client.Destroy;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param type		The resource type.
-	 * @param id		The resource ID.
+	 * @param type	The resource type.
+	 * @param id	The resource ID.
 	 * @param xServer	The X server.
 	 * @param client	The client issuing the request.
 	 */
@@ -36,12 +36,12 @@ public class Resource {
 		int			type,
 		int			id,
 		XServer		xServer,
-		ClientComms	client
+		Client		client
 	) {
 		_type = type;
 		_id = id;
 		_xServer = xServer;
-		_clientComms = client;
+		_client = client;
 	}
 
 	/**
@@ -65,13 +65,13 @@ public class Resource {
 	}
 
 	/**
-	 * Return the resource's client.
+	 * Return the client that created the resource.
 	 *
-	 * @return	The resource's client.
+	 * @return	The client that created the resource.
 	 */
-	public ClientComms
-	getClientComms () {
-		return _clientComms;
+	public Client
+	getClient () {
+		return _client;
 	}
 
 	/**
@@ -138,10 +138,10 @@ public class Resource {
 	 */
 	public void
 	processRequest (
-		ClientComms		client,
-		byte			opcode,
-		int				arg,
-		int				bytesRemaining
+		Client		client,
+		byte		opcode,
+		int			arg,
+		int			bytesRemaining
 	) throws IOException {
 	}
 }

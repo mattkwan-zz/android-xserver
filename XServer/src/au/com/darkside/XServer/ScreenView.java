@@ -41,11 +41,13 @@ public class ScreenView extends View {
 	private int			_buttons = 0;
 	private boolean		_isBlanked = false;
 
+	private Client		_grabPointerClient = null;
 	private Window		_grabPointerWindow = null;
 	private int			_grabPointerTime = 0;
 	private boolean		_grabPointerOwnerEvents = false;
 	private boolean		_grabPointerSynchronous = false;
 	private boolean		_grabPointerPassive = false;
+	private Client		_grabKeyboardClient = null;
 	private Window		_grabKeyboardWindow = null;
 	private int			_grabKeyboardTime = 0;
 	private boolean		_grabKeyboardOwnerEvents = false;
@@ -220,6 +222,7 @@ public class ScreenView extends View {
 		Window		w
 	) {
 		if (_grabPointerWindow == w || _grabConfineWindow == w) {
+			_grabPointerClient = null;
 			_grabPointerWindow = null;
 			_grabCursor = null;
 			_grabConfineWindow = null;
@@ -246,6 +249,7 @@ public class ScreenView extends View {
 
 			Window.focusInOutNotify (_grabKeyboardWindow, _focusWindow, pw,
 															_rootWindow, 2);
+			_grabKeyboardClient = null;
 			_grabKeyboardWindow = null;
 		}
 
@@ -433,7 +437,7 @@ public class ScreenView extends View {
 				w.motionNotify (x, y, _buttons & 0xff00, null);
 			} else if (!_grabPointerSynchronous) {
 				w.grabMotionNotify (x, y, _buttons & 0xff00, _grabEventMask,
-													_grabPointerOwnerEvents);
+								_grabPointerClient, _grabPointerOwnerEvents);
 			}	// Else need to queue the events for later.
 
 			_motionX = x;
@@ -485,6 +489,7 @@ public class ScreenView extends View {
 				pbg = w.findPassiveButtonGrab (_buttons, null);
 
 			if (pbg != null) {
+				_grabPointerClient = pbg.getGrabClient ();
 				_grabPointerWindow = pbg.getGrabWindow ();
 				_grabPointerPassive = true;
 				_grabPointerTime = _xServer.getTimestamp ();
@@ -500,18 +505,31 @@ public class ScreenView extends View {
 
 				updatePointer (1);
 			} else {
-				w.buttonNotify (pressed, _motionX, _motionY, button, null);
-				if (pressed) {
-					int			em = w.getEventMask ();
+				Window		ew = w.buttonNotify (pressed, _motionX, _motionY,
+																button, null);
+				Client		c = null;
+
+				if (pressed && ew != null) {
+					Vector<Client>		sc;
+
+					sc = ew.getSelectingClients(EventCode.MaskButtonPress);
+					if (sc != null)
+						c = sc.firstElement ();
+				}
+
+					// Start an automatic key grab.
+				if (c != null) {
+					int			em = ew.getClientEventMask (c);
 	
-					_grabPointerWindow = w;
+					_grabPointerClient = c;
+					_grabPointerWindow = ew;
 					_grabPointerPassive = false;
 					_grabPointerTime = _xServer.getTimestamp ();
-					_grabCursor = w.getCursor ();
+					_grabCursor = ew.getCursor ();
 					_grabConfineWindow = null;
 					_grabEventMask = em & EventCode.MaskAllPointer;
 					_grabPointerOwnerEvents
-								= (em& EventCode.MaskOwnerGrabButton) != 0;
+								= (em & EventCode.MaskOwnerGrabButton) != 0;
 					_grabPointerSynchronous = false;
 					_grabKeyboardSynchronous = false;
 					updatePointer (1);
@@ -520,11 +538,12 @@ public class ScreenView extends View {
 		} else {
 			if (!_grabPointerSynchronous) {
 				_grabPointerWindow.grabButtonNotify (pressed, _motionX,
-										_motionY, button, _grabEventMask,
+						_motionY, button, _grabEventMask, _grabPointerClient,
 												_grabPointerOwnerEvents);
 			}	// Else need to queue the events for later.
 
 			if (!pressed && (_buttons & 0xff00) == 0) {
+				_grabPointerClient = null;
 				_grabPointerWindow = null;
 				_grabCursor = null;
 				_grabConfineWindow = null;
@@ -588,6 +607,7 @@ public class ScreenView extends View {
 
 			if (pkg != null) {
 				_grabKeyboardPassiveGrab = pkg;
+				_grabKeyboardClient = pkg.getGrabClient ();
 				_grabKeyboardWindow = pkg.getGrabWindow ();
 				_grabKeyboardTime = _xServer.getTimestamp ();
 				_grabKeyboardOwnerEvents = pkg.getOwnerEvents ();
@@ -606,7 +626,7 @@ public class ScreenView extends View {
 																	null);
 		} else if (!_grabKeyboardSynchronous){
 			_grabKeyboardWindow.grabKeyNotify (pressed, _motionX, _motionY,
-										keycode, _grabKeyboardOwnerEvents);
+					keycode, _grabKeyboardClient, _grabKeyboardOwnerEvents);
 		}	// Else need to queue keyboard events.
 
 		kb.updateKeymap (keycode, pressed);
@@ -616,6 +636,7 @@ public class ScreenView extends View {
 
 			if (rk == 0 || rk == keycode) {
 				_grabKeyboardPassiveGrab = null;
+				_grabKeyboardClient = null;
 				_grabKeyboardWindow = null;
 			}
 		}
@@ -801,7 +822,7 @@ public class ScreenView extends View {
 	 */
 	public void
 	writeInstalledColormaps (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		int				n = _installedColormaps.size ();
@@ -831,7 +852,7 @@ public class ScreenView extends View {
 	public void
 	processRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -866,7 +887,9 @@ public class ScreenView extends View {
 					if (time == 0)
 						time = now;
 
-					if (time >= _grabPointerTime && time <= now) {
+					if (time >= _grabPointerTime && time <= now
+										&& _grabPointerClient == client) {
+						_grabPointerClient = null;
 						_grabPointerWindow = null;
 						_grabCursor = null;
 						_grabConfineWindow = null;
@@ -930,7 +953,8 @@ public class ScreenView extends View {
 						time = now;
 
 					if (_grabPointerWindow != null && !_grabPointerPassive
-									&& time >= _grabPointerTime && time <= now
+								&& _grabPointerClient == client
+								&& time >= _grabPointerTime && time <= now
 												&& (cid == 0 || c != null)) {
 						_grabEventMask = mask;
 						if (c != null)
@@ -965,6 +989,7 @@ public class ScreenView extends View {
 
 						Window.focusInOutNotify (_grabKeyboardWindow,
 											_focusWindow, pw, _rootWindow, 2);
+						_grabKeyboardClient = null;
 						_grabKeyboardWindow = null;
 					}
 				}
@@ -1060,7 +1085,7 @@ public class ScreenView extends View {
 	private void
 	processSendEventRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			propagate
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1097,19 +1122,17 @@ public class ScreenView extends View {
 				w = (Window) r;
 		}
 
-		ClientComms		dc = null;
+		Vector<Client>		dc = null;
 
 		if (mask == 0) {
-			dc = w.getClientComms ();
+			dc = new Vector<Client>();
+			dc.add (w.getClient ());
 		} else if (!propagate) {
-			if ((mask & w.getEventMask ()) != 0)
-				dc = w.getClientComms ();
+			dc = w.getSelectingClients (mask);
 		} else {
 			for (;;) {
-				if ((mask & w.getEventMask ()) != 0) {
-					dc = w.getClientComms ();
+				if ((dc = w.getSelectingClients (mask)) != null)
 					break;
-				}
 
 				mask &= ~w.getDoNotPropagateMask ();
 				if (mask == 0)
@@ -1126,20 +1149,22 @@ public class ScreenView extends View {
 		if (dc == null)
 			return;
 
-		InputOutput		dio = dc.getInputOutput ();
-
-		synchronized (dio) {
-			dio.writeByte ((byte) (event[0] | 128));
-
-			if (event[0] == EventCode.KeymapNotify) {
-				dio.writeBytes (event, 1, 31);
-			} else {
-				dio.writeByte (event[1]);
-				dio.writeShort ((short) (dc.getSequenceNumber() & 0xffff));
-				dio.writeBytes (event, 4, 28);
+		for (Client c: dc) {
+			InputOutput		dio = c.getInputOutput ();
+	
+			synchronized (dio) {
+				dio.writeByte ((byte) (event[0] | 128));
+	
+				if (event[0] == EventCode.KeymapNotify) {
+					dio.writeBytes (event, 1, 31);
+				} else {
+					dio.writeByte (event[1]);
+					dio.writeShort ((short) (c.getSequenceNumber() & 0xffff));
+					dio.writeBytes (event, 4, 28);
+				}
 			}
+			dio.flush ();
 		}
-		dio.flush ();
 	}
 
 	/**
@@ -1153,7 +1178,7 @@ public class ScreenView extends View {
 	private void
 	processGrabPointerRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			ownerEvents
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1212,6 +1237,7 @@ public class ScreenView extends View {
 		} else if (_grabPointerWindow != null) {
 			status = 1;	// Already grabbed.
 		} else {
+			_grabPointerClient = client;
 			_grabPointerWindow = w;
 			_grabPointerPassive = false;
 			_grabPointerTime = time;
@@ -1245,7 +1271,7 @@ public class ScreenView extends View {
 	private void
 	processGrabButtonRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			ownerEvents
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1294,8 +1320,8 @@ public class ScreenView extends View {
 			c = (Cursor) r;
 		}
 
-		w.addPassiveButtonGrab (new PassiveButtonGrab (w, button, modifiers,
-									ownerEvents, mask, psync, ksync, cw, c));
+		w.addPassiveButtonGrab (new PassiveButtonGrab (client, w, button,
+						modifiers, ownerEvents, mask, psync, ksync, cw, c));
 	}
 
 	/**
@@ -1309,7 +1335,7 @@ public class ScreenView extends View {
 	private void
 	processGrabKeyboardRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			ownerEvents
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1339,6 +1365,7 @@ public class ScreenView extends View {
 		} else if (_grabKeyboardWindow != null) {
 			status = 1;	// Already grabbed.
 		} else {
+			_grabKeyboardClient = client;
 			_grabKeyboardWindow = w;
 			_grabKeyboardTime = time;
 			_grabKeyboardOwnerEvents = ownerEvents;
@@ -1370,7 +1397,7 @@ public class ScreenView extends View {
 	private void
 	processGrabKeyRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			ownerEvents
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -1391,8 +1418,8 @@ public class ScreenView extends View {
 
 		Window			w = (Window) r;
 
-		w.addPassiveKeyGrab (new PassiveKeyGrab (w, keycode, modifiers,
-												ownerEvents, psync, ksync));
+		w.addPassiveKeyGrab (new PassiveKeyGrab (client, w, keycode,
+									modifiers, ownerEvents, psync, ksync));
 	}
 
 	/**
@@ -1407,7 +1434,7 @@ public class ScreenView extends View {
 	private void
 	processSetInputFocusRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				revertTo
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();

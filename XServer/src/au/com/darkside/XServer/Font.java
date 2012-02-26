@@ -91,7 +91,7 @@ public class Font extends Resource {
 	public Font (
 		int			id,
 		XServer		xServer,
-		ClientComms	client,
+		Client		client,
 		String		name
 	) {
 		super (FONT, id, xServer, client);
@@ -225,7 +225,7 @@ public class Font extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -239,8 +239,8 @@ public class Font extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					_xServer.freeResource (_id);
-					if (_clientComms != null)
-						_clientComms.freeResource (this);
+					if (_client != null)
+						_client.freeResource (this);
 				}
 				break;
 			case RequestCode.QueryFont:
@@ -291,7 +291,7 @@ public class Font extends Resource {
 	public static void
 	processOpenFontRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		int				bytesRemaining
 	) throws IOException {
@@ -338,7 +338,7 @@ public class Font extends Resource {
 	 */
 	private void
 	processQueryFontRequest (
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		int				numFontProperties = (_nameAtom == null) ? 0 : 1;
@@ -419,7 +419,7 @@ public class Font extends Resource {
 	 */
 	private void
 	processQueryTextExtentsRequest (
-		ClientComms		client,
+		Client			client,
 		String			s
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -453,7 +453,7 @@ public class Font extends Resource {
 	public static void
 	processGetFontPath (
 		XServer			xServer,
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		String[]		fontPaths = xServer.getFontPath ();
@@ -496,7 +496,7 @@ public class Font extends Resource {
 	public static void
 	processSetFontPath (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -651,7 +651,7 @@ public class Font extends Resource {
 	 */
 	public static void
 	processListFonts (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
@@ -743,7 +743,7 @@ public class Font extends Resource {
 	 */
 	private static void
 	writeFontWithInfo (
-		ClientComms		client,
+		Client			client,
 		String			name,
 		int				fontsRemaining
 	) throws IOException {

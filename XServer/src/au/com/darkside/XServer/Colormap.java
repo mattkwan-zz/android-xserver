@@ -288,7 +288,7 @@ public class Colormap extends Resource {
 	public Colormap (
 		int				id,
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		ScreenView		screen
 	) {
 		super (COLORMAP, id, xServer, client);
@@ -385,7 +385,7 @@ public class Colormap extends Resource {
 	@Override
 	public void
 	processRequest (
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
@@ -399,8 +399,8 @@ public class Colormap extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else if (_id != _screen.getDefaultColormap().getId ()) {
 					_xServer.freeResource (_id);
-					if (_clientComms != null)
-						_clientComms.freeResource (this);
+					if (_client != null)
+						_client.freeResource (this);
 				}
 				break;
 			case RequestCode.InstallColormap:
@@ -650,7 +650,7 @@ public class Colormap extends Resource {
 	public static void
 	processCreateColormapRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		int				alloc
 	) throws IOException {
@@ -686,8 +686,8 @@ public class Colormap extends Resource {
 	 */
 	public void
 	processCopyColormapAndFree (
-		ClientComms		client,
-		int				id
+		Client		client,
+		int			id
 	) throws IOException {
 		Colormap	cmap = new Colormap (id, _xServer, client, _screen);
 

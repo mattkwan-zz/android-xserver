@@ -9,6 +9,7 @@ package au.com.darkside.XServer;
  * This class records details of a passive key grab.
  */
 public class PassiveKeyGrab {
+	private final Client		_grabClient;
 	private final Window		_grabWindow;
 	private final int			_key;
 	private final int			_modifiers;
@@ -19,6 +20,7 @@ public class PassiveKeyGrab {
 	/**
 	 * Constructor.
 	 *
+	 * @param grabClient	The grabbing client.
 	 * @param grabWindow	The grab window.
 	 * @param key	The key being grabbed, or 0 for any.
 	 * @param modifiers	The modifier mask, or 0x8000 for any.
@@ -27,6 +29,7 @@ public class PassiveKeyGrab {
 	 * @param keyboardSynchronous	Are keyboard events synchronous?
 	 */
 	public PassiveKeyGrab (
+		Client		grabClient,
 		Window		grabWindow,
 		int			key,
 		int			modifiers,
@@ -34,6 +37,7 @@ public class PassiveKeyGrab {
 		boolean		pointerSynchronous,
 		boolean		keyboardSynchronous
 	) {
+		_grabClient = grabClient;
 		_grabWindow = grabWindow;
 		_key = key;
 		_modifiers = modifiers;
@@ -103,6 +107,16 @@ public class PassiveKeyGrab {
 	public int
 	getModifiers () {
 		return _modifiers;
+	}
+
+	/**
+	 * Return the grab client.
+	 *
+	 * @return	The grab client.
+	 */
+	public Client
+	getGrabClient () {
+		return _grabClient;
 	}
 
 	/**

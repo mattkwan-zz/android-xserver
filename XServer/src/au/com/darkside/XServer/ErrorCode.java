@@ -41,7 +41,7 @@ public class ErrorCode {
 	 */
 	public static void
 	write (
-		ClientComms		client,
+		Client			client,
 		byte			error,
 		byte			opcode,
 		int				resourceId

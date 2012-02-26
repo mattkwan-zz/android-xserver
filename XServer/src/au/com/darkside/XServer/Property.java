@@ -5,6 +5,7 @@ package au.com.darkside.XServer;
 
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Vector;
 
 
 /**
@@ -73,12 +74,12 @@ public class Property {
 	 */
 	public static void
 	processRequest (
-		XServer			xServer,
-		ClientComms		client,
-		int				arg,
-		byte			opcode,
-		int				bytesRemaining,
-		Window			w,
+		XServer		xServer,
+		Client		client,
+		int			arg,
+		byte		opcode,
+		int			bytesRemaining,
+		Window		w,
 		Hashtable<Integer, Property>	properties
 	) throws IOException {
 		switch (opcode) {
@@ -118,7 +119,7 @@ public class Property {
 	public static void
 	processChangePropertyRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				mode,
 		int				bytesRemaining,
 		Window			w,
@@ -217,9 +218,14 @@ public class Property {
 			}
 		}
 
-		if (w.isSelecting (EventCode.MaskPropertyChange))
-			EventCode.sendPropertyNotify (w.getClientComms (), w, property,
+		Vector<Client>		sc;
+
+		if ((sc = w.getSelectingClients (EventCode.MaskPropertyChange))
+																	!= null) {
+			for (Client c: sc)
+				EventCode.sendPropertyNotify (c, w, property,
 												xServer.getTimestamp (), 0);
+		}
 	}
 
 	/**
@@ -236,7 +242,7 @@ public class Property {
 	public static void
 	processGetPropertyRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		boolean			delete,
 		int				bytesRemaining,
 		Window			w,
@@ -338,9 +344,16 @@ public class Property {
 		}
 		io.flush ();
 
-		if (generateNotify && w.isSelecting (EventCode.MaskPropertyChange))
-			EventCode.sendPropertyNotify (w.getClientComms (), w, property,
+		if (generateNotify) {
+			Vector<Client>		sc;
+
+			if ((sc = w.getSelectingClients (EventCode.MaskPropertyChange))
+																	!= null) {
+				for (Client c: sc)
+					EventCode.sendPropertyNotify (c, w, property,
 												xServer.getTimestamp (), 1);
+			}
+		}
 	}
 
 	/**
@@ -356,7 +369,7 @@ public class Property {
 	public static void
 	processRotatePropertiesRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining,
 		Window			w,
 		Hashtable<Integer, Property>	properties
@@ -415,11 +428,16 @@ public class Property {
 			p._data = pc._data;
 		}
 
-		if (w.isSelecting (EventCode.MaskPropertyChange)) {
-			for (int i = 0; i < n; i++)
-				EventCode.sendPropertyNotify (w.getClientComms (), w,
+		Vector<Client>		sc;
+
+		if ((sc = w.getSelectingClients (EventCode.MaskPropertyChange))
+																	!= null) {
+			for (int i = 0; i < n; i++) {
+				for (Client c: sc)
+					EventCode.sendPropertyNotify (c, w,
 										xServer.getAtom (aids[i]),
 										xServer.getTimestamp (), 0);
+			}
 		}
 	}
 }

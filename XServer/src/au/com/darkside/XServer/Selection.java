@@ -13,7 +13,7 @@ import java.io.IOException;
  */
 public class Selection {
 	private final int		_id;
-	private ClientComms		_owner = null;
+	private Client			_owner = null;
 	private Window			_ownerWindow = null;
 	private int				_lastChangeTime = 0;
 
@@ -46,7 +46,7 @@ public class Selection {
 	 */
 	public void
 	clearClient (
-		ClientComms		client
+		Client		client
 	) {
 		if (_owner == client) {
 			_owner = null;
@@ -66,7 +66,7 @@ public class Selection {
 	public static void
 	processRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				bytesRemaining
 	) throws IOException {
@@ -127,7 +127,7 @@ public class Selection {
 	public static void
 	processSetSelectionOwnerRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -200,7 +200,7 @@ public class Selection {
 	public static void
 	processConvertSelectionRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -250,7 +250,7 @@ public class Selection {
 			return;
 		}
 
-		ClientComms	owner = null;
+		Client		owner = null;
 		Selection	sel = xServer.getSelection (sid);
 
 		if (sel != null)

@@ -49,7 +49,7 @@ public class Pointer {
 	public void
 	processWarpPointer (
 		XServer			xServer,
-		ClientComms		client
+		Client			client
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		int				swin = io.readInt ();	// Source window.
@@ -123,7 +123,7 @@ public class Pointer {
 	public void
 	processRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining

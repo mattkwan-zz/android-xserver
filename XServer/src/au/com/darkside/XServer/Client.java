@@ -12,7 +12,7 @@ import java.util.Vector;
  * 
  * This class handles communications with a client.
  */
-public class ClientComms extends Thread {
+public class Client extends Thread {
 	public static final int		Destroy = 0;
 	public static final int		RetainPermanent = 1;
 	public static final int		RetainTemporary = 2;
@@ -37,7 +37,7 @@ public class ClientComms extends Thread {
 	 * @param resourceIdMask	The range of resource IDs the client can use.
 	 * @throws IOException
 	 */
-	public ClientComms (
+	public Client (
 		XServer			xserver,
 		Socket			socket,
 		int				resourceIdBase,
@@ -808,7 +808,7 @@ public class ClientComms extends Thread {
 		}
 
 		int			id = _inputOutput.readInt ();
-		ClientComms	client = null;
+		Client		client = null;
 
 		if (id != 0) {
 			Resource	r = _xServer.getResource (id);
@@ -819,7 +819,7 @@ public class ClientComms extends Thread {
 				return;
 			}
 
-			client = r.getClientComms ();
+			client = r.getClient ();
 		}
 
 		if (client != null && client._isConnected)

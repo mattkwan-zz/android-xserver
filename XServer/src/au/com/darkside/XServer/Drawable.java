@@ -98,7 +98,7 @@ public class Drawable {
 	public boolean
 	processRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		byte			opcode,
 		int				arg,
@@ -247,7 +247,7 @@ public class Drawable {
 	 */
 	private void
 	processGetImageRequest (
-		ClientComms		client,
+		Client			client,
 		int				format
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -384,7 +384,7 @@ public class Drawable {
 			((Window) dr).invalidate (dx, dy, width, height);
 
 		if (gc.getGraphicsExposure ())
-			EventCode.sendNoExposure (dr.getClientComms (), dr,
+			EventCode.sendNoExposure (gc.getClient (), dr,
 													RequestCode.CopyArea);
 	}
 
@@ -436,7 +436,7 @@ public class Drawable {
 			((Window) dr).invalidate (dx, dy, width, height);
 
 		if (gc.getGraphicsExposure ())
-			EventCode.sendNoExposure (dr.getClientComms(), dr,
+			EventCode.sendNoExposure (gc.getClient (), dr,
 													RequestCode.CopyPlane);
 	}
 
@@ -486,7 +486,7 @@ public class Drawable {
 	public boolean
 	processGCRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		int				id,
 		GContext		gc,
 		byte			opcode,
@@ -731,7 +731,7 @@ public class Drawable {
 	 */
 	private boolean
 	processPutImage (
-		ClientComms		client,
+		Client			client,
 		GContext		gc,
 		int				format,
 		int				bytesRemaining
@@ -880,7 +880,7 @@ public class Drawable {
 	 */
 	private boolean
 	processPolyText (
-		ClientComms		client,
+		Client			client,
 		GContext		gc,
 		byte			opcode,
 		int				bytesRemaining

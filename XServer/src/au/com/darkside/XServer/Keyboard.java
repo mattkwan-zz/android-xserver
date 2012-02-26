@@ -185,7 +185,7 @@ public class Keyboard {
 	public void
 	processRequest (
 		XServer			xServer,
-		ClientComms		client,
+		Client			client,
 		byte			opcode,
 		int				arg,
 		int				bytesRemaining
