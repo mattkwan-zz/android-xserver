@@ -1897,8 +1897,8 @@ public class Window extends Resource {
 			return false;
 		}
 
-		if (isSelecting (EventCode.MaskResizeRedirect) && (width != oldWidth
-											|| height != oldHeight)) {
+		if (isSelecting (EventCode.MaskResizeRedirect)
+							&& (width != oldWidth || height != oldHeight)) {
 			EventCode.sendResizeRequest (_clientComms, this, width, height);
 			width = oldWidth;
 			height = oldHeight;
@@ -1945,21 +1945,24 @@ public class Window extends Resource {
 					case 1:	// Below.
 						_parent._children.remove (this);
 						_parent._children.add (0, this);
+						break;
 					case 2:	// TopIf.
 						if (_parent.occludes (null, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
 						}
+						break;
 					case 3:	// BottomIf.
 						if (_parent.occludes (this, null)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
 						}
+						break;
 					case 4:	// Opposite.
 						if (_parent.occludes (null, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
-						} else if (_parent.occludes (this, null)) {
+						} else if (_parent.occludes (this, null)) {								_parent._children.remove (this);
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
 						}
@@ -1978,16 +1981,19 @@ public class Window extends Resource {
 						_parent._children.remove (this);
 						pos = _parent._children.indexOf (sibling);
 						_parent._children.add (pos, this);
+						break;
 					case 2:	// TopIf.
 						if (_parent.occludes (sibling, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
 						}
+						break;
 					case 3:	// BottomIf.
 						if (_parent.occludes (this, sibling)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
 						}
+						break;
 					case 4:	// Opposite.
 						if (_parent.occludes (sibling, this)) {
 							_parent._children.remove (this);
