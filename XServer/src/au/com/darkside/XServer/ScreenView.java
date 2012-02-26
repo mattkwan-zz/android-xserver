@@ -283,26 +283,28 @@ public class ScreenView extends View {
 			return;
 		}
 
-		if (_isBlanked) {
-			canvas.drawColor (0xff000000);
-			return;
-		}
-
-		Paint		paint = new Paint ();
-		Rect		bounds = canvas.getClipBounds ();
-
-		if (bounds.right == 0 && bounds.bottom == 0)
-			bounds = null;
-
-		_rootWindow.draw (canvas, paint, bounds);
-
-		canvas.drawBitmap (_currentCursor.getBitmap (),
+		synchronized (_xServer) {
+			if (_isBlanked) {
+				canvas.drawColor (0xff000000);
+				return;
+			}
+	
+			Paint		paint = new Paint ();
+			Rect		bounds = canvas.getClipBounds ();
+	
+			if (bounds.right == 0 && bounds.bottom == 0)
+				bounds = null;
+	
+			_rootWindow.draw (canvas, paint, bounds);
+	
+			canvas.drawBitmap (_currentCursor.getBitmap (),
 					_currentCursorX - _currentCursor.getHotspotX (),
 					_currentCursorY - _currentCursor.getHotspotY (), null);
-
-		_drawnCursor = _currentCursor;
-		_drawnCursorX = _currentCursorX;
-		_drawnCursorY = _currentCursorY;
+	
+			_drawnCursor = _currentCursor;
+			_drawnCursorX = _currentCursorX;
+			_drawnCursorY = _currentCursorY;
+		}
 	}
 
 	/**
@@ -630,11 +632,14 @@ public class ScreenView extends View {
 	onTouchEvent (
 		MotionEvent		event
 	) {
-		if (_rootWindow == null)
-			return false;
+		synchronized (_xServer) {
+			if (_rootWindow == null)
+				return false;
 
-		blank (false);	// Reset the screen saver.
-		updatePointerPosition ((int) event.getX (), (int) event.getY (), 0);
+			blank (false);	// Reset the screen saver.
+			updatePointerPosition ((int) event.getX (), (int) event.getY (),
+																		0);
+		}
 
 		return true;
 	}
@@ -652,42 +657,44 @@ public class ScreenView extends View {
 		int			keycode,
 		KeyEvent	event
 	) {
-		if (_rootWindow == null)
-			return false;
-
-		blank (false);	// Reset the screen saver.
-
-		boolean		sendEvent = false;
-
-		switch (keycode) {
-			case KeyEvent.KEYCODE_BACK:
-			case KeyEvent.KEYCODE_MENU:
+		synchronized (_xServer) {
+			if (_rootWindow == null)
 				return false;
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
-				updatePointerButtons (1, true);
-				break;
-			case KeyEvent.KEYCODE_DPAD_UP:
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-				updatePointerButtons (2, true);
-				break;
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
-				updatePointerButtons (3, true);
-				break;
-			case KeyEvent.KEYCODE_SHIFT_LEFT:
-			case KeyEvent.KEYCODE_SHIFT_RIGHT:
-			case KeyEvent.KEYCODE_ALT_LEFT:
-			case KeyEvent.KEYCODE_ALT_RIGHT:
-				updateModifiers (keycode, true, event.getMetaState ());
-				sendEvent = true;
-				break;
-			default:
-				sendEvent = true;
-				break;
+	
+			blank (false);	// Reset the screen saver.
+	
+			boolean		sendEvent = false;
+	
+			switch (keycode) {
+				case KeyEvent.KEYCODE_BACK:
+				case KeyEvent.KEYCODE_MENU:
+					return false;
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					updatePointerButtons (1, true);
+					break;
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+					updatePointerButtons (2, true);
+					break;
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					updatePointerButtons (3, true);
+					break;
+				case KeyEvent.KEYCODE_SHIFT_LEFT:
+				case KeyEvent.KEYCODE_SHIFT_RIGHT:
+				case KeyEvent.KEYCODE_ALT_LEFT:
+				case KeyEvent.KEYCODE_ALT_RIGHT:
+					updateModifiers (keycode, true, event.getMetaState ());
+					sendEvent = true;
+					break;
+				default:
+					sendEvent = true;
+					break;
+			}
+	
+			if (sendEvent)
+				notifyKeyPressedReleased (keycode, true);
 		}
-
-		if (sendEvent)
-			notifyKeyPressedReleased (keycode, true);
 
 		return true;
 	}
@@ -705,42 +712,44 @@ public class ScreenView extends View {
 		int			keycode,
 		KeyEvent	event
 	) {
-		if (_rootWindow == null)
-			return false;
-
-		blank (false);	// Reset the screen saver.
-
-		boolean		sendEvent = false;
-
-		switch (keycode) {
-			case KeyEvent.KEYCODE_BACK:
-			case KeyEvent.KEYCODE_MENU:
+		synchronized (_xServer) {
+			if (_rootWindow == null)
 				return false;
-			case KeyEvent.KEYCODE_DPAD_LEFT:
-			case KeyEvent.KEYCODE_DPAD_CENTER:
-				updatePointerButtons (1, false);
-				break;
-			case KeyEvent.KEYCODE_DPAD_UP:
-			case KeyEvent.KEYCODE_DPAD_DOWN:
-				updatePointerButtons (2, false);
-				break;
-			case KeyEvent.KEYCODE_DPAD_RIGHT:
-				updatePointerButtons (3, false);
-				break;
-			case KeyEvent.KEYCODE_SHIFT_LEFT:
-			case KeyEvent.KEYCODE_SHIFT_RIGHT:
-			case KeyEvent.KEYCODE_ALT_LEFT:
-			case KeyEvent.KEYCODE_ALT_RIGHT:
-				updateModifiers (keycode, false, event.getMetaState ());
-				sendEvent = true;
-				break;
-			default:
-				sendEvent = true;
-				break;
+	
+			blank (false);	// Reset the screen saver.
+	
+			boolean		sendEvent = false;
+	
+			switch (keycode) {
+				case KeyEvent.KEYCODE_BACK:
+				case KeyEvent.KEYCODE_MENU:
+					return false;
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					updatePointerButtons (1, false);
+					break;
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+					updatePointerButtons (2, false);
+					break;
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					updatePointerButtons (3, false);
+					break;
+				case KeyEvent.KEYCODE_SHIFT_LEFT:
+				case KeyEvent.KEYCODE_SHIFT_RIGHT:
+				case KeyEvent.KEYCODE_ALT_LEFT:
+				case KeyEvent.KEYCODE_ALT_RIGHT:
+					updateModifiers (keycode, false, event.getMetaState ());
+					sendEvent = true;
+					break;
+				default:
+					sendEvent = true;
+					break;
+			}
+	
+			if (sendEvent)
+				notifyKeyPressedReleased (keycode, false);
 		}
-
-		if (sendEvent)
-			notifyKeyPressedReleased (keycode, false);
 
 		return true;
 	}

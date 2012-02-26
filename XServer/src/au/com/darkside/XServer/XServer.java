@@ -152,11 +152,13 @@ public class XServer {
 			_acceptThread = null;
 		}
 
-		for (ClientComms c: _clients)
-			c.cancel ();
-
-		_clients.clear ();
-		_grabClient = null;
+		synchronized (this) {
+			for (ClientComms c: _clients)
+				c.cancel ();
+	
+			_clients.clear ();
+			_grabClient = null;
+		}
 	}
 
 	/**
@@ -217,7 +219,7 @@ public class XServer {
 	 *
 	 * @return	The number of milliseconds since the last reset.
 	 */
-	public synchronized int
+	public int
 	getTimestamp () {
 		long	diff = System.currentTimeMillis () - _timestamp.getTime ();
 
@@ -232,7 +234,7 @@ public class XServer {
 	 *
 	 * @param client	The client to remove.
 	 */
-	public synchronized void
+	public void
 	removeClient (
 		ClientComms		client
 	) {
@@ -376,7 +378,7 @@ public class XServer {
 	 * @param io	The input/output stream.
 	 * @throws IOException
 	 */
-	public synchronized void
+	public void
 	writeFormats (
 		InputOutput		io
 	) throws IOException {
@@ -409,7 +411,7 @@ public class XServer {
 	 *
 	 * @param a		The atom to add.
 	 */
-	public synchronized void
+	public void
 	addAtom (
 		Atom		a
 	) {
@@ -426,7 +428,7 @@ public class XServer {
 	 * @param id	The atom ID.
 	 * @return	The specified atom, or null if it doesn't exist.
 	 */
-	public synchronized Atom
+	public Atom
 	getAtom (
 		int			id
 	) {
@@ -442,7 +444,7 @@ public class XServer {
 	 * @param name	The atom's name.
 	 * @return	The specified atom, or null if it doesn't exist.
 	 */
-	public synchronized Atom
+	public Atom
 	findAtom (
 		final String	name
 	) {
@@ -458,7 +460,7 @@ public class XServer {
 	 * @param id	The atom ID.
 	 * @return	True if an atom with the ID exists.
 	 */
-	public synchronized boolean
+	public boolean
 	atomExists (
 		int			id
 	) {
@@ -470,7 +472,7 @@ public class XServer {
 	 *
 	 * @return	The ID of the next free atom.
 	 */
-	public synchronized int
+	public int
 	nextFreeAtomId () {
 		return ++_maxAtomId;
 	}
@@ -481,7 +483,7 @@ public class XServer {
 	 * @param id	The selection ID.
 	 * @return	The specified selection, or null if it doesn't exist.
 	 */
-	public synchronized Selection
+	public Selection
 	getSelection (
 		int			id
 	) {
@@ -496,7 +498,7 @@ public class XServer {
 	 *
 	 * @param sel	The selection to add.
 	 */
-	public synchronized void
+	public void
 	addSelection (
 		Selection	sel
 	) {
@@ -508,7 +510,7 @@ public class XServer {
 	 *
 	 * @param r	The resource to add.
 	 */
-	public synchronized void
+	public void
 	addResource (
 		Resource	r
 	) {
@@ -521,7 +523,7 @@ public class XServer {
 	 * @param id	The resource ID.
 	 * @return	The specified resource, or null if it doesn't exist.
 	 */
-	public synchronized Resource
+	public Resource
 	getResource (
 		int			id
 	) {
@@ -537,7 +539,7 @@ public class XServer {
 	 * @param id	The resource ID.
 	 * @return	True if a resource with the ID exists.
 	 */
-	public synchronized boolean
+	public boolean
 	resourceExists (
 		int			id
 	) {
@@ -549,7 +551,7 @@ public class XServer {
 	 *
 	 * @param id	The resource ID. 
 	 */
-	public synchronized void
+	public void
 	freeResource (
 		int			id
 	) {
@@ -564,7 +566,7 @@ public class XServer {
 	 *
 	 * @param client	The terminated client, or null.
 	 */
-	public synchronized void
+	public void
 	destroyClientResources (
 		ClientComms		client
 	) {
@@ -592,7 +594,7 @@ public class XServer {
 	 * @param firstKeycode	First keycode in new keyboard map.
 	 * @param keycodeCount	Number of keycodes in new keyboard map.
 	 */
-	public synchronized void
+	public void
 	sendMappingNotify (
 		int			request,
 		int			firstKeycode,
