@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -40,6 +41,7 @@ public class Window extends Resource {
 	private boolean					_isMapped = false;
 	private boolean					_exposed = false;
 	private int						_visibility = NotViewable;
+	private Bitmap					_backgroundBitmap = null;
 	private int						_eventMask = 0;
 	private final Hashtable<Client, Integer>	_clientMasks;
 
@@ -102,7 +104,7 @@ public class Window extends Resource {
 		_colormap = _screen.getDefaultColormap ();
 		_inputOnly = inputOnly;
 
-		if (_parent == null) {
+		if (isRoot) {
 			_orect = new Rect (0, 0, width, height);
 			_irect = new Rect (0, 0, width, height);
 		} else {
@@ -141,13 +143,15 @@ public class Window extends Resource {
 			_attributes[AttrBackgroundPixel] = 0xff808080;
 			_isMapped = true;
 			_cursor = (Cursor) _xServer.getResource (2);	// X cursor.
-		} else if (_parent != null) {
-			_attributes[AttrBackgroundPixel] =
-								_parent._attributes[AttrBackgroundPixel];
+			_drawable = new Drawable (width, height, 32, null,
+										_attributes[AttrBackgroundPixel]);
+			_drawable.clear ();
+		} else {
+			_attributes[AttrBackgroundPixel] = 0xff000000;
+			_drawable = new Drawable (width, height, 32, null,
+										_attributes[AttrBackgroundPixel]);
 		}
 
-		_drawable = new Drawable (width, height, 32,
-							_attributes[AttrBackgroundPixel] | 0xff000000);
 		_children = new Vector<Window> ();
 		_properties = new Hashtable<Integer, Property> ();
 		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
@@ -575,10 +579,11 @@ public class Window extends Resource {
 															bytesRemaining))
 			return false;
 
+		w._drawable.clear ();
+
 		_xServer.addResource (w);
 		client.addResource (w);
 		_children.add (w);
-		w.invalidate ();
 
 		Vector<Client>		sc;
 
@@ -737,10 +742,37 @@ public class Window extends Resource {
 		boolean		ok = true;
 
 		if ((mask & (1 << AttrBackgroundPixmap)) != 0) {
-			if (_attributes[AttrBackgroundPixmap] == 1)	// ParentRelative.
+			int			pmid = _attributes[AttrBackgroundPixmap];
+
+			if (pmid == 0) {	// None.
+				_backgroundBitmap = null;
+				_drawable.setBackgroundBitmap (null);
+			} else if (pmid == 1) {	// ParentRelative.
+				_backgroundBitmap = _parent._backgroundBitmap;
 				_attributes[AttrBackgroundPixel] =
 									_parent._attributes[AttrBackgroundPixel];
+				_drawable.setBackgroundBitmap (_backgroundBitmap);
+				_drawable.setBackgroundColor (_attributes[AttrBackgroundPixel]
+																| 0xff000000);
+			} else {
+				Resource	r = _xServer.getResource (pmid);
+
+				if (r != null && r.getType () == Resource.PIXMAP) {
+					Pixmap		p = (Pixmap) r;
+					Drawable	d = p.getDrawable ();
+
+					_backgroundBitmap = d.getBitmap ();
+					_drawable.setBackgroundBitmap (_backgroundBitmap);
+				} else {
+					ErrorCode.write (client, ErrorCode.Colormap, opcode, pmid);
+					ok = false;
+				}
+			}
 		}
+
+		if ((mask & (1 << AttrBackgroundPixel)) != 0)
+			_drawable.setBackgroundColor (_attributes[AttrBackgroundPixel]
+															| 0xff000000);
 
 		if ((mask & (1 << AttrColormap)) != 0) {
 			int			cid = _attributes[AttrColormap];
@@ -2186,7 +2218,7 @@ public class Window extends Resource {
 		if (x != oldX || y != oldY || width != oldWidth || height != oldHeight
 											|| borderWidth != _borderWidth) {
 			if (width != oldWidth || height != oldHeight) {
-				_drawable = new Drawable (width, height, 32,
+				_drawable = new Drawable (width, height, 32, _backgroundBitmap,
 							_attributes[AttrBackgroundPixel] | 0xff000000);
 				_exposed = false;
 			}
@@ -2697,13 +2729,18 @@ public class Window extends Resource {
 						width = _drawable.getWidth () - x;
 					if (height == 0)
 						height = _drawable.getHeight () - y;
-					_drawable.clearArea (x, y, width, height,
-							_attributes[AttrBackgroundPixel] | 0xff000000);
+					_drawable.clearArea (x, y, width, height);
 					invalidate (x, y, width, height);
 
-					if (arg == 1)	// All clients or just those selecting? - MKWAN
-						EventCode.sendExpose (client, this, x, y, width,
+					if (arg == 1) {
+						Vector<Client>	sc;
+
+						sc = getSelectingClients (EventCode.MaskExposure);
+						if (sc != null)
+							for (Client c: sc)
+								EventCode.sendExpose (c, this, x, y, width,
 																height, 0);
+					}
 				}
 				break;
 			case RequestCode.CopyArea:

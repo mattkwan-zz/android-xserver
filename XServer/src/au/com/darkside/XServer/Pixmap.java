@@ -38,7 +38,7 @@ public class Pixmap extends Resource {
 	) {
 		super (PIXMAP, id, xServer, client);
 
-		_drawable = new Drawable (width, height, depth, 0xff000000);
+		_drawable = new Drawable (width, height, depth, null, 0xff000000);
 		_screen = screen;
 	}
 

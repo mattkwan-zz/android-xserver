@@ -19,28 +19,33 @@ import android.graphics.RectF;
  * This class implements an X drawable.
  */
 public class Drawable {
-	private final Bitmap		_bitmap;
-	private final Canvas		_canvas;
-	private final int			_depth;
+	private final Bitmap	_bitmap;
+	private final Canvas	_canvas;
+	private final int		_depth;
+	private Bitmap			_backgroundBitmap;
+	private int				_backgroundColor;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param width		The drawable width.
+	 * @param width	The drawable width.
 	 * @param height	The drawable height.
-	 * @param depth		The drawable depth.
-	 * @param color		Fill the bitmap with this color.
+	 * @param depth	The drawable depth.
+	 * @param bgbitmap	Background bitmap. Can be null.
+	 * @param bgcolor	Background color.
 	 */
 	public Drawable (
 		int			width,
 		int			height,
 		int			depth,
-		int			color
+		Bitmap		bgbitmap,
+		int			bgcolor
 	) {
 		_bitmap = Bitmap.createBitmap (width, height, Bitmap.Config.ARGB_8888);
 		_canvas = new Canvas (_bitmap);
 		_depth = depth;
-		_bitmap.eraseColor (color);
+		_backgroundBitmap = bgbitmap;
+		_backgroundColor = bgcolor;
 	}
 
 	/**
@@ -81,6 +86,30 @@ public class Drawable {
 	public Bitmap
 	getBitmap () {
 		return _bitmap;
+	}
+
+	/**
+	 * Set the drawable's background color.
+	 *
+	 * @param color	The background color.
+	 */
+	public void
+	setBackgroundColor (
+		int		color
+	) {
+		_backgroundColor = color;
+	}
+
+	/**
+	 * Set the drawable's background bitmap.
+	 *
+	 * @param bitmap	The background bitmap.
+	 */
+	public void
+	setBackgroundBitmap (
+		Bitmap		bitmap
+	) {
+		_backgroundBitmap = bitmap;
 	}
 
 	/**
@@ -321,28 +350,73 @@ public class Drawable {
 	}
 
 	/**
+	 * Clear the entire drawable.
+	 */
+	public void
+	clear () {
+		if (_backgroundBitmap == null) {
+			_bitmap.eraseColor (_backgroundColor);
+		} else {
+			int			width = _bitmap.getWidth ();
+			int			height = _bitmap.getHeight ();
+			int			dx = _backgroundBitmap.getWidth ();
+			int			dy = _backgroundBitmap.getHeight ();
+
+			for (int y = 0; y < height; y += dy)
+				for (int x = 0; x < width; x += dx)
+					_canvas.drawBitmap (_backgroundBitmap, x, y, null);
+		}
+	}
+
+	/**
 	 * Clear a rectangular region of the drawable.
 	 *
 	 * @param x	X coordinate of the rectangle.
 	 * @param y	Y coordinate of the rectangle.
 	 * @param width	Width of the rectangle.
 	 * @param height	Height of the rectangle.
-	 * @param background	The color to draw in the cleared area.
 	 */
 	public void
 	clearArea (
 		int			x,
 		int			y,
 		int			width,
-		int			height,
-		int			background
+		int			height
 	) {
 		Rect		r = new Rect (x, y, x + width, y + height);
 		Paint		paint = new Paint ();
 
-		paint.setColor (background);
-		paint.setStyle (Paint.Style.FILL);
-		_canvas.drawRect (r, paint);
+		if (_backgroundBitmap == null) {
+			paint.setColor (_backgroundColor);
+			paint.setStyle (Paint.Style.FILL);
+			_canvas.drawRect (r, paint);
+		} else {
+			int			bw = _bitmap.getWidth ();
+			int			bh = _bitmap.getHeight ();
+			int			dx = _backgroundBitmap.getWidth ();
+			int			dy = _backgroundBitmap.getHeight ();
+
+			_canvas.save ();
+			_canvas.clipRect (r);
+
+			for (int iy = 0; iy < bh; iy += dy) {
+				if (iy >= r.bottom)
+					break;
+				if (iy + dy < r.top)
+					continue;
+
+				for (int ix = 0; ix < bw; ix += dx) {
+					if (ix >= r.right)
+						break;
+					if (iy + dy < r.left)
+						continue;
+
+					_canvas.drawBitmap (_backgroundBitmap, ix, iy, null);
+				}
+			}
+
+			_canvas.restore ();
+		}
 	}
 
 	/**
