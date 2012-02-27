@@ -632,17 +632,43 @@ public class Window extends Resource {
 	@Override
 	public void
 	delete () {
-		super.delete ();
+		Vector<Client>		sc;
+
+		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+		if (_isMapped) {
+			_screen.revertFocus (this);
+			_isMapped = false;
+
+			if (sc != null) {
+				for (Client c: sc) {
+					try {
+						EventCode.sendUnmapNotify (c, _parent, this, false);
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
+				}
+			}
+
+			updateAffectedVisibility ();
+			invalidate ();
+		}
+
+		if (sc != null) {
+			for (Client c: sc) {
+				try {
+					EventCode.sendDestroyNotify (c, _parent, this);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		_screen.deleteWindow (this);
 
 		if (_parent != null)
 			_parent._children.remove (this);
 
-		if (_isMapped) {
-			_isMapped = false;
-			invalidate ();
-		}
-
-		_screen.deleteWindow (this);
+		super.delete ();
 	}
 
 	/**
@@ -1875,6 +1901,10 @@ public class Window extends Resource {
 		_parent._children.remove (this);
 		parent._children.add (this);
 
+		if (dx != 0 || dy != 0)
+			for (Window w: _children)
+				w.move (dx, dy);
+
 		Vector<Client>		sc;
 
 		sc = getSelectingClients (EventCode.MaskStructureNotify);
@@ -2129,6 +2159,8 @@ public class Window extends Resource {
 			return false;
 		}
 
+		int			oldLeft = _irect.left;
+		int			oldTop = _irect.top;
 		int			oldWidth = _irect.right - _irect.left;
 		int			oldHeight = _irect.bottom - _irect.top;
 		int			oldX = _orect.left - _parent._irect.left;
@@ -2235,9 +2267,9 @@ public class Window extends Resource {
 			_irect.bottom = _orect.bottom - borderWidth;
 			changed = true;
 
-			if (x != oldX || y != oldY)
+			if (_irect.left != oldLeft || _irect.top != oldTop)
 				for (Window w: _children)
-					w.move (x - oldX, y - oldY);
+					w.move (_irect.left - oldLeft, _irect.top - oldTop);
 		}
 
 		if ((mask & 0x60) != 0) {
