@@ -66,6 +66,18 @@ public class Window extends Resource {
 	private static final int		AttrColormap = 13;
 	private static final int		AttrCursor = 14;
 
+	private static final int		WinGravityUnmap = 0;
+	private static final int		WinGravityNorthWest = 1;
+	private static final int		WinGravityNorth = 2;
+	private static final int		WinGravityNorthEast = 3;
+	private static final int		WinGravityWest = 4;
+	private static final int		WinGravityCenter = 5;
+	private static final int		WinGravityEast = 6;
+	private static final int		WinGravitySouthWest = 7;
+	private static final int		WinGravitySouth = 8;
+	private static final int		WinGravitySouthEast = 9;
+	private static final int		WinGravityStatic = 10;
+
 	/**
 	 * Constructor.
 	 *
@@ -127,7 +139,7 @@ public class Window extends Resource {
 			0,	// border-pixmap = CopyFromParent
 			0,	// border-pixel = zero
 			0,	// bit-gravity = Forget
-			1,	// win-gravity = NorthWest
+			WinGravityNorthWest,	// win-gravity = NorthWest
 			0,	// backing-store = NotUseful
 			0xffffffff,	// backing-planes = all ones
 			0,	// backing-pixel = zero
@@ -1902,7 +1914,7 @@ public class Window extends Resource {
 
 		if (dx != 0 || dy != 0)
 			for (Window w: _children)
-				w.move (dx, dy);
+				w.move (dx, dy, 0, 0);
 
 		Vector<Client>		sc;
 
@@ -2101,12 +2113,90 @@ public class Window extends Resource {
 	 *
 	 * @param dx	X distance to move.
 	 * @param dy	Y distance to move.
+	 * @param dw	The change in the parent's width.
+	 * @param dh	The change in the parent's height.
+	 * @throws IOException
 	 */
 	private void
 	move (
 		int		dx,
-		int		dy
-	) {
+		int		dy,
+		int		dw,
+		int		dh
+	) throws IOException {
+		if (dw != 0 || dh != 0) {
+			switch (_attributes[AttrWinGravity]) {
+				case WinGravityUnmap:
+					unmap ();
+					break;
+				case WinGravityNorthWest:
+					break;	// No change.
+				case WinGravityNorth:
+					dx += dw / 2;
+					break;
+				case WinGravityNorthEast:
+					dx += dw;
+					break;
+				case WinGravityWest:
+					dy += dh / 2;
+					break;
+				case WinGravityCenter:
+					dx += dw / 2;
+					dy += dh / 2;
+					break;
+				case WinGravityEast:
+					dx += dw;
+					dy += dh / 2;
+					break;
+				case WinGravitySouthWest:
+					dy += dh;
+					break;
+				case WinGravitySouth:
+					dx += dw / 2;
+					dy += dh;
+					break;
+				case WinGravitySouthEast:
+					dx += dw;
+					dy += dh;
+					break;
+				case WinGravityStatic:
+					dx = 0;
+					dy = 0;
+					break;
+			}
+
+			Vector<Client>		sc;
+
+			sc = getSelectingClients (EventCode.MaskStructureNotify);
+			if (sc != null) {
+				for (Client c: sc) {
+					try {
+						EventCode.sendGravityNotify (c, this, this,
+									_orect.left + dx - _parent._irect.left,
+									_orect.top + dy - _parent._irect.top);
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
+				}
+			}
+
+			sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+			if (sc != null) {
+				for (Client c: sc) {
+					try {
+						EventCode.sendGravityNotify (c, _parent, this,
+									_orect.left + dx - _parent._irect.left,
+									_orect.top + dy - _parent._irect.top);
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
+				}
+			}
+		}
+
+		if (dx == 0 && dy == 0)
+			return;
+
 		_irect.left += dx;
 		_irect.right += dx;
 		_irect.top += dy;
@@ -2117,7 +2207,7 @@ public class Window extends Resource {
 		_orect.bottom += dy;
 
 		for (Window w: _children)
-			w.move (dx, dy);
+			w.move (dx, dy, 0, 0);
 	}
 
 	/**
@@ -2265,10 +2355,6 @@ public class Window extends Resource {
 			_irect.right = _orect.right - borderWidth;
 			_irect.bottom = _orect.bottom - borderWidth;
 			changed = true;
-
-			if (_irect.left != oldLeft || _irect.top != oldTop)
-				for (Window w: _children)
-					w.move (_irect.left - oldLeft, _irect.top - oldTop);
 		}
 
 		if ((mask & 0x60) != 0) {
@@ -2379,6 +2465,12 @@ public class Window extends Resource {
 								this, null, x, y, width, height, _borderWidth,
 								_overrideRedirect);
 			}
+
+			if (_irect.left != oldLeft || _irect.top != oldTop
+							|| width != oldWidth || height != oldHeight)
+				for (Window w: _children)
+					w.move (_irect.left - oldLeft, _irect.top - oldTop,
+									width - oldWidth, height - oldHeight);
 
 			updateAffectedVisibility ();
 		}

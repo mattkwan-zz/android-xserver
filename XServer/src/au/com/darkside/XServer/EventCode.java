@@ -945,7 +945,7 @@ public class EventCode {
 	 * Send a gravity notify event.
 	 *
 	 * @param client	The client to write to.
-	 * @param eventWindow	The parent of the window that was moved.
+	 * @param eventWindow	The window where the event was generated.
 	 * @param window	The window that was moved because parent changed size.
 	 * @param x	X position of the window relative to the parent.
 	 * @param y	Y position of the window relative to the parent.
