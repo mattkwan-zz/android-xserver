@@ -66,7 +66,7 @@ public class XServerActivity extends Activity {
 	}
 
 	/**
-	 * Called with the activity is destroyed.
+	 * Called when the activity is destroyed.
 	 */
 	@Override
 	public void
