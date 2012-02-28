@@ -293,14 +293,7 @@ public class ScreenView extends View {
 				return;
 			}
 	
-			Paint		paint = new Paint ();
-			Rect		bounds = canvas.getClipBounds ();
-	
-			if (bounds.right == 0 && bounds.bottom == 0)
-				bounds = null;
-	
-			_rootWindow.draw (canvas, paint, bounds);
-	
+			_rootWindow.draw (canvas, new Paint ());
 			canvas.drawBitmap (_currentCursor.getBitmap (),
 					_currentCursorX - _currentCursor.getHotspotX (),
 					_currentCursorY - _currentCursor.getHotspotY (), null);

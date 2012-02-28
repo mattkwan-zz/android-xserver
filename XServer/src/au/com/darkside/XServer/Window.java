@@ -354,19 +354,17 @@ public class Window extends Resource {
 	 * 
 	 * @param canvas	The canvas to draw to.
 	 * @param paint		A paint to draw with.
-	 * @param bounds	The region to draw to.
 	 */
 	public void
 	draw (
 		Canvas		canvas,
-		Paint		paint,
-		Rect		bounds
+		Paint		paint
 	) {
-		if (!_isMapped || _inputOnly)
+		if (!_isMapped)
 			return;
 
 		if (_borderWidth != 0) {
-			if (bounds != null && !Rect.intersects (_orect, bounds))
+			if (!Rect.intersects (_orect, canvas.getClipBounds ()))
 				return;
 
 			float		hbw = 0.5f * _borderWidth;
@@ -378,14 +376,15 @@ public class Window extends Resource {
 							_orect.right - hbw, _orect.bottom - hbw, paint);
 		}
 
-		if (bounds != null && !Rect.intersects (_irect, bounds))
-			return;
-
-		canvas.drawBitmap (_drawable.getBitmap (), _irect.left, _irect.top,
-																	null);
-
-		for (Window w: _children)
-			w.draw (canvas, paint, bounds);
+		canvas.save ();
+		if (canvas.clipRect (_irect)) {
+			if (!_inputOnly)
+				canvas.drawBitmap (_drawable.getBitmap (), _irect.left,
+														_irect.top, null);
+			for (Window w: _children)
+				w.draw (canvas, paint);
+		}
+		canvas.restore ();
 	}
 
 	/**
@@ -2284,30 +2283,36 @@ public class Window extends Resource {
 					case 0:	// Above.
 						_parent._children.remove (this);
 						_parent._children.add (this);
+						changed = true;
 						break;
 					case 1:	// Below.
 						_parent._children.remove (this);
 						_parent._children.add (0, this);
+						changed = true;
 						break;
 					case 2:	// TopIf.
 						if (_parent.occludes (null, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
+							changed = true;
 						}
 						break;
 					case 3:	// BottomIf.
 						if (_parent.occludes (this, null)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
+							changed = true;
 						}
 						break;
 					case 4:	// Opposite.
 						if (_parent.occludes (null, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
+							changed = true;
 						} else if (_parent.occludes (this, null)) {								_parent._children.remove (this);
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
+							changed = true;
 						}
 						break;
 				}
@@ -2319,36 +2324,41 @@ public class Window extends Resource {
 						_parent._children.remove (this);
 						pos = _parent._children.indexOf (sibling);
 						_parent._children.add (pos + 1, this);
+						changed = true;
 						break;
 					case 1:	// Below.
 						_parent._children.remove (this);
 						pos = _parent._children.indexOf (sibling);
 						_parent._children.add (pos, this);
+						changed = true;
 						break;
 					case 2:	// TopIf.
 						if (_parent.occludes (sibling, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
+							changed = true;
 						}
 						break;
 					case 3:	// BottomIf.
 						if (_parent.occludes (this, sibling)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
+							changed = true;
 						}
 						break;
 					case 4:	// Opposite.
 						if (_parent.occludes (sibling, this)) {
 							_parent._children.remove (this);
 							_parent._children.add (this);
+							changed = true;
 						} else if (_parent.occludes (this, sibling)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
+							changed = true;
 						}
 						break;
 				}
 			}
-			changed = true;
 		}
 
 		if (changed) {
@@ -2842,7 +2852,7 @@ public class Window extends Resource {
 					continue;
 
 				if (above) {
-					if (w._orect.intersect (_orect)) {
+					if (Rect.intersects (w._orect, _orect)) {
 						if (w._orect.contains (_orect)) {
 							result = FullyObscured;
 							break;
