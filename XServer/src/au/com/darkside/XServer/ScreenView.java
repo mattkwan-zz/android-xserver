@@ -47,6 +47,7 @@ public class ScreenView extends View {
 	private boolean		_grabPointerOwnerEvents = false;
 	private boolean		_grabPointerSynchronous = false;
 	private boolean		_grabPointerPassive = false;
+	private boolean		_grabPointerAutomatic = false;
 	private Client		_grabKeyboardClient = null;
 	private Window		_grabKeyboardWindow = null;
 	private int			_grabKeyboardTime = 0;
@@ -485,6 +486,7 @@ public class ScreenView extends View {
 				_grabPointerClient = pbg.getGrabClient ();
 				_grabPointerWindow = pbg.getGrabWindow ();
 				_grabPointerPassive = true;
+				_grabPointerAutomatic = false;
 				_grabPointerTime = _xServer.getTimestamp ();
 				_grabConfineWindow = pbg.getConfineWindow ();
 				_grabEventMask = pbg.getEventMask ();
@@ -517,6 +519,7 @@ public class ScreenView extends View {
 					_grabPointerClient = c;
 					_grabPointerWindow = ew;
 					_grabPointerPassive = false;
+					_grabPointerAutomatic = true;
 					_grabPointerTime = _xServer.getTimestamp ();
 					_grabCursor = ew.getCursor ();
 					_grabConfineWindow = null;
@@ -535,7 +538,8 @@ public class ScreenView extends View {
 												_grabPointerOwnerEvents);
 			}	// Else need to queue the events for later.
 
-			if (!pressed && (_buttons & 0xff00) == 0) {
+			if (_grabPointerAutomatic && !pressed
+											&& (_buttons & 0xff00) == 0) {
 				_grabPointerClient = null;
 				_grabPointerWindow = null;
 				_grabCursor = null;
@@ -933,7 +937,7 @@ public class ScreenView extends View {
 					if (cid != 0) {
 						Resource	r = _xServer.getResource (cid);
 
-						if (r == null)
+						if (r == null || r.getType () != Resource.CURSOR)
 							ErrorCode.write (client, ErrorCode.Cursor, opcode,
 																		0);
 						else
@@ -1227,12 +1231,14 @@ public class ScreenView extends View {
 
 		if (time < _grabPointerTime || time > now) {
 			status = 2;	// Invalid time.
-		} else if (_grabPointerWindow != null) {
+		} else if (_grabPointerWindow != null
+										&& _grabPointerClient != client) {
 			status = 1;	// Already grabbed.
 		} else {
 			_grabPointerClient = client;
 			_grabPointerWindow = w;
 			_grabPointerPassive = false;
+			_grabPointerAutomatic = false;
 			_grabPointerTime = time;
 			_grabCursor = c;
 			_grabConfineWindow = cw;
