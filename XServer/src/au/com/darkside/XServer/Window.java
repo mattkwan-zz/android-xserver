@@ -643,15 +643,32 @@ public class Window extends Resource {
 	@Override
 	public void
 	delete () {
-		Vector<Client>		sc;
+		Vector<Client>		psc, sc;
 
-		sc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+			// Send unmap and destroy notification to any other clients that
+			// are listening.
+		removeSelectingClient (_client);
+		_parent.removeSelectingClient (_client);
+
+		sc = getSelectingClients (EventCode.MaskStructureNotify);
+		psc = _parent.getSelectingClients (EventCode.MaskSubstructureNotify);
+
 		if (_isMapped) {
 			_screen.revertFocus (this);
 			_isMapped = false;
 
 			if (sc != null) {
 				for (Client c: sc) {
+					try {
+						EventCode.sendUnmapNotify (c, this, this, false);
+					} catch (IOException e) {
+						removeSelectingClient (c);
+					}
+				}
+			}
+
+			if (psc != null) {
+				for (Client c: psc) {
 					try {
 						EventCode.sendUnmapNotify (c, _parent, this, false);
 					} catch (IOException e) {
@@ -666,6 +683,16 @@ public class Window extends Resource {
 
 		if (sc != null) {
 			for (Client c: sc) {
+				try {
+					EventCode.sendDestroyNotify (c, this, this);
+				} catch (IOException e) {
+					removeSelectingClient (c);
+				}
+			}
+		}
+
+		if (psc != null) {
+			for (Client c: psc) {
 				try {
 					EventCode.sendDestroyNotify (c, _parent, this);
 				} catch (IOException e) {
