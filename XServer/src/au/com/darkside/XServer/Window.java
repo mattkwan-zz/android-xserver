@@ -152,7 +152,7 @@ public class Window extends Resource {
 		};
 
 		if (isRoot) {
-			_attributes[AttrBackgroundPixel] = 0xff808080;
+			_attributes[AttrBackgroundPixel] = 0xffc0c0c0;
 			_isMapped = true;
 			_cursor = (Cursor) _xServer.getResource (2);	// X cursor.
 			_drawable = new Drawable (width, height, 32, null,
