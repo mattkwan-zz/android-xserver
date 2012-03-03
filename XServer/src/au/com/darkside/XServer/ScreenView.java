@@ -1207,7 +1207,7 @@ public class ScreenView extends View {
 
 		if (cid != 0) {
 			r = _xServer.getResource (cid);
-			if (r != null && r.getType () == Resource.CURSOR) {
+			if (r != null && r.getType () != Resource.CURSOR) {
 				ErrorCode.write (client, ErrorCode.Cursor,
 										RequestCode.GrabPointer, cid);
 				return;
@@ -1305,7 +1305,7 @@ public class ScreenView extends View {
 		if (cid != 0) {
 			r = _xServer.getResource (cid);
 
-			if (r != null && r.getType () == Resource.CURSOR) {
+			if (r != null && r.getType () != Resource.CURSOR) {
 				ErrorCode.write (client, ErrorCode.Cursor,
 											RequestCode.GrabPointer, cid);
 				return;
