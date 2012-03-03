@@ -2368,6 +2368,7 @@ public class Window extends Resource {
 			if (width != oldWidth || height != oldHeight) {
 				_drawable = new Drawable (width, height, 32, _backgroundBitmap,
 							_attributes[AttrBackgroundPixel] | 0xff000000);
+				_drawable.clear ();
 				_exposed = false;
 			}
 
