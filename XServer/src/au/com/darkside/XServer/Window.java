@@ -2341,13 +2341,18 @@ public class Window extends Resource {
 										this, sibling, x, y, width, height,
 														borderWidth, mask);
 						return false;
-
 					}
 				}
 			}
 		}
 
 		if (width != oldWidth || height != oldHeight) {
+			if (width <= 0 || height <= 0) {
+				ErrorCode.write (client, ErrorCode.Value,
+											RequestCode.ConfigureWindow, 0);
+				return false;
+			}
+
 			Vector<Client>		sc;
 
 			sc = getSelectingClients (EventCode.MaskResizeRedirect);

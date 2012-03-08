@@ -160,7 +160,7 @@ public class Drawable {
 									|| r2.getType () != Resource.GCONTEXT) {
 						ErrorCode.write (client, ErrorCode.GContext, opcode,
 																		gcid);
-					} else if (width > 0 && height > 0){
+					} else if (width > 0 && height > 0) {
 						copyArea (sx, sy, width, height, r1, dx, dy,
 															(GContext) r2);
 					}
@@ -290,11 +290,17 @@ public class Drawable {
 		int[]			pixels = new int[wh];
 		byte[]			bytes = null;
 
+		if (x < 0 || y < 0 || x + width > _bitmap.getWidth ()
+									|| y + height > _bitmap.getHeight ()) {
+			ErrorCode.write (client, ErrorCode.Match, RequestCode.GetImage, 0);
+			return;
+		}
+
 		_bitmap.getPixels (pixels, 0, width, x, y, width, height);
 
-		if (format == 2)	// ZPixmap.
+		if (format == 2) {	// ZPixmap.
 			n = wh * 3;
-		else {	// XYPixmap.
+		} else {	// XYPixmap.
 			int			planes = Util.bitcount (planeMask);
 			int			rightPad = -width & 7;
 			int			xmax = width + rightPad;
@@ -449,6 +455,15 @@ public class Drawable {
 			dst = ((Pixmap) dr).getDrawable ();
 		else
 			dst = ((Window) dr).getDrawable ();
+
+		if (sx + width > _bitmap.getWidth ())
+			width = _bitmap.getWidth () - sx;
+
+		if (sy + height > _bitmap.getHeight ())
+			height = _bitmap.getHeight () - sy;
+
+		if (width <= 0 || height <= 0)
+			return;
 
 		Bitmap		bm = Bitmap.createBitmap (_bitmap, sx, sy, width, height);
 
