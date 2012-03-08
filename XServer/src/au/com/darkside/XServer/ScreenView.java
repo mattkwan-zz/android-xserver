@@ -470,10 +470,17 @@ public class ScreenView extends View {
 
 		int			mask = 0x80 << button;
 
-		if (pressed)
+		if (pressed) {
+			if ((_buttons & mask) != 0)
+				return;
+
 			_buttons |= mask;
-		else
+		} else {
+			if ((_buttons & mask) == 0)
+				return;
+
 			_buttons &= ~mask;
+		}
 
 		if (_grabPointerWindow == null) {
 			Window		w = _rootWindow.windowAtPoint (_motionX, _motionY);
@@ -689,6 +696,7 @@ public class ScreenView extends View {
 					return false;
 				case KeyEvent.KEYCODE_DPAD_LEFT:
 				case KeyEvent.KEYCODE_DPAD_CENTER:
+				case KeyEvent.KEYCODE_VOLUME_UP:
 					updatePointerButtons (1, true);
 					break;
 				case KeyEvent.KEYCODE_DPAD_UP:
@@ -696,6 +704,7 @@ public class ScreenView extends View {
 					updatePointerButtons (2, true);
 					break;
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
+				case KeyEvent.KEYCODE_VOLUME_DOWN:
 					updatePointerButtons (3, true);
 					break;
 				case KeyEvent.KEYCODE_SHIFT_LEFT:
@@ -744,6 +753,7 @@ public class ScreenView extends View {
 					return false;
 				case KeyEvent.KEYCODE_DPAD_LEFT:
 				case KeyEvent.KEYCODE_DPAD_CENTER:
+				case KeyEvent.KEYCODE_VOLUME_UP:
 					updatePointerButtons (1, false);
 					break;
 				case KeyEvent.KEYCODE_DPAD_UP:
@@ -751,6 +761,7 @@ public class ScreenView extends View {
 					updatePointerButtons (2, false);
 					break;
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
+				case KeyEvent.KEYCODE_VOLUME_DOWN:
 					updatePointerButtons (3, false);
 					break;
 				case KeyEvent.KEYCODE_SHIFT_LEFT:
