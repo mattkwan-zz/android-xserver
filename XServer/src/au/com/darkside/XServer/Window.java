@@ -2391,7 +2391,7 @@ public class Window extends Resource {
 		}
 
 		if ((mask & 0x60) != 0) {
-			if ((sibling != null && sibling._parent != _parent)) {
+			if (sibling != null && sibling._parent != _parent) {
 				ErrorCode.write (client, ErrorCode.Match,
 											RequestCode.ConfigureWindow, 0);
 				return false;
@@ -2747,7 +2747,7 @@ public class Window extends Resource {
 			case RequestCode.ChangeProperty:
 			case RequestCode.GetProperty:
 			case RequestCode.RotateProperties:
-				Property.processRequest(_xServer, client, arg, opcode,
+				Property.processRequest (_xServer, client, arg, opcode,
 										bytesRemaining, this, _properties);
 				break;
 			case RequestCode.DeleteProperty:

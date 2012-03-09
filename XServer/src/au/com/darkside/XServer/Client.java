@@ -346,7 +346,7 @@ public class Client extends Thread {
 						_inputOutput.readSkip (bytesRemaining);
 						ErrorCode.write (this, ErrorCode.Window, opcode, id);
 					} else {
-						r.processRequest (this, opcode, arg,bytesRemaining);
+						r.processRequest (this, opcode, arg, bytesRemaining);
 					}
 				}
 				break;
