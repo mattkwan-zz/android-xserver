@@ -973,7 +973,7 @@ public class ScreenView extends View {
 				}
 				break;
 			case RequestCode.GrabKeyboard:
-				if (bytesRemaining != 20) {
+				if (bytesRemaining != 12) {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
