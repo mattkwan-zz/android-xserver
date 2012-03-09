@@ -295,9 +295,14 @@ public class Property {
 				i = 4 * longOffset;
 				t = n - i;
 
-				l = 4 * longLength;
-				if (t < l)
+				if (longLength > 536870911)	// Prevent overflow.
+					longLength = 536870911;
+
+				if (t < longLength * 4)
 					l = t;
+				else
+					l = longLength * 4;
+
 				bytesAfter = n - (i + l);
 
 				if (l < 0) {
