@@ -281,22 +281,20 @@ public class Property {
 		if (properties.containsKey (pid)) {
 			Property	p = properties.get	(pid);
 
+			tid = p._type;
+			format = p._format;
+
 			if (tid != 0 && tid != p._type) {
-				tid = p._type;
-				format = p._format;
 				bytesAfter = (p._data == null) ? 0 : p._data.length;
 			} else {
-				tid = p._type;
-				format = p._format;
-
 				int		n, i, t, l;
 
 				n = (p._data == null) ? 0 : p._data.length;
 				i = 4 * longOffset;
 				t = n - i;
 
-				if (longLength > 536870911)	// Prevent overflow.
-					longLength = 536870911;
+				if (longLength < 0 || longLength > 536870911)
+					longLength = 536870911;	// Prevent overflow.
 
 				if (t < longLength * 4)
 					l = t;
@@ -311,14 +309,18 @@ public class Property {
 					return;
 				}
 
-				value = new byte[l];
-				System.arraycopy (p._data, i, value, 0, l);
+				if (l > 0) {
+					value = new byte[l];
+					System.arraycopy (p._data, i, value, 0, l);
+				}
 
 				if (delete && bytesAfter == 0) {
 					properties.remove (pid);
 					generateNotify = true;
 				}
 			}
+		} else {
+			tid = 0;
 		}
 
 		int			length = (value == null) ? 0 : value.length;
