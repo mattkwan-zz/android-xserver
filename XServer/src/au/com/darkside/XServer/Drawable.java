@@ -456,6 +456,18 @@ public class Drawable {
 		else
 			dst = ((Window) dr).getDrawable ();
 
+		if (sx < 0) {
+			width += sx;
+			dx -= sx;
+			sx = 0;
+		}
+
+		if (sy < 0) {
+			height += sy;
+			dy -= sy;
+			sy = 0;
+		}
+
 		if (sx + width > _bitmap.getWidth ())
 			width = _bitmap.getWidth () - sx;
 

@@ -575,8 +575,9 @@ public class XServer {
 		if (client == null) {
 			for (Resource r: rc) {
 				Client		c = r.getClient ();
+				boolean		disconnected = (c == null || !c.isConnected ());
 
-				if (!c.isConnected () && r.getCloseDownMode ()
+				if (disconnected && r.getCloseDownMode ()
 											== Client.RetainTemporary)
 					r.delete ();
 			}
