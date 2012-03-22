@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		android:orientation="vertical"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:paddingLeft="8sp"
+		android:paddingRight="8sp">
+	<LinearLayout
+	    	android:orientation="vertical"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1">
+    	<ListView android:id="@id/android:list"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:layout_weight="1" />
+		<TextView android:id="@id/android:empty"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:text="Unrestricted access"
+				android:textStyle="bold" />
+	</LinearLayout>
+	<LinearLayout
+	    	android:orientation="horizontal"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center_horizontal"
+			android:paddingTop="5sp">
+		<EditText android:id="@+id/host_field"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:inputType="number"
+				android:digits="0123456789." />
+		<Button android:id="@+id/add_button"
+				android:text="Add IP address"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content" />
+	</LinearLayout>
+	<LinearLayout
+	    	android:orientation="horizontal"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center_horizontal"
+			android:paddingTop="5sp"
+			android:paddingBottom="5sp">
+		<Button android:id="@+id/cancel_button"
+				android:text="Cancel"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginRight="10sp" />
+		<Button android:id="@+id/apply_button"
+				android:text="Apply changes"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="10sp" />
+	</LinearLayout>
+</LinearLayout>

@@ -33,9 +33,10 @@ public class XServer {
 	public final String		vendor = "Open source";
 	public final int		ReleaseNumber = 0;
 
-	private final Context						_context;
-	private final Class<?>						_windowManagerClass;
-	private final Vector<Format>				_formats;
+	private final int				_port;
+	private final Context			_context;
+	private final Class<?>			_windowManagerClass;
+	private final Vector<Format>	_formats;
 	private final Hashtable<Integer, Resource>	_resources;
 
 	private final Vector<Client>	_clients;
@@ -74,13 +75,16 @@ public class XServer {
 	 * Constructor.
 	 *
 	 * @param c	The application context.
+	 * @param port	The port to listen on. Usually 6000.
 	 * @param windowManagerClass	Window manager service. Can be null.
 	 */
 	public XServer (
 		Context		c,
+		int			port,
 		Class<?>	windowManagerClass
 	) {
 		_context = c;
+		_port = port;
 		_windowManagerClass = windowManagerClass;
 		_formats = new Vector<Format>();
 		_resources = new Hashtable<Integer, Resource>();
@@ -128,7 +132,7 @@ public class XServer {
 			return true;	// Already running.
 
 		try {
-			_acceptThread = new AcceptThread (6000);
+			_acceptThread = new AcceptThread (_port);
 			_acceptThread.start ();
 		} catch (IOException e) {
 			return false;
@@ -817,6 +821,17 @@ public class XServer {
 	}
 
 	/**
+	 * Get the list of hosts that are allowed to connect.
+	 * This can be modified.
+	 *
+	 * @return	The set of addresses that are allowed to connect.
+	 */
+	public HashSet<Integer>
+	getAccessControlHosts () {
+		return _accessControlHosts;
+	}
+
+	/**
 	 * Is a client from the specified address allowed to connect?
 	 *
 	 * @param address	The client's IP address, MSB format.
@@ -1002,10 +1017,10 @@ public class XServer {
 					
 				if (isa != null) {
 					InetAddress		ia = isa.getAddress ();
-					byte[]			bytes = ia.getAddress ();
+					byte[]			ba = ia.getAddress ();
 
-					addr = (bytes[0] << 24) | (bytes[1] << 16)
-												| (bytes[2] << 8) | bytes[3];
+					addr = ((ba[0] & 0xff) << 24) | ((ba[1] & 0xff) << 16)
+									| ((ba[2] & 0xff) << 8) | (ba[3] & 0xff);
 				}
 
 				if (addr != 0 && !isAccessAllowed (addr)) {

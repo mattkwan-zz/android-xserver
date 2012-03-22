@@ -6,6 +6,9 @@ package au.com.darkside.XDemo;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -13,6 +16,9 @@ import android.app.Dialog;
 import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -36,6 +42,8 @@ public class XServerActivity extends Activity {
 
 	private static final int	MENU_KEYBOARD = 1;
 	private static final int	MENU_IP_ADDRESS = 2;
+	private static final int	MENU_ACCESS_CONTROL = 3;
+	private static final int	ACTIVITY_ACCESS_CONTROL = 1;
 
 	/**
 	 * Called when the activity is first created.
@@ -50,7 +58,27 @@ public class XServerActivity extends Activity {
 		super.onCreate (savedInstanceState);
 		setContentView (R.layout.main);
 
-		_xServer = new XServer (this, null);
+		int		port = 6000;
+		Intent	intent = getIntent ();
+
+			// If it was launched from an intent, get the port number.
+		if (intent != null) {
+			Uri		uri = intent.getData ();
+
+			if (uri != null) {
+				int		p = uri.getPort ();
+
+				if (p >= 0) {
+					if (p < 10)
+						port = p + 6000;
+					else
+						port = p;
+				}
+			}
+		}
+
+		_xServer = new XServer (this, port, null);
+		setAccessControl ();
 
 		FrameLayout		fl = (FrameLayout) findViewById (R.id.frame);
 
@@ -96,6 +124,9 @@ public class XServerActivity extends Activity {
 		item = menu.add (0, MENU_IP_ADDRESS, 0, "IP address");
 		item.setIcon (android.R.drawable.ic_menu_info_details);
 
+		item = menu.add (0, MENU_ACCESS_CONTROL, 0, "Access control");
+		item.setIcon (android.R.drawable.ic_menu_edit);
+
 		return true;
 	}
 
@@ -125,6 +156,9 @@ public class XServerActivity extends Activity {
 				return true;
 			case MENU_IP_ADDRESS:
 				showDialog (MENU_IP_ADDRESS);
+				return true;
+			case MENU_ACCESS_CONTROL:
+				launchAccessControlEditor ();
 				return true;
 		}
 
@@ -189,4 +223,55 @@ public class XServerActivity extends Activity {
  
 		return builder.create ();
     }
+
+	/**
+	 * Load the access control hosts from persistent storage.
+	 */
+	private void
+	setAccessControl () {
+		SharedPreferences	prefs = getSharedPreferences ("AccessControlHosts",
+															MODE_PRIVATE);
+		Map<String, ?>		map = prefs.getAll ();
+		HashSet<Integer>	hosts = _xServer.getAccessControlHosts ();
+
+		hosts.clear ();
+		if (!map.isEmpty ()) {
+			Set<String>		set = map.keySet ();
+
+			for (String s: set) {
+				try {
+					int		host = (int) Long.parseLong (s, 16);
+
+					hosts.add (host);
+				} catch (Exception e) {
+				}
+			}
+		}
+
+		_xServer.setAccessControl (!hosts.isEmpty ());
+	}
+
+	/**
+	 * Called when an activity returns a result.
+	 */
+	@Override
+	protected void
+	onActivityResult (
+		int			requestCode,
+		int			resultCode,
+		Intent		data
+	) {
+		if (requestCode == ACTIVITY_ACCESS_CONTROL && resultCode == RESULT_OK)
+			setAccessControl ();
+	}
+
+	/**
+	 * Launch the access control list editor.
+	 */
+	private void
+	launchAccessControlEditor () {
+    	Intent		intent = new Intent (this, AccessControlEditor.class);
+    	
+    	startActivityForResult (intent, ACTIVITY_ACCESS_CONTROL);
+	}
 }
