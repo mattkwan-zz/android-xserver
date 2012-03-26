@@ -879,6 +879,32 @@ public class XServer {
 	}
 
 	/**
+	 * Called when we'd potentially want to blank the screen.
+	 */
+	private void
+	checkScreenBlank () {
+		if (_screenSaverTimeout == 0)	// Disabled.
+			return;
+
+		long		offset = (_screenSaverTime + _screenSaverTimeout) * 1000
+										- System.currentTimeMillis () / 1000;
+
+		if (offset < 1000) {
+			_screen.blank (true);
+			return;
+		}
+
+		_screenSaverCountDownTimer = new CountDownTimer (offset, offset + 1) {
+			public void onTick (long millis) {}
+			public void onFinish () {
+				_screenSaverCountDownTimer = null;
+				checkScreenBlank ();
+			}
+		};
+		_screenSaverCountDownTimer.start ();
+	}
+
+	/**
 	 * Reset the screen saver timer.
 	 */
 	public void
@@ -889,24 +915,8 @@ public class XServer {
 			return;
 
 		_screenSaverTime = now;
-
-		if (_screenSaverCountDownTimer != null) {
-			_screenSaverCountDownTimer.cancel ();
-			_screenSaverCountDownTimer = null;
-		}
-
-		if (_screenSaverTimeout != 0) {
-			long		time = _screenSaverTimeout * 1000;
-
-			_screenSaverCountDownTimer = new CountDownTimer (time, time + 1) {
-				public void onTick (long millis) {}
-				public void onFinish () {
-					_screen.blank (true);
-					_screenSaverCountDownTimer = null;
-				}
-			};
-			_screenSaverCountDownTimer.start ();
-		}
+		if (_screenSaverCountDownTimer == null)
+			checkScreenBlank ();
 	}
 
 	/**
