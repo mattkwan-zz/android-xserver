@@ -9,7 +9,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -56,7 +55,7 @@ public class XServer {
 	private ScreenView			_screen = null;
 	private String[]			_fontPath = null;
 	private AcceptThread		_acceptThread = null;
-	private Date				_timestamp;
+	private long				_timestamp;
 	private Client				_grabClient;
 
 	private int				_screenSaverTimeout = 0;
@@ -117,7 +116,7 @@ public class XServer {
 		_rootVisual = new Visual (1);
 		Atom.registerPredefinedAtoms (this);
 
-		_timestamp = new Date ();
+		_timestamp = System.currentTimeMillis ();
 	}
 
 	/**
@@ -192,7 +191,7 @@ public class XServer {
 		}
 
 		_selections.clear ();
-		_timestamp = new Date ();
+		_timestamp = System.currentTimeMillis ();
 	}
 
 	/**
@@ -225,7 +224,7 @@ public class XServer {
 	 */
 	public int
 	getTimestamp () {
-		long	diff = System.currentTimeMillis () - _timestamp.getTime ();
+		long	diff = System.currentTimeMillis () - _timestamp;
 
 		if (diff <= 0)
 			return 1;
