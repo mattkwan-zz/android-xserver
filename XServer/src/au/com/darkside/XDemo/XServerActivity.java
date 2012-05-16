@@ -14,6 +14,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Service;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -26,6 +28,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 import au.com.darkside.XServer.R;
 import au.com.darkside.XServer.ScreenView;
 import au.com.darkside.XServer.XServer;
@@ -43,6 +46,7 @@ public class XServerActivity extends Activity {
 	private static final int	MENU_KEYBOARD = 1;
 	private static final int	MENU_IP_ADDRESS = 2;
 	private static final int	MENU_ACCESS_CONTROL = 3;
+	private static final int	MENU_REMOTE_LOGIN = 4;
 	private static final int	ACTIVITY_ACCESS_CONTROL = 1;
 
 	/**
@@ -127,6 +131,9 @@ public class XServerActivity extends Activity {
 		item = menu.add (0, MENU_ACCESS_CONTROL, 0, "Access control");
 		item.setIcon (android.R.drawable.ic_menu_edit);
 
+		item = menu.add (0, MENU_REMOTE_LOGIN, 0, "Remote login");
+		item.setIcon (android.R.drawable.ic_menu_upload);
+
 		return true;
 	}
 
@@ -159,6 +166,9 @@ public class XServerActivity extends Activity {
 				return true;
 			case MENU_ACCESS_CONTROL:
 				launchAccessControlEditor ();
+				return true;
+			case MENU_REMOTE_LOGIN:
+				launchSshApp ();
 				return true;
 		}
 
@@ -273,5 +283,23 @@ public class XServerActivity extends Activity {
     	Intent		intent = new Intent (this, AccessControlEditor.class);
     	
     	startActivityForResult (intent, ACTIVITY_ACCESS_CONTROL);
+	}
+
+	/**
+	 * Launch an application that will allow an SSH login.
+	 */
+	private void
+	launchSshApp () {
+		Intent		intent = new Intent (Intent.ACTION_MAIN);
+
+		intent.setComponent (new ComponentName ("org.connectbot",
+										"org.connectbot.HostListActivity"));
+		try {
+			startActivity (intent);
+		} catch (ActivityNotFoundException e) {
+			Toast.makeText (this,
+						"The ConnectBot application needs to be installed",
+						Toast.LENGTH_LONG).show ();
+		}
 	}
 }
