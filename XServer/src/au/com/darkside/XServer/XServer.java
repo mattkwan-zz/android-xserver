@@ -15,10 +15,12 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.WindowManager;
 
 /**
@@ -34,7 +36,7 @@ public class XServer {
 
 	private final int				_port;
 	private final Context			_context;
-	private final Class<?>			_windowManagerClass;
+	private final String			_windowManagerClass;
 	private final Vector<Format>	_formats;
 	private final Hashtable<Integer, Resource>	_resources;
 
@@ -75,12 +77,12 @@ public class XServer {
 	 *
 	 * @param c	The application context.
 	 * @param port	The port to listen on. Usually 6000.
-	 * @param windowManagerClass	Window manager service. Can be null.
+	 * @param windowManagerClass	Window manager class name. Can be null.
 	 */
 	public XServer (
 		Context		c,
 		int			port,
-		Class<?>	windowManagerClass
+		String		windowManagerClass
 	) {
 		_context = c;
 		_port = port;
@@ -137,8 +139,26 @@ public class XServer {
 			return false;
 		}
 
-		if (_windowManagerClass != null)
-			_context.startService (new Intent (_context, _windowManagerClass));
+		if (_windowManagerClass != null) {
+			int			idx = _windowManagerClass.lastIndexOf ('.');
+
+			if (idx > 0) {
+				String		pkg = _windowManagerClass.substring (0, idx);
+				Intent		intent = new Intent (Intent.ACTION_MAIN);
+
+				intent.setComponent (new ComponentName (pkg,
+													_windowManagerClass));
+
+				try {
+					if (_context.startService (intent) == null)
+						Log.e ("XServer",
+								"Could not start " + _windowManagerClass);
+				} catch (SecurityException e) {
+					Log.e ("XServer", "Could not start " + _windowManagerClass
+												+ ": " + e.getMessage ());
+				}
+			}
+		}
 
 		resetScreenSaver ();
 
