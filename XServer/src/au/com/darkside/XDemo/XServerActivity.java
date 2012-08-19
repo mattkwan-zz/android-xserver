@@ -286,20 +286,41 @@ public class XServerActivity extends Activity {
 	}
 
 	/**
+	 * Launch an application.
+	 */
+	private boolean
+	launchApp (
+		String	pkg,
+		String	cls
+	) {
+		Intent		intent = new Intent (Intent.ACTION_MAIN);
+
+		intent.setComponent (new ComponentName (pkg, cls));
+		try {
+			startActivity (intent);
+		} catch (ActivityNotFoundException e) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Launch an application that will allow an SSH login.
 	 */
 	private void
 	launchSshApp () {
-		Intent		intent = new Intent (Intent.ACTION_MAIN);
+		if (launchApp ("org.connectbot", "org.connectbot.HostListActivity"))
+			return;
+		if (launchApp ("com.madgag.ssh.agent",
+									"com.madgag.ssh.agent.HostListActivity"))
+			return;
+		if (launchApp ("sk.vx.connectbot",
+										"sk.vx.connectbot.HostListActivity"))
+			return;
 
-		intent.setComponent (new ComponentName ("org.connectbot",
-										"org.connectbot.HostListActivity"));
-		try {
-			startActivity (intent);
-		} catch (ActivityNotFoundException e) {
-			Toast.makeText (this,
+		Toast.makeText (this,
 						"The ConnectBot application needs to be installed",
 						Toast.LENGTH_LONG).show ();
-		}
 	}
 }
