@@ -36,7 +36,7 @@ public class ErrorCode {
 	 * @param client	The remote client.
 	 * @param error	The error code.
 	 * @param opcode	The opcode of the error request.
-	 * @param resourceId	The (optional) resource ID that cause the error.
+	 * @param resourceId	The (optional) resource ID that caused the error.
 	 * @throws IOException
 	 */
 	public static void
@@ -56,7 +56,7 @@ public class ErrorCode {
 	 * @param error	The error code.
 	 * @param minorOpcode	The minor opcode of the error request.
 	 * @param opcode	The major opcode of the error request.
-	 * @param resourceId	The (optional) resource ID that cause the error.
+	 * @param resourceId	The (optional) resource ID that caused the error.
 	 * @throws IOException
 	 */
 	public static void
