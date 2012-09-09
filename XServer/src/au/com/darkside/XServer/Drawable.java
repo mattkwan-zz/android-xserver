@@ -602,9 +602,9 @@ public class Drawable {
 		_canvas.save ();
 		gc.applyClipRectangles (_canvas);
 
-		if (_depth == 1)
-			paint.setColor (0xffffffff);
-
+		//if (_depth == 1)
+		//	paint.setColor (0xffffffff);
+		//android.util.Log.e("paintColor",Integer.toHexString(paint.getColor()));
 		switch (opcode) {
 			case RequestCode.PolyPoint:
 				if ((bytesRemaining & 3) != 0) {
@@ -859,7 +859,10 @@ public class Drawable {
 
 		if (format == 2) {
 			rightPad = 0;
-			n = 3 * width * height;
+			if (depth == 32)
+				n = 3 * width * height;
+			else
+				n = (width * height + 7) / 8;
 		} else {
 			rightPad = -(width + leftPad) & 7;
 			n = (width + leftPad + rightPad) * height * depth / 8;
@@ -882,7 +885,7 @@ public class Drawable {
 			if (depth != 1 && depth != 32)
 				badMatch = true;
 		} else if (format == 2) {	// ZPixmap.
-			if (depth != 32 || leftPad != 0)
+			if ((depth != 32 && depth != 1) || leftPad != 0)
 				badMatch = true;
 		} else {	// Invalid format.
 			badMatch = true;
@@ -952,7 +955,7 @@ public class Drawable {
 			}
 
 			planeBit >>= 1;
-		} else {	// 32-bit ZPixmap.
+		} else if (depth == 32) {	// 32-bit ZPixmap.
 			for (int i = 0; i < colors.length; i++) {
 				int			b = io.readByte ();
 				int			g = io.readByte ();
@@ -960,6 +963,15 @@ public class Drawable {
 
 				colors[i] = 0xff000000 | (r << 16) | (g << 8) | b;
 			}
+		} else {	// ZPixmap with depth = 1.
+			int			fg = gc.getForegroundColor ();
+			int			bg = gc.getBackgroundColor ();
+			boolean[]	bits = new boolean[colors.length];
+
+			io.readBits (bits, 0, colors.length);
+			
+			for (int i = 0; i < colors.length; i++)
+				colors[i] = bits[i] ? fg : bg;
 		}
 
 		io.readSkip (pad);
