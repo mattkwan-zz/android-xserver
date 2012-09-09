@@ -87,6 +87,32 @@ public class InputOutput {
 	}
 
 	/**
+	 * Read bits from the input stream as an array of booleans.
+	 *
+	 * @param bits	The array to store the bits to.
+	 * @param offset	The start position in the array to store the bits.
+	 * @param length	The maximum number of bits to store.
+	 * @throws IOException
+	 */
+	public void
+	readBits (
+		boolean[]	bits,
+		int			offset,
+		int			length
+	) throws IOException {
+		for (int i = 0; i < length; i += 8) {
+			int		x = readByte ();
+			int		n = length - i;
+
+			if (n > 8)
+				n = 8;
+
+			for (int j = 0; j < n; j++)
+				bits[offset + i + j] = ((x & (1 << j)) != 0);
+		}
+	}
+
+	/**
 	 * Read a 16-bit integer from the output stream.
 	 *
 	 * @return	A 16-bit integer in the range 0 to 65535.
@@ -123,6 +149,37 @@ public class InputOutput {
 			n |= readByte () << 8;
 			n |= readByte () << 16;
 			n |= readByte () << 24;
+		}
+
+		return n;
+	}
+
+	/**
+	 * Read a 64-bit integer from the input stream.
+	 *
+	 * @return	A 64-bit signed integer.
+	 * @throws IOException
+	 */
+	public long
+	readLong () throws IOException {
+		long	n = readByte ();
+		
+		if (_msb) {
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+			n = (n << 8) | readByte ();
+		} else {
+			n |= readByte () << 8;
+			n |= readByte () << 16;
+			n |= readByte () << 24;
+			n |= readByte () << 32;
+			n |= readByte () << 40;
+			n |= readByte () << 48;
+			n |= readByte () << 56;
 		}
 
 		return n;
@@ -211,6 +268,37 @@ public class InputOutput {
 			_outStream.write ((byte) ((n >> 8) & 0xff));
 			_outStream.write ((byte) ((n >> 16) & 0xff));
 			_outStream.write ((byte) ((n >> 24) & 0xff));
+		}
+	}
+
+	/**
+	 * Write a 64-bit integer to the output stream.
+	 *
+	 * @param n		The integer to write.
+	 * @throws IOException
+	 */
+	public void
+	writeLong (
+		long	n
+	) throws IOException{
+		if (_msb) {
+			_outStream.write ((byte) ((n >> 56) & 0xff));
+			_outStream.write ((byte) ((n >> 48) & 0xff));
+			_outStream.write ((byte) ((n >> 40) & 0xff));
+			_outStream.write ((byte) ((n >> 32) & 0xff));
+			_outStream.write ((byte) ((n >> 24) & 0xff));
+			_outStream.write ((byte) ((n >> 16) & 0xff));
+			_outStream.write ((byte) ((n >> 8) & 0xff));
+			_outStream.write ((byte) (n & 0xff));
+		} else {
+			_outStream.write ((byte) ((n) & 0xff));
+			_outStream.write ((byte) ((n >> 8) & 0xff));
+			_outStream.write ((byte) ((n >> 16) & 0xff));
+			_outStream.write ((byte) ((n >> 24) & 0xff));
+			_outStream.write ((byte) ((n >> 32) & 0xff));
+			_outStream.write ((byte) ((n >> 40) & 0xff));
+			_outStream.write ((byte) ((n >> 48) & 0xff));
+			_outStream.write ((byte) ((n >> 56) & 0xff));
 		}
 	}
 
