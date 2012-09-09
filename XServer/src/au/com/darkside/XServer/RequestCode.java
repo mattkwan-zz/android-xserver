@@ -129,4 +129,6 @@ public class RequestCode {
 	public static final byte	SetModifierMapping = 118;
 	public static final byte	GetModifierMapping = 119;
 	public static final byte	NoOperation = 127;
+	public static final byte	ExtensionStart = -128;
+	public static final byte	ExtensionEnd = -1;
 }
