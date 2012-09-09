@@ -46,6 +46,27 @@ public class ErrorCode {
 		byte			opcode,
 		int				resourceId
 	) throws IOException {
+		writeWithMinorOpcode (client, error, (short) 0, opcode, resourceId);
+	}
+	
+	/**
+	 * Write an X error with a minor opcode specified.
+	 *
+	 * @param client	The remote client.
+	 * @param error	The error code.
+	 * @param minorOpcode	The minor opcode of the error request.
+	 * @param opcode	The major opcode of the error request.
+	 * @param resourceId	The (optional) resource ID that cause the error.
+	 * @throws IOException
+	 */
+	public static void
+	writeWithMinorOpcode (
+		Client			client,
+		byte			error,
+		short			minorOpcode,
+		byte			opcode,
+		int				resourceId
+	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		short			sn = (short) (client.getSequenceNumber () & 0xffff);
 
@@ -54,7 +75,7 @@ public class ErrorCode {
 			io.writeByte (error);		// Error code.
 			io.writeShort (sn);			// Sequence number.
 			io.writeInt (resourceId);	// Bad resource ID.
-			io.writeShort ((short) 0);	// Minor opcode.
+			io.writeShort (minorOpcode);	// Minor opcode.
 			io.writeByte (opcode);		// Major opcode.
 			io.writePadBytes (21);		// Unused.
 		}
