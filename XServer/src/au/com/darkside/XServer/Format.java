@@ -24,9 +24,9 @@ public class Format {
 	 * @param scanlinePad	Number of bits to pad each scan line.
 	 */
 	public Format (
-		byte		depth,
-		byte		bitsPerPixel,
-		byte		scanlinePad
+		byte	depth,
+		byte	bitsPerPixel,
+		byte	scanlinePad
 	) {
 		_depth = depth;
 		_bitsPerPixel = bitsPerPixel;
