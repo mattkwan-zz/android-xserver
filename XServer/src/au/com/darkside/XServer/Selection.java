@@ -95,7 +95,7 @@ public class Selection {
 							wid = sel._ownerWindow.getId ();
 
 						synchronized (io) {
-							Util.writeReplyHeader (client, 0);
+							Util.writeReplyHeader (client, (byte) 0);
 							io.writeInt (0);	// Reply length.
 							io.writeInt (wid);	// Owner.
 							io.writePadBytes (20);	// Unused.

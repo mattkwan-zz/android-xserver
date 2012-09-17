@@ -387,7 +387,7 @@ public class Colormap extends Resource {
 	processRequest (
 		Client			client,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -431,7 +431,7 @@ public class Colormap extends Resource {
 
 					io.readSkip (2);	// Unused.
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) r);	// Red.
 						io.writeShort ((short) g);	// Green.
@@ -470,7 +470,7 @@ public class Colormap extends Resource {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
-								Util.writeReplyHeader (client, 0);
+								Util.writeReplyHeader (client, (byte) 0);
 								io.writeInt (0);	// Reply length.
 								io.writeInt (color);	// Pixel.
 
@@ -559,7 +559,7 @@ public class Colormap extends Resource {
 						pixels[i] = io.readInt ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (n * 2);	// Reply length.
 						io.writeShort ((short) n);	// Number of RGBs.
 						io.writePadBytes (22);	// Unused.
@@ -606,7 +606,7 @@ public class Colormap extends Resource {
 							int			color = _colorNames.get (name);
 
 							synchronized (io) {
-								Util.writeReplyHeader (client, 0);
+								Util.writeReplyHeader (client, (byte) 0);
 								io.writeInt (0);	// Reply length.
 
 								int		r = (color & 0xff0000) >> 16;

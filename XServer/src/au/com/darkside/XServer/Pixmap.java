@@ -86,7 +86,7 @@ public class Pixmap extends Resource {
 	processRequest (
 		Client			client,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -152,7 +152,7 @@ public class Pixmap extends Resource {
 		InputOutput		io = client.getInputOutput ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 32);
+			Util.writeReplyHeader (client, (byte) 32);
 			io.writeInt (0);	// Reply length.
 			io.writeInt (_screen.getRootWindow().getId ());	// Root window.
 			io.writeShort ((short) 0);	// X.

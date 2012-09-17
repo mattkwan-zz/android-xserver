@@ -227,7 +227,7 @@ public class Font extends Resource {
 	processRequest (
 		Client			client,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -355,7 +355,7 @@ public class Font extends Resource {
 		_paint.getTextWidths (s, widths);
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 				// Reply length.
 			io.writeInt (7 + numFontProperties * 2 + numCharInfos * 3);
 
@@ -429,7 +429,7 @@ public class Font extends Resource {
 		_paint.getTextBounds (s, 0, s.length (), bounds);
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt (0);	// Reply length.
 			io.writeShort (_ascent);	// Font ascent.
 			io.writeShort (_descent);	// Font descent.
@@ -469,7 +469,7 @@ public class Font extends Resource {
 		int			pad = -length & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeShort ((short) numPaths);	// Number of STRs in path.
 			io.writePadBytes (22);	// Unused.
@@ -701,7 +701,7 @@ public class Font extends Resource {
 			pad = -length & 3;
 
 			synchronized (io) {
-				Util.writeReplyHeader (client, 0);
+				Util.writeReplyHeader (client, (byte) 0);
 				io.writeInt ((length + pad) / 4);	// Reply length.
 				io.writeShort ((short) fonts.size ());	// Number of names.
 				io.writePadBytes (22);	// Unused.
@@ -724,7 +724,7 @@ public class Font extends Resource {
 
 				// Last in series indicator.
 			synchronized (io) {
-				Util.writeReplyHeader (client, 0);
+				Util.writeReplyHeader (client, (byte) 0);
 				io.writeInt (7);	// Reply length.
 				io.writePadBytes (52);	// Unused.
 			}
@@ -750,7 +750,7 @@ public class Font extends Resource {
 		InputOutput		io = client.getInputOutput ();
 		Font			font = new Font (0, null, null, name);
 		int				numFontProperties = 0;
-		int				nameLength = name.length ();
+		byte			nameLength = (byte) name.length ();
 		int				pad = -nameLength & 3;
 		Paint.FontMetricsInt	metrics = font._paint.getFontMetricsInt ();
 

@@ -130,7 +130,7 @@ public class Drawable {
 		Client			client,
 		int				id,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		boolean			changed = false;
@@ -217,7 +217,7 @@ public class Drawable {
 					int			height = io.readShort ();	// Height.
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) width);	// Width.
 						io.writeShort ((short) height);	// Height.
@@ -277,7 +277,7 @@ public class Drawable {
 	private void
 	processGetImageRequest (
 		Client			client,
-		int				format
+		byte			format
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 		short			x = (short) io.readShort ();	// X.
@@ -334,7 +334,7 @@ public class Drawable {
 		pad = -n & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 32);
+			Util.writeReplyHeader (client, (byte) 32);
 			io.writeInt ((n + pad) / 4);	// Reply length.
 			io.writeInt (0);	// Visual ID.
 			io.writePadBytes (20);	// Unused.
@@ -591,7 +591,7 @@ public class Drawable {
 		int				id,
 		GContext		gc,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -602,9 +602,6 @@ public class Drawable {
 		_canvas.save ();
 		gc.applyClipRectangles (_canvas);
 
-		//if (_depth == 1)
-		//	paint.setColor (0xffffffff);
-		//android.util.Log.e("paintColor",Integer.toHexString(paint.getColor()));
 		switch (opcode) {
 			case RequestCode.PolyPoint:
 				if ((bytesRemaining & 3) != 0) {
@@ -834,7 +831,7 @@ public class Drawable {
 	processPutImage (
 		Client			client,
 		GContext		gc,
-		int				format,
+		byte			format,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();

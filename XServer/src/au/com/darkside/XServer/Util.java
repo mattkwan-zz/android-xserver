@@ -40,14 +40,14 @@ public class Util {
 	 */
 	public static void
 	writeReplyHeader (
-		Client			client,
-		int				arg
+		Client		client,
+		byte		arg
 	) throws IOException {
-		InputOutput		io = client.getInputOutput ();
-		short			sn = (short) (client.getSequenceNumber () & 0xffff);
+		InputOutput	io = client.getInputOutput ();
+		short		sn = (short) (client.getSequenceNumber () & 0xffff);
 
 		io.writeByte ((byte) 1);	// Reply.
-		io.writeByte ((byte) arg);
+		io.writeByte (arg);
 		io.writeShort (sn);
 	}
 }

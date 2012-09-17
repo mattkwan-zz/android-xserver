@@ -290,12 +290,12 @@ public class Cursor extends Resource {
 	@Override
 	public void
 	processRequest (
-		Client			client,
-		byte			opcode,
-		int				arg,
-		int				bytesRemaining
+		Client		client,
+		byte		opcode,
+		byte		arg,
+		int			bytesRemaining
 	) throws IOException {
-		InputOutput		io = client.getInputOutput ();
+		InputOutput	io = client.getInputOutput ();
 
 		switch (opcode) {
 			case RequestCode.FreeCursor:

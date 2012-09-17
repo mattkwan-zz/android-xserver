@@ -176,7 +176,7 @@ public class Atom {
 		int			pad = -length & 3;
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writeShort ((short) length);	// Name length.
 			io.writePadBytes (22);	// Unused.
@@ -200,7 +200,7 @@ public class Atom {
 	processInternAtomRequest (
 		XServer			xServer,
 		Client			client,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -244,7 +244,7 @@ public class Atom {
 		}
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt (0);	// Reply length.
 			io.writeInt (id);	// The atom ID.
 			io.writePadBytes (20);	// Unused.

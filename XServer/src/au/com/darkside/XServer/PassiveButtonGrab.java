@@ -11,7 +11,7 @@ package au.com.darkside.XServer;
 public class PassiveButtonGrab {
 	private final Client		_grabClient;
 	private final Window		_grabWindow;
-	private final int			_button;
+	private final byte			_button;
 	private final int			_modifiers;
 	private final boolean		_ownerEvents;
 	private final int			_eventMask;
@@ -37,7 +37,7 @@ public class PassiveButtonGrab {
 	public PassiveButtonGrab (
 		Client		grabClient,
 		Window		grabWindow,
-		int			button,
+		byte		button,
 		int			modifiers,
 		boolean		ownerEvents,
 		int			eventMask,
@@ -104,7 +104,7 @@ public class PassiveButtonGrab {
 	 *
 	 * @return	The button.
 	 */
-	public int
+	public byte
 	getButton () {
 		return _button;
 	}

@@ -17,12 +17,6 @@ public class Pointer {
 	private byte[]		_buttonMap = {1, 2, 3};
 
 	/**
-	 * Constructor.
-	 */
-	Pointer () {
-	}
-
-	/**
 	 * Return the virtual button that a physical button has been mapped to.
 	 * Zero indicates the button has been disabled.
 	 *
@@ -125,7 +119,7 @@ public class Pointer {
 		XServer			xServer,
 		Client			client,
 		byte			opcode,
-		int				arg,
+		byte			arg,
 		int				bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
@@ -150,7 +144,7 @@ public class Pointer {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (0);	// Reply length.
 						io.writeShort ((short) 1);	// Acceleration numerator.
 						io.writeShort ((short) 1);	// Acceleration denom.
@@ -171,7 +165,7 @@ public class Pointer {
 					io.readSkip (-arg & 3);	// Unused.
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (0);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 					}
@@ -185,7 +179,7 @@ public class Pointer {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			n = _buttonMap.length;
+					byte		n = (byte) _buttonMap.length;
 					int			pad = -n & 3;
 
 					synchronized (io) {

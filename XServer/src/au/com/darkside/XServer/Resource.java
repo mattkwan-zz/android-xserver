@@ -140,7 +140,7 @@ public class Resource {
 	processRequest (
 		Client		client,
 		byte		opcode,
-		int			arg,
+		byte		arg,
 		int			bytesRemaining
 	) throws IOException {
 	}

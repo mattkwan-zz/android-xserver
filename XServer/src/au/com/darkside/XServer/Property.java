@@ -16,7 +16,7 @@ import java.util.Vector;
 public class Property {
 	private final int	_id;
 	private int			_type;
-	private int			_format;
+	private byte		_format;
 	private byte[]		_data = null;
 
 	/**
@@ -29,7 +29,7 @@ public class Property {
 	public Property (
 		int			id,
 		int			type,
-		int			format
+		byte		format
 	) {
 		_id = id;
 		_type = type;
@@ -76,7 +76,7 @@ public class Property {
 	processRequest (
 		XServer		xServer,
 		Client		client,
-		int			arg,
+		byte		arg,
 		byte		opcode,
 		int			bytesRemaining,
 		Window		w,
@@ -120,7 +120,7 @@ public class Property {
 	processChangePropertyRequest (
 		XServer			xServer,
 		Client			client,
-		int				mode,
+		byte			mode,
 		int				bytesRemaining,
 		Window			w,
 		Hashtable<Integer, Property>	properties
@@ -134,14 +134,14 @@ public class Property {
 			return;
 		}
 
-		int			pid = io.readInt ();	// Property atom.
-		int			tid = io.readInt ();	// Type atom.
-		int			format = io.readByte ();	// Format.
+		int		pid = io.readInt ();	// Property atom.
+		int		tid = io.readInt ();	// Type atom.
+		byte	format = (byte) io.readByte ();	// Format.
 
 		io.readSkip (3);	// Unused.
 
-		int			length = io.readInt ();	// Length of data.
-		int			n, pad;
+		int		length = io.readInt ();	// Length of data.
+		int		n, pad;
 
 		if (format == 8)
 			n = length;
@@ -273,7 +273,7 @@ public class Property {
 			return;
 		}
 
-		int			format = 0;
+		byte		format = 0;
 		int			bytesAfter = 0;
 		byte[]		value = null;
 		boolean		generateNotify = false;

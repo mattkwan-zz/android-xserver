@@ -72,7 +72,7 @@ public class Visual {
 	 *
 	 * @return	The depth of the visual, in bits.
 	 */
-	public int
+	public byte
 	getDepth () {
 		return 32;
 	}

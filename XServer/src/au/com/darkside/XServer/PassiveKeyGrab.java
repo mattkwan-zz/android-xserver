@@ -11,7 +11,7 @@ package au.com.darkside.XServer;
 public class PassiveKeyGrab {
 	private final Client		_grabClient;
 	private final Window		_grabWindow;
-	private final int			_key;
+	private final byte			_key;
 	private final int			_modifiers;
 	private final boolean		_ownerEvents;
 	private final boolean		_pointerSynchronous;
@@ -31,7 +31,7 @@ public class PassiveKeyGrab {
 	public PassiveKeyGrab (
 		Client		grabClient,
 		Window		grabWindow,
-		int			key,
+		byte		key,
 		int			modifiers,
 		boolean		ownerEvents,
 		boolean		pointerSynchronous,
@@ -94,7 +94,7 @@ public class PassiveKeyGrab {
 	 *
 	 * @return	The key code.
 	 */
-	public int
+	public byte
 	getKey () {
 		return _key;
 	}
