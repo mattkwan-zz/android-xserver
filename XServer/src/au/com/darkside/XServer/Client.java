@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Vector;
 
+import au.com.darkside.XServer.Xext.Extensions;
+
 /**
  * @author Matthew Kwan
  * 
@@ -217,7 +219,7 @@ public class Client extends Thread {
 			_inputOutput.writeInt (_resourceIdMask);
 			_inputOutput.writeInt (0);		// Motion buffer size.
 			_inputOutput.writeShort ((short) vendor.length);	// Vendor length.
-			_inputOutput.writeShort ((short) 0xffff);	// Max request length.
+			_inputOutput.writeShort ((short) 0x7fff);	// Max request length.
 			_inputOutput.writeByte ((byte) 1);	// Number of screens.
 			_inputOutput.writeByte ((byte) _xServer.getNumFormats ());
 			_inputOutput.writeByte ((byte) 0);	// Image byte order (0=LSB, 1=MSB).
@@ -239,9 +241,12 @@ public class Client extends Thread {
 		_inputOutput.flush ();
 
 		while (!_closeConnection) {
-			byte		opcode = (byte) _inputOutput.readByte ();
-			int			arg = _inputOutput.readByte ();
-			int			requestLength = _inputOutput.readShort ();
+			byte	opcode = (byte) _inputOutput.readByte ();
+			byte	arg = (byte) _inputOutput.readByte ();
+			int		requestLength = _inputOutput.readShort ();
+
+			if (requestLength == 0)	// Handle big requests.
+				requestLength = _inputOutput.readInt ();
 
 				// Deal with server grabs.
 			while (!_xServer.processingAllowed (this)) {
@@ -282,7 +287,7 @@ public class Client extends Thread {
 	private void
 	processRequest (
 		byte		opcode,
-		int			arg,
+		byte		arg,
 		int			bytesRemaining
 	) throws IOException {
 		_sequenceNumber++;
@@ -760,8 +765,14 @@ public class Client extends Thread {
 				_inputOutput.readSkip (bytesRemaining);
 				break;
 			default:	// Opcode not implemented.
-				_inputOutput.readSkip (bytesRemaining);
-				ErrorCode.write (this, ErrorCode.Implementation, opcode, 0);
+				if (opcode < 0) {
+					Extensions.processRequest (_xServer, this, opcode, arg,
+															bytesRemaining);
+				} else {
+					_inputOutput.readSkip (bytesRemaining);
+					ErrorCode.write (this, ErrorCode.Implementation,
+																opcode, 0);
+				}
 				break;
 		}
 	}
