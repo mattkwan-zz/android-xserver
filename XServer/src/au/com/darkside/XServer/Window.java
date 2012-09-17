@@ -15,7 +15,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-
+import android.graphics.Region;
+import au.com.darkside.XServer.Xext.XShape;
 
 /**
  * @author Matthew Kwan
@@ -27,6 +28,10 @@ public class Window extends Resource {
 	private Window					_parent;
 	private Rect					_orect;
 	private Rect					_irect;
+	private Region 					_boundingShapeRegion = null;
+	private Region 					_clipShapeRegion = null;
+	private Region 					_inputShapeRegion = null;
+	private Vector<Client>			_shapeSelectInput;
 	private Drawable				_drawable;
 	private Colormap				_colormap;
 	private Cursor					_cursor = null;
@@ -169,6 +174,183 @@ public class Window extends Resource {
 		_passiveButtonGrabs = new HashSet<PassiveButtonGrab>();
 		_passiveKeyGrabs = new HashSet<PassiveKeyGrab>();
 		_clientMasks = new Hashtable<Client, Integer>();
+		_shapeSelectInput = new Vector<Client> ();
+	}
+
+	/**
+	 * Is the clip region shaped?
+	 *
+	 * @return	True if the clip region is shaped.
+	 */
+	public boolean
+	isClipShaped () {
+		return _clipShapeRegion != null;
+	}
+
+	/**
+	 * Is the bounding region shaped?
+	 *
+	 * @return	True if the bounding region is shaped.
+	 */
+	public boolean
+	isBoundingShaped () {
+		return _boundingShapeRegion != null;
+	}
+
+	/**
+	 * Send a shape notify to all interested clients.
+	 *
+	 * @param shapeKind	The kind of shape.
+	 */
+	public void
+	sendShapeNotify (
+		byte		shapeKind
+	) {
+		boolean		shaped = false;
+		Rect		extents = null;
+
+		switch (shapeKind) {
+			case XShape.KindBounding:
+				if (_boundingShapeRegion != null) {
+					extents = _boundingShapeRegion.getBounds ();
+					shaped = true;
+				} else {
+					extents = _orect;
+				}
+				break;
+			case XShape.KindClip:
+				if (_clipShapeRegion != null) {
+					extents = _clipShapeRegion.getBounds ();
+					shaped = true;
+				} else {
+					extents = _orect;
+				}
+				break;
+			case XShape.KindInput:
+				if (_inputShapeRegion != null) {
+					extents = _inputShapeRegion.getBounds ();
+					shaped = true;
+				} else {
+					extents = _irect;
+				}
+				break;
+		}
+
+		for (Client client: _shapeSelectInput) {
+			try {
+				InputOutput io = client.getInputOutput ();
+
+				io.writeByte (XShape.EventBase);
+				io.writeByte ((byte) shapeKind);
+				io.writeShort ((short) (client.getSequenceNumber() & 0xffff));
+				io.writeInt (_id);
+
+				if (shapeKind == XShape.KindClip) {
+					io.writeShort ((short) (extents.left - _orect.left));
+					io.writeShort ((short) (extents.top - _orect.left));
+				} else {
+					io.writeShort ((short) extents.left);
+					io.writeShort ((short) extents.top);
+				}
+
+				io.writeShort ((short) extents.width ());
+				io.writeShort ((short) extents.height ());
+				io.writeInt (1);
+				io.writeByte ((byte) (shaped ? 1 : 0));
+				io.writePadBytes (11);
+			} catch (IOException e) {
+			}
+		}
+	}
+
+	/**
+	 * Add a client to the shape select input.
+	 *
+	 * @param client	The client to add.
+	 */
+	public void
+	addShapeSelectInput (
+		Client		client
+	) {
+		_shapeSelectInput.add (client);
+	}
+
+	/**
+	 * Remove a client from the shape select input.
+	 *
+	 * @param client	The client to remove.
+	 */
+	public void
+	removeShapeSelectInput (
+		Client		client
+	) {
+		_shapeSelectInput.remove (client);
+	}
+
+	/**
+	 * Get the bounding shape region.
+	 *
+	 * @return	The bounding shape region.
+	 */
+	public Region
+	getBoundingShapeRegion () {
+		return _boundingShapeRegion;
+	}
+
+	/**
+	 * Get the clip shape region.
+	 *
+	 * @return	The clip shape region.
+	 */
+	public Region
+	getClipShapeRegion () {
+		return _clipShapeRegion;
+	}
+
+	/**
+	 * Get the input shape region.
+	 *
+	 * @return	The input shape region.
+	 */
+	public Region
+	getInputShapeRegion () {
+		return _inputShapeRegion;
+	}
+
+	/**
+	 * Set the bounding shape region.
+	 *
+	 * @param sr	The bounding shape region.
+	 */
+	public void
+	setBoundingShapeRegion (
+		Region		r
+	) {
+		_boundingShapeRegion = r;
+	}
+
+	/**
+	 * Set the clip shape region.
+	 *
+	 * @param sr	The clip shape region.
+	 */
+	public void
+	setClipShapeRegion (
+		Region		r
+	) {
+		_clipShapeRegion = r;
+	}
+
+	/**
+	 * Set the input shape region.
+	 *
+	 * @param sr	The shape region.
+	 */
+	public void
+	setInputShapeRegion (
+		Region		r
+	) {
+		_inputShapeRegion = r;
 	}
 
 	/**
@@ -384,19 +566,41 @@ public class Window extends Resource {
 			paint.setColor (_attributes[AttrBorderPixel] | 0xff000000);
 			paint.setStrokeWidth (_borderWidth);
 			paint.setStyle (Paint.Style.STROKE);
+
+			if (_boundingShapeRegion != null) {
+				canvas.save ();
+				canvas.clipRegion (_boundingShapeRegion, Region.Op.REPLACE);
+			}
+
 			canvas.drawRect (_orect.left + hbw, _orect.top + hbw,
 							_orect.right - hbw, _orect.bottom - hbw, paint);
 		}
 
 		canvas.save ();
-		if (canvas.clipRect (_irect)) {
+
+		boolean		clipIntersect;
+
+		if (_clipShapeRegion != null) {
+			Rect	r = _clipShapeRegion.getBounds ();
+
+			_clipShapeRegion.translate (_irect.left - r.left,
+														_irect.top - r.top);
+			clipIntersect = canvas.clipRegion (_clipShapeRegion);
+		} else {
+			clipIntersect = canvas.clipRect (_irect);
+		}
+
+		if (clipIntersect) {
 			if (!_inputOnly)
 				canvas.drawBitmap (_drawable.getBitmap (), _irect.left,
-														_irect.top, null);
+													_irect.top, paint);
 			for (Window w: _children)
 				w.draw (canvas, paint);
 		}
+
 		canvas.restore ();
+		if (_boundingShapeRegion != null)
+			canvas.restore ();
 	}
 
 	/**
@@ -468,7 +672,7 @@ public class Window extends Resource {
 	 */
 	public void
 	removePassiveButtonGrab (
-		int			button,
+		byte		button,
 		int			modifiers
 	) {
 		Iterator<PassiveButtonGrab>		it = _passiveButtonGrabs.iterator ();
@@ -530,7 +734,7 @@ public class Window extends Resource {
 	 */
 	public void
 	removePassiveKeyGrab (
-		int			key,
+		byte		key,
 		int			modifiers
 	) {
 		Iterator<PassiveKeyGrab>		it = _passiveKeyGrabs.iterator ();
@@ -2428,7 +2632,7 @@ public class Window extends Resource {
 							_parent._children.remove (this);
 							_parent._children.add (this);
 							changed = true;
-						} else if (_parent.occludes (this, null)) {								_parent._children.remove (this);
+						} else if (_parent.occludes (this, null)) {
 							_parent._children.remove (this);
 							_parent._children.add (0, this);
 							changed = true;
@@ -2538,14 +2742,14 @@ public class Window extends Resource {
 	@Override
 	public void
 	processRequest (
-		Client		client,
-		byte			opcode,
-		int				arg,
-		int				bytesRemaining
+		Client	client,
+		byte	opcode,
+		byte	arg,
+		int		bytesRemaining
 	) throws IOException {
-		boolean			redraw = false;
-		boolean			updatePointer = false;
-		InputOutput		io = client.getInputOutput ();
+		boolean		redraw = false;
+		boolean		updatePointer = false;
+		InputOutput	io = client.getInputOutput ();
 
 		switch (opcode) {
 			case RequestCode.ChangeWindowAttributes:
@@ -2558,11 +2762,11 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			vid = _xServer.getRootVisual().getId ();
-					int			mapState = _isMapped ? 0 : 2;
+					int		vid = _xServer.getRootVisual().getId ();
+					byte	mapState = (byte) (_isMapped ? 0 : 2);
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 2);
+						Util.writeReplyHeader (client, (byte) 2);
 						io.writeInt (3);	// Reply length.
 						io.writeInt (vid);	// Visual.
 						io.writeShort ((short)
@@ -2573,7 +2777,7 @@ public class Window extends Resource {
 						io.writeInt (_attributes[AttrBackingPixel]);
 						io.writeByte ((byte) _attributes[AttrSaveUnder]);
 						io.writeByte ((byte) 1);	// Map is installed.
-						io.writeByte ((byte) mapState);	// Map-state.
+						io.writeByte (mapState);	// Map-state.
 						io.writeByte ((byte) (_overrideRedirect ? 1 : 0));
 						io.writeInt (_colormap.getId ());	// Colormap.
 						io.writeInt (_attributes[AttrEventMask]);
@@ -2692,11 +2896,11 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			rid = _screen.getRootWindow().getId ();
-					int			depth = _xServer.getRootVisual().getDepth ();
-					int			x, y;
-					int			width = _irect.right - _irect.left;
-					int			height = _irect.bottom - _irect.top;
+					int		rid = _screen.getRootWindow().getId ();
+					byte	depth = _xServer.getRootVisual().getDepth ();
+					int		x, y;
+					int		width = _irect.right - _irect.left;
+					int		height = _irect.bottom - _irect.top;
 
 					if (_parent == null) {
 						x = _orect.left;
@@ -2725,12 +2929,12 @@ public class Window extends Resource {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			rid = _screen.getRootWindow().getId ();
-					int			pid =  (_parent == null) ? 0
+					int		rid = _screen.getRootWindow().getId ();
+					int		pid =  (_parent == null) ? 0
 														: _parent.getId ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (_children.size ());	// Reply length.
 						io.writeInt (rid);	// Root.
 						io.writeInt (pid);	// Parent.
@@ -2786,7 +2990,7 @@ public class Window extends Resource {
 					int			n = _properties.size ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (n);	// Reply length.
 						io.writeShort ((short) n);	// Num atoms.
 						io.writePadBytes (22);	// Unused.
@@ -2815,7 +3019,7 @@ public class Window extends Resource {
 						cid = w.getId ();
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 1);
+						Util.writeReplyHeader (client, (byte) 1);
 						io.writeInt (0);	// Reply length.
 						io.writeInt (rid);	// Root.
 						io.writeInt (cid);	// Child.
@@ -2840,7 +3044,7 @@ public class Window extends Resource {
 					io.readInt ();	// Stop time.
 
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (numEvents * 2);	// Reply length.
 						io.writeInt (numEvents);	// Number of events.
 						io.writePadBytes (20);	// Unused.
@@ -2871,7 +3075,7 @@ public class Window extends Resource {
 								child = c._id;
 
 						synchronized (io) {
-							Util.writeReplyHeader (client, 1);
+							Util.writeReplyHeader (client, (byte) 1);
 							io.writeInt (0);	// Reply length.
 							io.writeInt (child);	// Child.
 							io.writeShort ((short) dx);	// Dest X.
