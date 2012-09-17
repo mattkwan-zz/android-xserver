@@ -22,6 +22,8 @@ import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
+import au.com.darkside.XServer.Xext.Extensions;
+import au.com.darkside.XServer.Xext.XShape;
 
 /**
  * @author Matthew Kwan
@@ -96,7 +98,12 @@ public class XServer {
 		_accessControlHosts = new HashSet<Integer>();
 
 		_extensions = new Hashtable<String, Extension>();
-		_extensions.put ("dummy", new Extension (0, 0, 0));
+		_extensions.put ("Generic Event Extension",
+						new Extension (Extensions.XGE, (byte) 0, (byte) 0));
+		_extensions.put ("BIG-REQUESTS",
+				new Extension (Extensions.BigRequests, (byte) 0, (byte) 0));
+		_extensions.put ("SHAPE", new Extension (Extensions.Shape,
+										XShape.EventBase, (byte) 0));
 
 		_formats.add (new Format ((byte) 32, (byte) 24, (byte) 8));
 
@@ -675,13 +682,13 @@ public class XServer {
 		String		s = new String (bytes);
 		Extension	e;
 
-		if (_extensions.contains (s))
+		if (_extensions.containsKey (s))
 			e = _extensions.get (s);
 		else
 			e = null;
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt (0);	// Reply length.
 
 			if (e == null) {
@@ -691,9 +698,9 @@ public class XServer {
 				io.writeByte ((byte) 0);	// First error.
 			} else {
 				io.writeByte ((byte) 1);	// Present. 1 = true.
-				io.writeByte ((byte) e.majorOpcode);	// Major opcode.
-				io.writeByte ((byte) e.firstEvent);	// First event.
-				io.writeByte ((byte) e.firstError);	// First error.
+				io.writeByte (e.majorOpcode);	// Major opcode.
+				io.writeByte (e.firstEvent);	// First event.
+				io.writeByte (e.firstError);	// First error.
 			}
 
 			io.writePadBytes (20);	// Unused.
@@ -721,7 +728,7 @@ public class XServer {
 		InputOutput		io = client.getInputOutput ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, ss.size ());
+			Util.writeReplyHeader (client, (byte) ss.size ());
 			io.writeInt ((length + pad) / 4);	// Reply length.
 			io.writePadBytes (24);	// Unused.
 
@@ -809,7 +816,8 @@ public class XServer {
 		int				n = _accessControlHosts.size ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, _accessControlEnabled ? 1 : 0);
+			Util.writeReplyHeader (client,
+									(byte) (_accessControlEnabled ? 1 : 0));
 			io.writeInt (n * 2);	// Reply length.
 			io.writeShort ((short) n);	// Number of hosts.
 			io.writePadBytes (22);	// Unused.
@@ -951,7 +959,7 @@ public class XServer {
 		InputOutput		io = client.getInputOutput ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt (0);	// Reply length.
 			io.writeShort ((short) _screenSaverTimeout);	// Timeout.
 			io.writeShort ((short) _screenSaverInterval);	// Interval.
@@ -980,13 +988,13 @@ public class XServer {
 		 * @param pfirstError	Base error code, or zero.
 		 */
 		public Extension (
-			int		pmajorOpcode,
-			int		pfirstEvent,
-			int		pfirstError
+			byte	pmajorOpcode,
+			byte	pfirstEvent,
+			byte	pfirstError
 		) {
-			majorOpcode = (byte) pmajorOpcode;
-			firstEvent = (byte) pfirstEvent;
-			firstError = (byte) pfirstError;
+			majorOpcode = pmajorOpcode;
+			firstEvent = pfirstEvent;
+			firstError = pfirstError;
 		}
 	}
 
@@ -1023,7 +1031,7 @@ public class XServer {
 			return _serverSocket.getInetAddress ();
 		}
 
-		/*
+		/**
 		 * Run the thread.
 		 */
 		public void
@@ -1041,9 +1049,8 @@ public class XServer {
 
 				int					addr = 0;
 				InetSocketAddress	isa;
-				
+
 				isa = (InetSocketAddress) socket.getRemoteSocketAddress ();
-					
 				if (isa != null) {
 					InetAddress		ia = isa.getAddress ();
 					byte[]			ba = ia.getAddress ();
@@ -1064,8 +1071,8 @@ public class XServer {
 					Client		c;
 
 					try {
-						c = new Client (XServer.this, socket,
-											_clientIdBase, _clientIdStep - 1);
+						c = new Client (XServer.this, socket, _clientIdBase,
+														_clientIdStep - 1);
 						_clients.add (c);
 						c.start ();
 						_clientIdBase += _clientIdStep;
@@ -1079,7 +1086,7 @@ public class XServer {
             }
 		}
 
-		/*
+		/**
 		 * Cancel the thread.
 		 */
 		public void
