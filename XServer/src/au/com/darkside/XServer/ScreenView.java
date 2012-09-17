@@ -59,7 +59,7 @@ public class ScreenView extends View {
 	private PassiveKeyGrab	_grabKeyboardPassiveGrab = null;
 
 	private Window		_focusWindow = null;
-	private int			_focusRevertTo = 0;	// 0=None, 1=Root, 2=Parent.
+	private byte		_focusRevertTo = 0;	// 0=None, 1=Root, 2=Parent.
 	private int			_focusLastChangeTime = 0;
 
 	/**
@@ -689,7 +689,7 @@ public class ScreenView extends View {
 			blank (false);	// Reset the screen saver.
 	
 			boolean		sendEvent = false;
-	
+
 			switch (keycode) {
 				case KeyEvent.KEYCODE_BACK:
 				case KeyEvent.KEYCODE_MENU:
@@ -718,7 +718,7 @@ public class ScreenView extends View {
 					sendEvent = true;
 					break;
 			}
-	
+
 			if (sendEvent)
 				notifyKeyPressedReleased (keycode, true);
 		}
@@ -746,7 +746,7 @@ public class ScreenView extends View {
 			blank (false);	// Reset the screen saver.
 	
 			boolean		sendEvent = false;
-	
+
 			switch (keycode) {
 				case KeyEvent.KEYCODE_BACK:
 				case KeyEvent.KEYCODE_MENU:
@@ -775,7 +775,7 @@ public class ScreenView extends View {
 					sendEvent = true;
 					break;
 			}
-	
+
 			if (sendEvent)
 				notifyKeyPressedReleased (keycode, false);
 		}
@@ -836,7 +836,7 @@ public class ScreenView extends View {
 		int				n = _installedColormaps.size ();
 
 		synchronized (io) {
-			Util.writeReplyHeader (client, 0);
+			Util.writeReplyHeader (client, (byte) 0);
 			io.writeInt (n);	// Reply length.
 			io.writeShort ((short) n);	// Number of colormaps.
 			io.writePadBytes (22);	// Unused.
@@ -859,11 +859,11 @@ public class ScreenView extends View {
 	 */
 	public void
 	processRequest (
-		XServer			xServer,
-		Client			client,
-		byte			opcode,
-		int				arg,
-		int				bytesRemaining
+		XServer		xServer,
+		Client		client,
+		byte		opcode,
+		byte		arg,
+		int			bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 
@@ -1205,9 +1205,9 @@ public class ScreenView extends View {
 			return;
 		}
 
-		Window			w = (Window) r;
-		Cursor			c = null;
-		Window			cw = null;
+		Window		w = (Window) r;
+		Cursor		c = null;
+		Window		cw = null;
 
 		if (cwid != 0) {
 			r = _xServer.getResource (cwid);
@@ -1234,8 +1234,8 @@ public class ScreenView extends View {
 		if (c == null)
 			c = w.getCursor ();
 
-		int			status = 0;	// Success.
-		int			now = _xServer.getTimestamp ();
+		byte	status = 0;	// Success.
+		int		now = _xServer.getTimestamp ();
 
 		if (time == 0)
 			time = now;
@@ -1291,7 +1291,7 @@ public class ScreenView extends View {
 		boolean			ksync = (io.readByte () == 0);	// Keyboard mode.
 		int				cwid = io.readInt ();	// Confine-to.
 		int				cid = io.readInt ();	// Cursor.
-		int				button = io.readByte ();	// Button.
+		byte			button = (byte) io.readByte ();	// Button.
 		int				modifiers;
 		Resource		r = _xServer.getResource (wid);
 
@@ -1364,7 +1364,7 @@ public class ScreenView extends View {
 		}
 
 		Window		w = (Window) r;
-		int			status = 0;	// Success.
+		byte		status = 0;	// Success.
 		int			now = _xServer.getTimestamp ();
 
 		if (time == 0)
@@ -1413,7 +1413,7 @@ public class ScreenView extends View {
 		InputOutput		io = client.getInputOutput ();
 		int				wid = io.readInt ();	// Grab window.
 		int				modifiers = io.readShort ();	// Modifiers.
-		int				keycode = io.readByte ();	// Key.
+		byte			keycode = (byte) io.readByte ();	// Key.
 		boolean			psync = (io.readByte () == 0);	// Pointer mode.
 		boolean			ksync = (io.readByte () == 0);	// Keyboard mode.
 		Resource		r = _xServer.getResource (wid);
@@ -1443,14 +1443,14 @@ public class ScreenView extends View {
 	 */
 	private void
 	processSetInputFocusRequest (
-		XServer			xServer,
-		Client			client,
-		int				revertTo
+		XServer		xServer,
+		Client		client,
+		byte		revertTo
 	) throws IOException {
-		InputOutput		io = client.getInputOutput ();
-		int				wid = io.readInt ();	// Focus window.
-		int				time = io.readInt ();	// Time.
-		Window			w;
+		InputOutput	io = client.getInputOutput ();
+		int			wid = io.readInt ();	// Focus window.
+		int			time = io.readInt ();	// Time.
+		Window		w;
 
 		if (wid == 0) {
 			w = null;

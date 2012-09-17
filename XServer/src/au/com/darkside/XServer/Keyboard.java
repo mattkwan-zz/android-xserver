@@ -19,9 +19,9 @@ import android.view.KeyEvent;
 public class Keyboard {
 	private int				_minimumKeycode;
 	private int				_numKeycodes;
-	private int				_keysymsPerKeycode = 3;
+	private byte			_keysymsPerKeycode = 3;
 	private int[]			_keyboardMapping = null;
-	private int				_keycodesPerModifier = 2;
+	private byte			_keycodesPerModifier = 2;
 	private byte[]			_keymap = new byte[32];
 	private byte[]			_modifierMapping = new byte[] {
 		KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT,
@@ -54,7 +54,7 @@ public class Keyboard {
 	 * Constructor.
 	 */
 	Keyboard () {
-		final int			kpk = _keysymsPerKeycode;
+		final byte			kpk = _keysymsPerKeycode;
 		int					min = 255;
 		int					max = 0;
 		int					idx = 0;
@@ -184,11 +184,11 @@ public class Keyboard {
 	 */
 	public void
 	processRequest (
-		XServer			xServer,
-		Client			client,
-		byte			opcode,
-		int				arg,
-		int				bytesRemaining
+		XServer		xServer,
+		Client		client,
+		byte		opcode,
+		byte		arg,
+		int			bytesRemaining
 	) throws IOException {
 		InputOutput		io = client.getInputOutput ();
 
@@ -199,7 +199,7 @@ public class Keyboard {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
 					synchronized (io) {
-						Util.writeReplyHeader (client, 0);
+						Util.writeReplyHeader (client, (byte) 0);
 						io.writeInt (2);	// Reply length.
 						io.writeBytes (_keymap, 0, 32);	// Keys.
 					}
@@ -211,9 +211,9 @@ public class Keyboard {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			keycodeCount = arg;
-					int			keycode = io.readByte ();	// First keycode.
-					int			kspkc = io.readByte ();	// Keysyms per keycode.
+					byte	keycodeCount = arg;
+					byte	keycode = (byte) io.readByte ();	// First code.
+					byte	kspkc = (byte) io.readByte ();	// Keysyms per code.
 
 					io.readSkip (2);	// Unused.
 					bytesRemaining -= 4;
@@ -238,10 +238,10 @@ public class Keyboard {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					int			keycode = io.readByte ();	// First keycode.
-					int			count = io.readByte ();	// Count.
-					int			length = count * _keysymsPerKeycode;
-					int			offset = (keycode - getMinimumKeycode ())
+					byte	keycode = (byte) io.readByte ();	// First code.
+					byte	count = (byte) io.readByte ();	// Count.
+					int		length = count * _keysymsPerKeycode;
+					int		offset = (keycode - getMinimumKeycode ())
 														* _keysymsPerKeycode;
 
 					io.readSkip (2);	// Unused.
@@ -308,7 +308,7 @@ public class Keyboard {
 				} else {	// Not supported. Always fails.
 					io.readSkip (bytesRemaining);
 					synchronized (io) {
-						Util.writeReplyHeader (client, 2);
+						Util.writeReplyHeader (client, (byte) 2);
 						io.writeInt (0);	// Reply length.
 						io.writePadBytes (24);	// Unused.
 					}
@@ -320,11 +320,11 @@ public class Keyboard {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					final int	kpm = _keycodesPerModifier;
+					final byte	kpm = _keycodesPerModifier;
 					byte[]		map = null;
 
 					if (kpm > 0) {
-						int			diff;
+						int		 diff;
 
 						if (_minimumKeycode < 8)
 							diff = 8 - _minimumKeycode;
