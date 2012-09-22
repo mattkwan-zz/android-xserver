@@ -206,35 +206,16 @@ public class Window extends Resource {
 	sendShapeNotify (
 		byte		shapeKind
 	) {
-		boolean		shaped = false;
-		Rect		extents = null;
+		Region		r = getShapeRegion (shapeKind);
+		boolean		shaped = (r != null);
+		Rect		rect;
 
-		switch (shapeKind) {
-			case XShape.KindBounding:
-				if (_boundingShapeRegion != null) {
-					extents = _boundingShapeRegion.getBounds ();
-					shaped = true;
-				} else {
-					extents = _orect;
-				}
-				break;
-			case XShape.KindClip:
-				if (_clipShapeRegion != null) {
-					extents = _clipShapeRegion.getBounds ();
-					shaped = true;
-				} else {
-					extents = _orect;
-				}
-				break;
-			case XShape.KindInput:
-				if (_inputShapeRegion != null) {
-					extents = _inputShapeRegion.getBounds ();
-					shaped = true;
-				} else {
-					extents = _irect;
-				}
-				break;
-		}
+		if (r != null)
+			rect = r.getBounds ();
+		else if (shapeKind == XShape.KindClip)
+			rect = _irect;
+		else
+			rect = _orect;
 
 		for (Client client: _shapeSelectInput) {
 			try {
@@ -244,17 +225,10 @@ public class Window extends Resource {
 				io.writeByte ((byte) shapeKind);
 				io.writeShort ((short) (client.getSequenceNumber() & 0xffff));
 				io.writeInt (_id);
-
-				if (shapeKind == XShape.KindClip) {
-					io.writeShort ((short) (extents.left - _orect.left));
-					io.writeShort ((short) (extents.top - _orect.left));
-				} else {
-					io.writeShort ((short) extents.left);
-					io.writeShort ((short) extents.top);
-				}
-
-				io.writeShort ((short) extents.width ());
-				io.writeShort ((short) extents.height ());
+				io.writeShort ((short) (rect.left - _irect.left));
+				io.writeShort ((short) (rect.top - _irect.left));
+				io.writeShort ((short) rect.width ());
+				io.writeShort ((short) rect.height ());
 				io.writeInt (1);
 				io.writeByte ((byte) (shaped ? 1 : 0));
 				io.writePadBytes (11);
@@ -288,69 +262,62 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Get the bounding shape region.
+	 * Does the client is the shape select input list?
 	 *
-	 * @return	The bounding shape region.
+	 * @param client	The client to check.
+	 * @return	True if the client is in the shape select input list.
 	 */
-	public Region
-	getBoundingShapeRegion () {
-		return _boundingShapeRegion;
-	}
-
-	/**
-	 * Get the clip shape region.
-	 *
-	 * @return	The clip shape region.
-	 */
-	public Region
-	getClipShapeRegion () {
-		return _clipShapeRegion;
-	}
-
-	/**
-	 * Get the input shape region.
-	 *
-	 * @return	The input shape region.
-	 */
-	public Region
-	getInputShapeRegion () {
-		return _inputShapeRegion;
-	}
-
-	/**
-	 * Set the bounding shape region.
-	 *
-	 * @param sr	The bounding shape region.
-	 */
-	public void
-	setBoundingShapeRegion (
-		Region		r
+	public boolean
+	shapeSelectInputEnabled (
+		Client		client
 	) {
-		_boundingShapeRegion = r;
+		return _shapeSelectInput.contains (client);
 	}
 
 	/**
-	 * Set the clip shape region.
+	 * Return a shape region.
 	 *
-	 * @param sr	The clip shape region.
+	 * @param shapeKind	The kind of shape to return.
+	 * @return	The shape region.
 	 */
-	public void
-	setClipShapeRegion (
-		Region		r
+	public Region
+	getShapeRegion (
+		byte	shapeKind
 	) {
-		_clipShapeRegion = r;
+		switch (shapeKind) {
+			case XShape.KindBounding:
+				return _boundingShapeRegion;
+			case XShape.KindClip:
+				return _clipShapeRegion;
+			case XShape.KindInput:
+				return _inputShapeRegion;
+		}
+		
+		return null;
 	}
 
 	/**
-	 * Set the input shape region.
+	 * Set a shape region.
 	 *
+	 * @param shapeKind	The kind of shape to set.
 	 * @param sr	The shape region.
 	 */
 	public void
-	setInputShapeRegion (
+	setShapeRegion (
+		byte		shapeKind,
 		Region		r
 	) {
-		_inputShapeRegion = r;
+		switch (shapeKind) {
+			case XShape.KindBounding:
+				_boundingShapeRegion = r;
+				break;
+			case XShape.KindClip:
+				_clipShapeRegion = r;
+				break;
+			case XShape.KindInput:
+				_inputShapeRegion = r;
+				break;
+		}
 	}
 
 	/**
@@ -557,7 +524,14 @@ public class Window extends Resource {
 		if (!_isMapped)
 			return;
 
-		if (_borderWidth != 0) {
+		if (_boundingShapeRegion != null) {
+			canvas.save ();
+			canvas.clipRegion (_boundingShapeRegion);
+
+			paint.setColor (_attributes[AttrBorderPixel] | 0xff000000);
+			paint.setStyle (Paint.Style.FILL);
+			canvas.drawRect (_orect, paint);
+		} else if (_borderWidth != 0) {
 			if (!Rect.intersects (_orect, canvas.getClipBounds ()))
 				return;
 
@@ -567,11 +541,6 @@ public class Window extends Resource {
 			paint.setStrokeWidth (_borderWidth);
 			paint.setStyle (Paint.Style.STROKE);
 
-			if (_boundingShapeRegion != null) {
-				canvas.save ();
-				canvas.clipRegion (_boundingShapeRegion, Region.Op.REPLACE);
-			}
-
 			canvas.drawRect (_orect.left + hbw, _orect.top + hbw,
 							_orect.right - hbw, _orect.bottom - hbw, paint);
 		}
@@ -580,15 +549,10 @@ public class Window extends Resource {
 
 		boolean		clipIntersect;
 
-		if (_clipShapeRegion != null) {
-			Rect	r = _clipShapeRegion.getBounds ();
-
-			_clipShapeRegion.translate (_irect.left - r.left,
-														_irect.top - r.top);
+		if (_clipShapeRegion != null)
 			clipIntersect = canvas.clipRegion (_clipShapeRegion);
-		} else {
+		else
 			clipIntersect = canvas.clipRect (_irect);
-		}
 
 		if (clipIntersect) {
 			if (!_inputOnly)
@@ -604,11 +568,11 @@ public class Window extends Resource {
 	}
 
 	/**
-	 * Return the mapped window that contains the specified point.
+	 * Return the mapped window whose input area contains the specified point.
 	 *
 	 * @param x	X coordinate of the point.
 	 * @param y	Y coordinate of the point.
-	 * @return	The visible window containing the point.
+	 * @return	The mapped window containing the point.
 	 */
 	public Window
 	windowAtPoint (
@@ -618,8 +582,15 @@ public class Window extends Resource {
 		for (int i = _children.size () - 1; i >= 0; i--) {
 			Window		w = _children.elementAt (i);
 
-			if (w._isMapped && w._irect.contains (x, y))
+			if (!w._isMapped)
+				continue;
+
+			if (w._inputShapeRegion != null) {
+				if (w._inputShapeRegion.contains (x, y))
+					return w.windowAtPoint (x, y);
+			} else if (w._orect.contains (x, y)) {
 				return w.windowAtPoint (x, y);
+			}
 		}
 
 		return this;
