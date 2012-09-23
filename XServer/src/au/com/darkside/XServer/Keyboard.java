@@ -126,6 +126,19 @@ public class Keyboard {
 	}
 
 	/**
+	 * Return the minimum keycode diff.
+	 *
+	 * @return	The minimum keycode.
+	 */
+	private int
+	getMinimumKeycodeDiff () {
+		if (_minimumKeycode < 8)
+			return 8 - _minimumKeycode;
+		else
+			return 0;
+	}
+
+	/**
 	 * Return the maximum keycode.
 	 *
 	 * @return	The maximum keycode.
@@ -324,12 +337,7 @@ public class Keyboard {
 					byte[]		map = null;
 
 					if (kpm > 0) {
-						int		 diff;
-
-						if (_minimumKeycode < 8)
-							diff = 8 - _minimumKeycode;
-						else
-							diff = 0;
+						int		 diff = getMinimumKeycodeDiff ();
 
 						map = new byte[kpm * 8];
 						for (int i = 0; i < map.length; i++)
