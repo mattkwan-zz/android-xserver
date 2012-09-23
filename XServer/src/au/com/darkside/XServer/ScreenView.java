@@ -559,13 +559,11 @@ public class ScreenView extends View {
 	/**
 	 * Called when shift/alt keys are pressed/released.
 	 *
-	 * @param keycode	Keycode of the key.
 	 * @param pressed	True if pressed, false if released.
 	 * @param state	Current state of the modifier keys.
 	 */
 	private void
 	updateModifiers (
-		int			keycode,
 		boolean		pressed,
 		int			state
 	) {
@@ -685,9 +683,9 @@ public class ScreenView extends View {
 		synchronized (_xServer) {
 			if (_rootWindow == null)
 				return false;
-	
+
 			blank (false);	// Reset the screen saver.
-	
+
 			boolean		sendEvent = false;
 
 			switch (keycode) {
@@ -711,7 +709,7 @@ public class ScreenView extends View {
 				case KeyEvent.KEYCODE_SHIFT_RIGHT:
 				case KeyEvent.KEYCODE_ALT_LEFT:
 				case KeyEvent.KEYCODE_ALT_RIGHT:
-					updateModifiers (keycode, true, event.getMetaState ());
+					updateModifiers (true, event.getMetaState ());
 					sendEvent = true;
 					break;
 				default:
@@ -742,9 +740,9 @@ public class ScreenView extends View {
 		synchronized (_xServer) {
 			if (_rootWindow == null)
 				return false;
-	
+
 			blank (false);	// Reset the screen saver.
-	
+
 			boolean		sendEvent = false;
 
 			switch (keycode) {
@@ -768,7 +766,7 @@ public class ScreenView extends View {
 				case KeyEvent.KEYCODE_SHIFT_RIGHT:
 				case KeyEvent.KEYCODE_ALT_LEFT:
 				case KeyEvent.KEYCODE_ALT_RIGHT:
-					updateModifiers (keycode, false, event.getMetaState ());
+					updateModifiers (false, event.getMetaState ());
 					sendEvent = true;
 					break;
 				default:
