@@ -309,8 +309,10 @@ public class Drawable {
 			n = planes * height * (width + rightPad) / 8;
 			bytes = new byte[n];
 
-			for (int plane = 0; plane < 32; plane++) {
-				if ((plane & planeMask) == 0)
+			for (int plane = 31; plane >= 0; plane--) {
+				int		bit = 1 << plane;
+
+				if ((planeMask & bit) == 0)
 					continue;
 
 				byte		b = 0;
@@ -319,7 +321,7 @@ public class Drawable {
 					for (int xi = 0; xi < xmax; xi++) {
 						b <<= 1;
 						if (xi < width
-								&& (pixels[yi * width + xi] & planeMask) != 0)
+								&& (pixels[yi * width + xi] & bit) != 0)
 							b |= 1;
 
 						if ((xi & 7) == 7) {
