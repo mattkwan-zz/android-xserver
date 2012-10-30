@@ -39,6 +39,7 @@ public class Window extends Resource {
 	private int						_borderWidth;
 	private final boolean			_inputOnly;
 	private boolean					_overrideRedirect;
+	private boolean					_hardwareAccelerated = false;
 	private final Vector<Window>	_children;
 	private final Hashtable<Integer, Property>	_properties;
 	private final Set<PassiveButtonGrab>	_passiveButtonGrabs;
@@ -526,7 +527,14 @@ public class Window extends Resource {
 
 		if (_boundingShapeRegion != null) {
 			canvas.save ();
-			canvas.clipRegion (_boundingShapeRegion);
+
+			if (!_hardwareAccelerated) {
+				try {
+					canvas.clipRegion (_boundingShapeRegion);
+				} catch (UnsupportedOperationException e) {
+					_hardwareAccelerated = true;
+				}
+			}
 
 			paint.setColor (_attributes[AttrBorderPixel] | 0xff000000);
 			paint.setStyle (Paint.Style.FILL);
@@ -549,10 +557,16 @@ public class Window extends Resource {
 
 		boolean		clipIntersect;
 
-		if (_clipShapeRegion != null)
-			clipIntersect = canvas.clipRegion (_clipShapeRegion);
-		else
+		if (_clipShapeRegion != null && !_hardwareAccelerated) {
+			try {
+				clipIntersect = canvas.clipRegion (_clipShapeRegion);
+			} catch (UnsupportedOperationException e) {
+				_hardwareAccelerated = true;
+				clipIntersect = canvas.clipRect (_irect);
+			}
+		} else {
 			clipIntersect = canvas.clipRect (_irect);
+		}
 
 		if (clipIntersect) {
 			if (!_inputOnly)

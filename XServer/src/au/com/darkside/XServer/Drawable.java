@@ -624,7 +624,13 @@ public class Drawable {
 						i++;
 					}
 
-					_canvas.drawPoints (points, paint);
+					try {
+						_canvas.drawPoints (points, paint);
+					} catch (UnsupportedOperationException e) {
+						for (i = 0; i < points.length; i += 2)
+							_canvas.drawPoint (points[i], points[i + 1],
+																	paint);
+					}
 					changed = true;
 				}
 				break;
