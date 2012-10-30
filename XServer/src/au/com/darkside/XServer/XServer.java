@@ -596,11 +596,12 @@ public class XServer {
 	 *
 	 * @param client	The terminated client, or null.
 	 */
-	public void
+	public synchronized void
 	destroyClientResources (
 		Client		client
 	) {
 		Collection<Resource>	rc = _resources.values ();
+		Vector<Resource>		dl = new Vector<Resource> ();
 
 		if (client == null) {
 			for (Resource r: rc) {
@@ -609,13 +610,16 @@ public class XServer {
 
 				if (disconnected && r.getCloseDownMode ()
 											== Client.RetainTemporary)
-					r.delete ();
+					dl.add (r);
 			}
 		} else {
 			for (Resource r: rc)
 				if (r.getClient () == client)
-					r.delete ();
+					dl.add (r);
 		}
+
+		for (Resource r: dl)
+			r.delete ();
 	}
 
 	/**
