@@ -103,10 +103,9 @@ public class XServerActivity extends Activity {
 	@Override
 	public void
 	onDestroy () {
-		super.onDestroy ();
-
-    	_wakeLock.release ();
 		_xServer.stop ();
+    	_wakeLock.release ();
+		super.onDestroy ();
 	}
 
 	/**
