@@ -251,8 +251,8 @@ public class Keyboard {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {
-					byte	keycode = (byte) io.readByte ();	// First code.
-					byte	count = (byte) io.readByte ();	// Count.
+					int		keycode = io.readByte ();	// First code.
+					int		count = io.readByte ();	// Count.
 					int		length = count * _keysymsPerKeycode;
 					int		offset = (keycode - getMinimumKeycode ())
 														* _keysymsPerKeycode;
