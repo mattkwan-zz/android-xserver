@@ -2089,6 +2089,8 @@ public class Window extends Resource {
 				}
 			}
 		}
+
+		_drawable.getBitmap().recycle ();
 	}
 
 	/**

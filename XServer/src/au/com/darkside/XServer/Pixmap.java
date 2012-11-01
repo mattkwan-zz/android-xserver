@@ -6,7 +6,6 @@ package au.com.darkside.XServer;
 import java.io.IOException;
 
 
-
 /**
  * @author Matthew Kwan
  * 
@@ -14,7 +13,7 @@ import java.io.IOException;
  */
 public class Pixmap extends Resource {
 	private final Drawable		_drawable;
-	public final ScreenView			_screen;
+	public final ScreenView		_screen;
 
 	/**
 	 * Constructor.
@@ -100,6 +99,7 @@ public class Pixmap extends Resource {
 					_xServer.freeResource (_id);
 					if (_client != null)
 						_client.freeResource (this);
+					_drawable.getBitmap().recycle ();
 				}
 				break;
 			case RequestCode.GetGeometry:
