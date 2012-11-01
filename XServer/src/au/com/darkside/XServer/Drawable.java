@@ -862,25 +862,6 @@ public class Drawable {
 		io.readSkip(2);		// Unused.
 		bytesRemaining -= 12;
 
-		if (format == 2) {
-			rightPad = 0;
-			if (depth == 32)
-				n = 3 * width * height;
-			else
-				n = (width * height + 7) / 8;
-		} else {
-			rightPad = -(width + leftPad) & 7;
-			n = (width + leftPad + rightPad) * height * depth / 8;
-		}
-		pad = -n & 3;
-
-		if (bytesRemaining != n + pad) {
-			io.readSkip (bytesRemaining);
-			ErrorCode.write (client, ErrorCode.Length, RequestCode.PutImage,
-																		0);
-			return false;
-		}
-
 		boolean		badMatch = false;
 
 		if (format == 0) {	// Bitmap.
@@ -899,6 +880,25 @@ public class Drawable {
 		if (badMatch) {
 			io.readSkip (bytesRemaining);
 			ErrorCode.write (client, ErrorCode.Match, RequestCode.PutImage, 0);
+			return false;
+		}
+
+		if (format == 2) {	// ZPixmap.
+			rightPad = 0;
+			if (depth == 32)
+				n = 3 * width * height;
+			else
+				n = (width * height + 7) / 8;
+		} else {	// XYPixmap or Bitmap.
+			rightPad = -(width + leftPad) & 7;
+			n = (width + leftPad + rightPad) * height * depth / 8;
+		}
+		pad = -n & 3;
+
+		if (bytesRemaining != n + pad) {
+			io.readSkip (bytesRemaining);
+			ErrorCode.write (client, ErrorCode.Length, RequestCode.PutImage,
+																		0);
 			return false;
 		}
 
@@ -980,8 +980,8 @@ public class Drawable {
 		}
 
 		io.readSkip (pad);
-		_canvas.drawBitmap (Bitmap.createBitmap (colors, width, height,
-						Bitmap.Config.ARGB_8888), dstX, dstY, gc.getPaint ());
+		_canvas.drawBitmap (colors, 0, width, dstX, dstY, width, height,
+													true, gc.getPaint ());
 
 		return true;
 	}
