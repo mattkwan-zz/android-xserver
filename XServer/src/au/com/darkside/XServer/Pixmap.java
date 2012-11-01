@@ -180,12 +180,11 @@ public class Pixmap extends Resource {
 		XServer			xServer,
 		Client			client,
 		int				id,
+		int				width,
+		int				height,
 		int				depth,
 		Resource		drawable
 	) throws IOException {
-		InputOutput		io = client.getInputOutput ();
-		int				width = io.readShort ();	// Width.
-		int				height = io.readShort ();	// Height.
 		ScreenView		screen;
 		Pixmap			p;
 

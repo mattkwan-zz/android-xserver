@@ -764,6 +764,7 @@ public class Window extends Resource {
 		boolean			inputOnly;
 
 		io.readInt ();	// Visual.
+		bytesRemaining -= 16;
 
 		if (wclass == 0)	// Copy from parent.
 			inputOnly = _inputOnly;
@@ -772,9 +773,16 @@ public class Window extends Resource {
 		else
 			inputOnly = true;
 
-		w = new Window (id, _xServer, client, _screen, this, x, y,
+		try {
+			w = new Window (id, _xServer, client, _screen, this, x, y,
 								width, height, borderWidth, inputOnly, false);
-		bytesRemaining -= 16;
+		} catch (OutOfMemoryError e) {
+			io.readSkip (bytesRemaining);
+			ErrorCode.write (client, ErrorCode.Alloc,
+												RequestCode.CreateWindow, 0);
+			return false;
+		}
+
 		if (!w.processWindowAttributes (client, RequestCode.CreateWindow,
 															bytesRemaining))
 			return false;
@@ -2562,8 +2570,16 @@ public class Window extends Resource {
 		if (x != oldX || y != oldY || width != oldWidth || height != oldHeight
 											|| borderWidth != _borderWidth) {
 			if (width != oldWidth || height != oldHeight) {
-				_drawable = new Drawable (width, height, 32, _backgroundBitmap,
+				try {
+					_drawable = new Drawable (width, height, 32,
+															_backgroundBitmap,
 							_attributes[AttrBackgroundPixel] | 0xff000000);
+				} catch (OutOfMemoryError e) {
+					ErrorCode.write (client, ErrorCode.Alloc,
+											RequestCode.ConfigureWindow, 0);
+					return false;
+				}
+
 				_drawable.clear ();
 				_exposed = false;
 			}

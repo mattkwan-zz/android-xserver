@@ -514,9 +514,10 @@ public class Client extends Thread {
 				} else {
 					int			id = _inputOutput.readInt ();	// Pixmap ID.
 					int			did = _inputOutput.readInt ();	// Drawable ID.
+					int			width = _inputOutput.readShort ();	// Width.
+					int			height = _inputOutput.readShort ();	// Height.
 					Resource	r = _xServer.getResource (did);
 
-					bytesRemaining -= 8;
 					if (!validResourceId (id)) {
 						_inputOutput.readSkip (bytesRemaining);
 						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
@@ -525,8 +526,12 @@ public class Client extends Thread {
 						ErrorCode.write (this, ErrorCode.Drawable, opcode,
 																		did);
 					} else {
-						Pixmap.processCreatePixmapRequest (_xServer, this,
-																id, arg, r);
+						try {
+							Pixmap.processCreatePixmapRequest (_xServer, this,
+												id, width, height, arg, r);
+						} catch (OutOfMemoryError e) {
+							ErrorCode.write (this, ErrorCode.Alloc, opcode, 0);
+						}
 					}
 				}
 				break;
