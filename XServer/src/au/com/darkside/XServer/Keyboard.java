@@ -82,6 +82,9 @@ public class Keyboard {
 		if (max == 0)
 			min = 0;
 
+		if (max < KeyEvent.KEYCODE_DEL)
+			max = KeyEvent.KEYCODE_DEL;
+
 		_minimumKeycode = min;
 		_numKeycodes = max - min + 1;
 		if (_numKeycodes > 248)
