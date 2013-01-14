@@ -397,7 +397,7 @@ public class XShape {
 	) {
 		ArrayList<Rect>	rl = new ArrayList<Rect> ();
 
-		if (!r.isEmpty ()) {
+		if (r != null && !r.isEmpty ()) {
 			if (r.isRect ())
 				rl.add (r.getBounds ());
 			else
