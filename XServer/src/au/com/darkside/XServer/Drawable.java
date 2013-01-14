@@ -362,7 +362,7 @@ public class Drawable {
 	 */
 	public void
 	clear () {
-		if (_backgroundBitmap == null) {
+		if (_backgroundBitmap == null || _backgroundBitmap.isRecycled ()) {
 			_bitmap.eraseColor (_backgroundColor);
 		} else {
 			int			width = _bitmap.getWidth ();
@@ -394,7 +394,7 @@ public class Drawable {
 		Rect		r = new Rect (x, y, x + width, y + height);
 		Paint		paint = new Paint ();
 
-		if (_backgroundBitmap == null) {
+		if (_backgroundBitmap == null || _backgroundBitmap.isRecycled ()) {
 			paint.setColor (_backgroundColor);
 			paint.setStyle (Paint.Style.FILL);
 			_canvas.drawRect (r, paint);
