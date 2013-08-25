@@ -244,9 +244,17 @@ public class Client extends Thread {
 			byte	opcode = (byte) _inputOutput.readByte ();
 			byte	arg = (byte) _inputOutput.readByte ();
 			int		requestLength = _inputOutput.readShort ();
+			int		bytesRemaining;
 
-			if (requestLength == 0)	// Handle big requests.
+			if (requestLength == 0)	{	// Handle big requests.
 				requestLength = _inputOutput.readInt ();
+				if (requestLength > 2)
+					bytesRemaining = requestLength * 4 - 8;
+				else
+					bytesRemaining = 0;
+			} else {
+				bytesRemaining = requestLength * 4 - 4;
+			}
 
 				// Deal with server grabs.
 			while (!_xServer.processingAllowed (this)) {
@@ -257,7 +265,7 @@ public class Client extends Thread {
 			}
 
 			synchronized (_xServer) {
-				processRequest (opcode, arg, requestLength * 4 - 4);
+				processRequest (opcode, arg, bytesRemaining);
 			}
 		}
 	}
@@ -519,10 +527,8 @@ public class Client extends Thread {
 					Resource	r = _xServer.getResource (did);
 
 					if (!validResourceId (id)) {
-						_inputOutput.readSkip (bytesRemaining);
 						ErrorCode.write (this, ErrorCode.IDChoice, opcode, id);
 					} else if (r == null || !r.isDrawable ()) {
-						_inputOutput.readSkip (bytesRemaining);
 						ErrorCode.write (this, ErrorCode.Drawable, opcode,
 																		did);
 					} else {
