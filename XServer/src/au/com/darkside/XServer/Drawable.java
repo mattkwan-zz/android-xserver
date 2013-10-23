@@ -25,6 +25,10 @@ public class Drawable {
 	private Bitmap			_backgroundBitmap;
 	private int				_backgroundColor;
 
+	private static final byte	BITMAP_FORMAT = 0;
+	private static final byte	XY_PIXMAP_FORMAT = 1;
+	private static final byte	Z_PIXMAP_FORMAT = 2;
+
 	/**
 	 * Constructor.
 	 *
@@ -298,9 +302,9 @@ public class Drawable {
 
 		_bitmap.getPixels (pixels, 0, width, x, y, width, height);
 
-		if (format == 2) {	// ZPixmap.
+		if (format == Z_PIXMAP_FORMAT) {
 			n = wh * 3;
-		} else {	// XYPixmap.
+		} else {	// XY_PIXMAP_FORMAT is the only other valid value.
 			int			planes = Util.bitcount (planeMask);
 			int			rightPad = -width & 7;
 			int			xmax = width + rightPad;
@@ -864,14 +868,14 @@ public class Drawable {
 
 		boolean		badMatch = false;
 
-		if (format == 0) {	// Bitmap.
+		if (format == BITMAP_FORMAT) {
 			if (depth != 1)
 				badMatch = true;
-		} else if (format == 1) {	// XYPixmap.
-			if (depth != 1 && depth != 32)
+		} else if (format == XY_PIXMAP_FORMAT) {
+			if (depth != _depth)
 				badMatch = true;
-		} else if (format == 2) {	// ZPixmap.
-			if ((depth != 32 && depth != 1) || leftPad != 0)
+		} else if (format == Z_PIXMAP_FORMAT) {
+			if (depth != _depth || leftPad != 0)
 				badMatch = true;
 		} else {	// Invalid format.
 			badMatch = true;
@@ -883,7 +887,7 @@ public class Drawable {
 			return false;
 		}
 
-		if (format == 2) {	// ZPixmap.
+		if (format == Z_PIXMAP_FORMAT) {
 			rightPad = 0;
 			if (depth == 32)
 				n = 3 * width * height;
@@ -904,7 +908,7 @@ public class Drawable {
 
 		int[]		colors = new int[width * height];
 
-		if (depth == 1) {	// Bitmap.
+		if (format == BITMAP_FORMAT) {
 			int			fg = gc.getForegroundColor ();
 			int			bg = gc.getBackgroundColor ();
 			int			offset = 0;
@@ -917,6 +921,7 @@ public class Drawable {
 			for (;;) {
 				if ((count++ & 7) == 0) {
 					val = io.readByte ();
+					bytesRemaining--;
 					mask = 128;
 				}
 
@@ -930,8 +935,8 @@ public class Drawable {
 						break;
 				}
 			}
-		} else if (format == 1) {	// 32-bit XYPixmap.
-			int			planeBit = 1 << (depth - 1);
+		} else if (format == XY_PIXMAP_FORMAT) {
+			int		planeBit = 1 << (depth - 1);
 
 			for (int i = 0; i < depth; i++) {
 				int			offset = 0;
@@ -944,6 +949,7 @@ public class Drawable {
 				for (;;) {
 					if ((count++ & 7) == 0) {
 						val = io.readByte ();
+						bytesRemaining--; 
 						mask = 128;
 					}
 
@@ -957,15 +963,16 @@ public class Drawable {
 							break;
 					}
 				}
-			}
 
-			planeBit >>= 1;
+				planeBit >>= 1;
+			}
 		} else if (depth == 32) {	// 32-bit ZPixmap.
 			for (int i = 0; i < colors.length; i++) {
-				int			b = io.readByte ();
-				int			g = io.readByte ();
-				int			r = io.readByte ();
+				int		b = io.readByte ();
+				int		g = io.readByte ();
+				int		r = io.readByte ();
 
+				bytesRemaining -= 3;
 				colors[i] = 0xff000000 | (r << 16) | (g << 8) | b;
 			}
 		} else {	// ZPixmap with depth = 1.
@@ -974,7 +981,6 @@ public class Drawable {
 			boolean[]	bits = new boolean[colors.length];
 
 			io.readBits (bits, 0, colors.length);
-			
 			for (int i = 0; i < colors.length; i++)
 				colors[i] = bits[i] ? fg : bg;
 		}
