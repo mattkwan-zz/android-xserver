@@ -40,6 +40,7 @@ public class ScreenView extends View {
 	private int			_motionY;
 	private int			_buttons = 0;
 	private boolean		_isBlanked = false;
+	private Paint		_paint;
 
 	private Client		_grabPointerClient = null;
 	private Window		_grabPointerWindow = null;
@@ -85,6 +86,22 @@ public class ScreenView extends View {
 		_rootId = rootId;
 		_installedColormaps = new Vector<Colormap>();
 		_pixelsPerMillimeter = pixelsPerMillimeter;
+		_paint = new Paint ();
+	}
+
+	/**
+	 * Placeholder constructor to prevent a compiler warning.
+	 * @param c
+	 */
+	public ScreenView (
+		Context		c
+	) {
+		super (c);
+
+		_xServer = null;
+		_rootId = 0;
+		_installedColormaps = null;
+		_pixelsPerMillimeter = 0;
 	}
 
 	/**
@@ -294,7 +311,8 @@ public class ScreenView extends View {
 				return;
 			}
 	
-			_rootWindow.draw (canvas, new Paint ());
+			_paint.reset ();
+			_rootWindow.draw (canvas, _paint);
 			canvas.drawBitmap (_currentCursor.getBitmap (),
 					_currentCursorX - _currentCursor.getHotspotX (),
 					_currentCursorY - _currentCursor.getHotspotY (), null);
