@@ -5,6 +5,7 @@ package au.com.darkside.XServer;
 
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Locale;
 
 import android.graphics.Color;
 
@@ -464,7 +465,8 @@ public class Colormap extends Resource {
 
 						initializeColorNames ();
 
-						String		name = new String(bytes).toLowerCase ();
+						String		name = new String(bytes).toLowerCase (
+																Locale.US);
 
 						if (_colorNames.containsKey (name)) {
 							int			color = _colorNames.get (name);
@@ -526,7 +528,6 @@ public class Colormap extends Resource {
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Cannot modify a TrueColor colormap.
 					io.readSkip (bytesRemaining);
-					ErrorCode.write (client, ErrorCode.Access, opcode, 0);
 				}
 				break;
 			case RequestCode.StoreColors:
@@ -600,7 +601,8 @@ public class Colormap extends Resource {
 
 						initializeColorNames ();
 
-						String		name = new String(bytes).toLowerCase ();
+						String		name = new String(bytes).toLowerCase (
+																Locale.US);
 
 						if (_colorNames.containsKey (name)) {
 							int			color = _colorNames.get (name);
