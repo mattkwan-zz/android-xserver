@@ -94,7 +94,26 @@ public class XServerActivity extends Activity {
 		pm = (PowerManager) getSystemService (Context.POWER_SERVICE);
 		_wakeLock = pm.newWakeLock (PowerManager.SCREEN_DIM_WAKE_LOCK,
 																"XServer");
+	}
+
+	/**
+	 * Called when the activity resumes.
+	 */
+	@Override
+	public void
+	onResume () {
+		super.onResume ();
 		_wakeLock.acquire ();
+	}
+
+	/**
+	 * Called when the activity pauses.
+	 */
+	@Override
+	public void
+	onPause () {
+		super.onResume ();
+    	_wakeLock.release ();
 	}
 
 	/**
@@ -104,7 +123,6 @@ public class XServerActivity extends Activity {
 	public void
 	onDestroy () {
 		_xServer.stop ();
-    	_wakeLock.release ();
 		super.onDestroy ();
 	}
 
