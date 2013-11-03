@@ -113,6 +113,46 @@ public class InputOutput {
 	}
 
 	/**
+	 * Read a shape mask from the input stream as an array of booleans.
+	 *
+	 * @param bits	The array to store the mask to.
+	 * @param width	Width of the pixmap.
+	 * @param height	Height of the pixmap.
+	 * @throws IOException
+	 */
+	public void
+	readShapeMask (
+		boolean[]	bits,
+		int			width,
+		int			height
+	) throws IOException {
+		int		count = 0;
+		int		bytesPerRow = (width + 1) / 2;
+
+		for (int row = 0; row < height; row++) {
+			int		col = 0;
+
+			for (int i = 0; i < bytesPerRow; i++) {
+				int		b = readByte ();
+				int		mask = 0x80;
+
+				for (int j = 0; j < 8; j++) {
+					bits[count++] = ((b & mask) != 0);
+					mask >>= 1;
+
+					if (++col == width)
+						break;
+				}
+
+				if (col == width) {
+					readSkip (bytesPerRow - i - 1);
+					break;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Read a 16-bit integer from the output stream.
 	 *
 	 * @return	A 16-bit integer in the range 0 to 65535.

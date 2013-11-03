@@ -24,6 +24,7 @@ public class Drawable {
 	private final int		_depth;
 	private Bitmap			_backgroundBitmap;
 	private int				_backgroundColor;
+	private boolean[]		_shapeMask = null;
 
 	private static final byte	BITMAP_FORMAT = 0;
 	private static final byte	XY_PIXMAP_FORMAT = 1;
@@ -887,15 +888,22 @@ public class Drawable {
 			return false;
 		}
 
+		boolean		isShapeMask = false;
+
 		if (format == Z_PIXMAP_FORMAT) {
 			rightPad = 0;
-			if (depth == 32)
+			if (depth == 32) {
 				n = 3 * width * height;
-			else
+			} else {
 				n = (width * height + 7) / 8;
+				if (bytesRemaining != n + (-n & 3)) {
+					isShapeMask = true;
+					n = (width + 1) / 2 * height;
+				}
+			}
 		} else {	// XYPixmap or Bitmap.
 			rightPad = -(width + leftPad) & 7;
-			n = (width + leftPad + rightPad) * height * depth / 8;
+			n = ((width + leftPad + rightPad) * height * depth + 7) / 8;
 		}
 		pad = -n & 3;
 
@@ -921,7 +929,6 @@ public class Drawable {
 			for (;;) {
 				if ((count++ & 7) == 0) {
 					val = io.readByte ();
-					bytesRemaining--;
 					mask = 128;
 				}
 
@@ -949,7 +956,6 @@ public class Drawable {
 				for (;;) {
 					if ((count++ & 7) == 0) {
 						val = io.readByte ();
-						bytesRemaining--; 
 						mask = 128;
 					}
 
@@ -967,20 +973,34 @@ public class Drawable {
 				planeBit >>= 1;
 			}
 		} else if (depth == 32) {	// 32-bit ZPixmap.
+			boolean		useShapeMask = (_shapeMask != null
+									&& colors.length == _shapeMask.length);
+
 			for (int i = 0; i < colors.length; i++) {
 				int		b = io.readByte ();
 				int		g = io.readByte ();
 				int		r = io.readByte ();
+				int		alpha = (useShapeMask && !_shapeMask[i]) ? 0
+															: 0xff000000;
 
-				bytesRemaining -= 3;
-				colors[i] = 0xff000000 | (r << 16) | (g << 8) | b;
+				colors[i] = alpha | (r << 16) | (g << 8) | b;
 			}
+
+			if (useShapeMask)
+				_shapeMask = null;
+		} else if (isShapeMask) {	// ZPixmap, depth = 1, shape mask.
+			_shapeMask = new boolean[colors.length];
+			io.readShapeMask (_shapeMask, width, height);
+			io.readSkip (pad);
+
+			return false;	// Don't redraw.
 		} else {	// ZPixmap with depth = 1.
 			int			fg = gc.getForegroundColor ();
 			int			bg = gc.getBackgroundColor ();
 			boolean[]	bits = new boolean[colors.length];
 
 			io.readBits (bits, 0, colors.length);
+
 			for (int i = 0; i < colors.length; i++)
 				colors[i] = bits[i] ? fg : bg;
 		}
