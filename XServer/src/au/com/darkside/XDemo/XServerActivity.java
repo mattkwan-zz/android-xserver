@@ -112,7 +112,7 @@ public class XServerActivity extends Activity {
 	@Override
 	public void
 	onPause () {
-		super.onResume ();
+		super.onPause ();
     	_wakeLock.release ();
 	}
 
