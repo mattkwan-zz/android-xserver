@@ -157,8 +157,8 @@ public class Font extends Resource {
 		for (float width: widths) {
 			if (width < minw)
 				minw = width;
-			if (width > minw)
-				minw = width;
+			if (width > maxw)
+				maxw = width;
 		}
 
 		_minWidth = minw;
