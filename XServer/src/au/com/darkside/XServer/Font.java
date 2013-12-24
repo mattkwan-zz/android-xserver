@@ -401,7 +401,7 @@ public class Font extends Resource {
 				_paint.getTextBounds (s, i, i + 1, bounds);
 				io.writeShort ((short) bounds.left);	// Left side bearing.
 				io.writeShort ((short) bounds.right);	// Right side bearing.
-				io.writeShort ((short) (widths[i]));	// Character width.
+				io.writeShort ((short) widths[i]);	// Character width.
 				io.writeShort ((short) -bounds.top);	// Ascent.
 				io.writeShort ((short) bounds.bottom);	// Descent.
 				io.writeShort ((short) 0);	// Attributes.
