@@ -74,11 +74,13 @@ public class XShape {
 					ErrorCode.writeWithMinorOpcode (client, ErrorCode.Length,
 															arg, opcode, 0);
 				} else {
-					Util.writeReplyHeader (client, arg);
-					io.writeInt (0);	// Reply length.
-					io.writeShort ((short) 1);	// Shape major.
-					io.writeShort ((short) 1);	// Shape minor.
-					io.writePadBytes (20);
+					synchronized (io) {
+						Util.writeReplyHeader (client, arg);
+						io.writeInt (0);	// Reply length.
+						io.writeShort ((short) 1);	// Shape major.
+						io.writeShort ((short) 1);	// Shape minor.
+						io.writePadBytes (20);
+					}
 					io.flush ();
 				}
 				break;
@@ -224,20 +226,23 @@ public class XShape {
 					else
 						irect = w.getIRect ();
 
-					Util.writeReplyHeader (client, arg);
-					io.writeInt (0);
-					io.writeByte ((byte) (bs ? 1 : 0));	// Bounding shaped?
-					io.writeByte ((byte) (cs ? 1 : 0));	// Clip shaped?
-					io.writePadBytes (2);
-					io.writeShort ((short) orect.left);
-					io.writeShort ((short) orect.top);
-					io.writeShort ((short) orect.width ());
-					io.writeShort ((short) orect.height ());
-					io.writeShort ((short) irect.left);
-					io.writeShort ((short) irect.top);
-					io.writeShort ((short) irect.width ());
-					io.writeShort ((short) irect.height ());
-					io.writePadBytes (4);
+					synchronized (io) {
+						Util.writeReplyHeader (client, arg);
+						io.writeInt (0);
+						io.writeByte ((byte) (bs ? 1 : 0));	// Bounding shaped?
+						io.writeByte ((byte) (cs ? 1 : 0));	// Clip shaped?
+						io.writePadBytes (2);
+						io.writeShort ((short) orect.left);
+						io.writeShort ((short) orect.top);
+						io.writeShort ((short) orect.width ());
+						io.writeShort ((short) orect.height ());
+						io.writeShort ((short) irect.left);
+						io.writeShort ((short) irect.top);
+						io.writeShort ((short) irect.width ());
+						io.writeShort ((short) irect.height ());
+						io.writePadBytes (4);
+					}
+					io.flush ();
 				}
 				break;
 			case ShapeSelectInput:
@@ -269,9 +274,12 @@ public class XShape {
 					Window		w = (Window) xServer.getResource (wid);
 					boolean		enabled = w.shapeSelectInputEnabled (client);
 
-					Util.writeReplyHeader (client, (byte) (enabled ? 1 : 0));
-					io.writeInt (0);	// Reply length.
-					io.writePadBytes (24);
+					synchronized (io) {
+						Util.writeReplyHeader (client,
+												(byte) (enabled ? 1 : 0));
+						io.writeInt (0);	// Reply length.
+						io.writePadBytes (24);
+					}
 					io.flush ();
 				}
 				break;
@@ -293,16 +301,18 @@ public class XShape {
 					List<Rect>	rectangles = rectanglesFromRegion (r);
 					int		nr = rectangles.size ();
 
-					Util.writeReplyHeader (client, ordering);
-					io.writeInt (2 * nr);	// Reply length.
-					io.writeInt (nr);
-					io.writePadBytes (20);
-
-					for (Rect rect: rectangles) {
-						io.writeShort ((short) (rect.left - irect.left));
-						io.writeShort ((short) (rect.top - irect.top));
-						io.writeShort ((short) rect.width ());
-						io.writeShort ((short) rect.height ());
+					synchronized (io) {
+						Util.writeReplyHeader (client, ordering);
+						io.writeInt (2 * nr);	// Reply length.
+						io.writeInt (nr);
+						io.writePadBytes (20);
+	
+						for (Rect rect: rectangles) {
+							io.writeShort ((short) (rect.left - irect.left));
+							io.writeShort ((short) (rect.top - irect.top));
+							io.writeShort ((short) rect.width ());
+							io.writeShort ((short) rect.height ());
+						}
 					}
 
 					io.flush ();

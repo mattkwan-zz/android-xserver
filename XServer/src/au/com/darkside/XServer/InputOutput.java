@@ -361,7 +361,7 @@ public class InputOutput {
 	 *
 	 * @throws IOException
 	 */
-	public synchronized void
+	public void
 	flush () throws IOException {
 		_outStream.flush ();
 	}

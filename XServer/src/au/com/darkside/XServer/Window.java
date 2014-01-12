@@ -222,17 +222,21 @@ public class Window extends Resource {
 			try {
 				InputOutput io = client.getInputOutput ();
 
-				io.writeByte (XShape.EventBase);
-				io.writeByte ((byte) shapeKind);
-				io.writeShort ((short) (client.getSequenceNumber() & 0xffff));
-				io.writeInt (_id);
-				io.writeShort ((short) (rect.left - _irect.left));
-				io.writeShort ((short) (rect.top - _irect.left));
-				io.writeShort ((short) rect.width ());
-				io.writeShort ((short) rect.height ());
-				io.writeInt (1);
-				io.writeByte ((byte) (shaped ? 1 : 0));
-				io.writePadBytes (11);
+				synchronized (io) {
+					io.writeByte (XShape.EventBase);
+					io.writeByte ((byte) shapeKind);
+					io.writeShort ((short) (client.getSequenceNumber()
+																& 0xffff));
+					io.writeInt (_id);
+					io.writeShort ((short) (rect.left - _irect.left));
+					io.writeShort ((short) (rect.top - _irect.left));
+					io.writeShort ((short) rect.width ());
+					io.writeShort ((short) rect.height ());
+					io.writeInt (1);
+					io.writeByte ((byte) (shaped ? 1 : 0));
+					io.writePadBytes (11);
+				}
+				io.flush ();
 			} catch (IOException e) {
 			}
 		}

@@ -51,11 +51,13 @@ public class Extensions {
 					short	xgeMajor = (short) io.readShort ();
 					short	xgeMinor = (short) io.readShort ();
 
-					Util.writeReplyHeader (client, arg);
-					io.writeInt (0);	// Reply length.
-					io.writeShort (xgeMajor);
-					io.writeShort (xgeMinor);
-					io.writePadBytes (20);
+					synchronized (io) {
+						Util.writeReplyHeader (client, arg);
+						io.writeInt (0);	// Reply length.
+						io.writeShort (xgeMajor);
+						io.writeShort (xgeMinor);
+						io.writePadBytes (20);
+					}
 					io.flush ();
 				}
 				break;
@@ -64,10 +66,12 @@ public class Extensions {
 					io.readSkip (bytesRemaining);
 					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
 				} else {	// Assume arg == 0 (BigReqEnable).
-					Util.writeReplyHeader (client, arg);
-					io.writeInt (0);
-					io.writeInt (Integer.MAX_VALUE);
-					io.writePadBytes (20);
+					synchronized (io) {
+						Util.writeReplyHeader (client, arg);
+						io.writeInt (0);
+						io.writeInt (Integer.MAX_VALUE);
+						io.writePadBytes (20);
+					}
 					io.flush ();
 				}
 				break;
