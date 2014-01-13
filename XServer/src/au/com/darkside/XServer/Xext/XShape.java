@@ -531,15 +531,15 @@ public class XShape {
 		Bitmap	bitmap,
 		Rect	rect
 	) {
-		int		nzp = countNonZeroPixels (bitmap, rect);
+		int		nzp = checkNonZeroPixels (bitmap, rect);
 
-		if (nzp == 0)	// Empty.
+		if (nzp == 1)	// Empty.
 			return;
 
 		int		rw = rect.width ();
 		int		rh = rect.height ();
 
-		if (nzp == rw * rh) {	// All non-zero. We have a rectangle.
+		if (nzp == 2) {	// All non-zero. We have a rectangle.
 			region.op (rect, Region.Op.UNION);
 			return;
 		}
@@ -562,27 +562,35 @@ public class XShape {
 	}
 
 	/**
-	 * Count the number of non-zero pixels contained in the rectangle.
+	 * Check the number of non-zero pixels contained in the rectangle.
+	 * Return a bit mask indicating whether all the pixels are non-zero,
+	 * none of them, or a mix.
 	 *
 	 * @param bitmap	The bitmap containing the pixels.
 	 * @param rect	The rectangle.
-	 * @return	The number of non-zero pixels.
+	 * @return	1 = no pixels set; 2 = all pixels set; 0 = some pixels set
 	 */
 	private static int
-	countNonZeroPixels (
+	checkNonZeroPixels (
 		Bitmap	bitmap,
 		Rect	rect
 	) {
-		int[]	pixels = new int[rect.width () * rect.height ()];
-		int		sum = 0;
+		final int	width = rect.width ();
+		final int	height = rect.height ();
+		int[]		pixels = new int[width];
+		int			mask = 3;
 
-		bitmap.getPixels (pixels, 0, rect.width (), rect.left, rect.top,
-											rect.width (), rect.height ());
+		for (int i = 0; i < height; i++) {
+			bitmap.getPixels (pixels, 0, width, rect.left, rect.top + i,
+																width, 1);
 
-		for (int p: pixels)
-			if (p != 0xff000000)
-				sum++;
+			for (int p: pixels) {
+				mask &= (p != 0xff000000) ? 2 : 1;
+				if (mask == 0)
+					return 0;
+			}
+		}
 
-		return sum;
+		return mask;
 	}
 }
