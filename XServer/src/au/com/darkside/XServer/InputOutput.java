@@ -17,6 +17,10 @@ public class InputOutput {
 	private final BufferedInputStream	_inStream;
 	private final BufferedOutputStream	_outStream;
 	private boolean						_msb = true;
+	private static final byte[]		PadBytes = new byte[] {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	};
 
 	/**
 	 * Constructor.
@@ -27,9 +31,9 @@ public class InputOutput {
 	public InputOutput (
 		Socket		socket
 	) throws IOException {
-		_inStream = new BufferedInputStream (socket.getInputStream (), 1024);
+		_inStream = new BufferedInputStream (socket.getInputStream (), 16384);
 		_outStream = new BufferedOutputStream (socket.getOutputStream (),
-																		1024);
+																	16384);
 	}
 
 	/**
@@ -235,8 +239,8 @@ public class InputOutput {
 	readSkip (
 		int		n
 	) throws IOException {
-		for (int i = 0; i < n; i++)
-			readByte ();
+		while (n > 0)
+			n -= _inStream.skip (n);
 	}
 
 	/**
@@ -345,15 +349,22 @@ public class InputOutput {
 	/**
 	 * Write padding byte 0 to the output stream multiple times.
 	 *
-	 * @param n		The number of times to write the byte.
+	 * @param n		The number of bytes to write.
 	 * @throws IOException
 	 */
 	public void
 	writePadBytes (
 		int		n
 	) throws IOException {
-		for (int i = 0; i < n; i++)
-			writeByte ((byte) 0);
+		final int	max = PadBytes.length;
+
+		while (n > max) {
+			_outStream.write (PadBytes, 0, max);
+			n -= max;
+		}
+
+		if (n > 0)
+			_outStream.write (PadBytes, 0, n);
 	}
 
 	/**
