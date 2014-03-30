@@ -193,7 +193,14 @@ public class Pixmap extends Resource {
 		else
 			screen = ((Window) drawable).getScreen ();
 
-		p = new Pixmap (id, xServer, client, screen, width, height, depth);
+		try {
+			p = new Pixmap (id, xServer, client, screen, width, height, depth);
+		} catch (OutOfMemoryError e) {
+			ErrorCode.write (client, ErrorCode.Alloc,
+												RequestCode.CreatePixmap, 0);
+			return;
+		}
+
 		xServer.addResource (p);
 		client.addResource (p);
 	}

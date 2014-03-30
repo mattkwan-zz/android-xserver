@@ -292,12 +292,19 @@ public class Drawable {
 		int				planeMask = io.readInt ();	// Plane mask.
 		int				wh = width * height;
 		int				n, pad;
-		int[]			pixels = new int[wh];
+		int[]			pixels;
 		byte[]			bytes = null;
 
 		if (x < 0 || y < 0 || x + width > _bitmap.getWidth ()
 									|| y + height > _bitmap.getHeight ()) {
 			ErrorCode.write (client, ErrorCode.Match, RequestCode.GetImage, 0);
+			return;
+		}
+
+		try {
+			pixels = new int[wh];
+		} catch (OutOfMemoryError e) {
+			ErrorCode.write (client, ErrorCode.Alloc, RequestCode.GetImage, 0);
 			return;
 		}
 
@@ -312,7 +319,14 @@ public class Drawable {
 			int			offset = 0;
 
 			n = planes * height * (width + rightPad) / 8;
-			bytes = new byte[n];
+
+			try {
+				bytes = new byte[n];
+			} catch (OutOfMemoryError e) {
+				ErrorCode.write (client, ErrorCode.Alloc,
+													RequestCode.GetImage, 0);
+				return;
+			}
 
 			for (int plane = 31; plane >= 0; plane--) {
 				int		bit = 1 << plane;
