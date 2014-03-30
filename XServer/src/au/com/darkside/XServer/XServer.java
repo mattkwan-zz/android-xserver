@@ -182,13 +182,9 @@ public class XServer {
 			_acceptThread = null;
 		}
 
-		synchronized (this) {
-			for (Client c: _clients)
-				c.cancel ();
-	
-			_clients.clear ();
-			_grabClient = null;
-		}
+		_grabClient = null;
+		while (!_clients.isEmpty ())
+			_clients.get(0).cancel ();
 	}
 
 	/**
