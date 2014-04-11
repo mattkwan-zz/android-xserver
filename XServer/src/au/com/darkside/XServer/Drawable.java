@@ -928,7 +928,15 @@ public class Drawable {
 			return false;
 		}
 
-		int[]		colors = new int[width * height];
+		int[]		colors;
+
+		try {
+			colors = new int[width * height];
+		} catch (OutOfMemoryError e) {
+			ErrorCode.write (client, ErrorCode.Alloc, RequestCode.PutImage,
+																		0);
+			return false;
+		}
 
 		if (format == BITMAP_FORMAT) {
 			int			fg = gc.getForegroundColor ();
