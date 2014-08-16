@@ -100,7 +100,7 @@ public class XServer {
 		_extensions = new Hashtable<String, Extension>();
 		_extensions.put ("Generic Event Extension",
 						new Extension (Extensions.XGE, (byte) 0, (byte) 0));
-		_extensions.put ("XTEXT",
+		_extensions.put ("XTEST",
 				new Extension (Extensions.XTEST, (byte) 0, (byte) 0));
 		_extensions.put ("BIG-REQUESTS",
 				new Extension (Extensions.BigRequests, (byte) 0, (byte) 0));
