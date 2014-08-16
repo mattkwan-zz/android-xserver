@@ -29,6 +29,7 @@ public class Client extends Thread {
 	private boolean					_closeConnection = false;
 	private boolean					_isConnected = true;
 	private int						_closeDownMode = Destroy;
+	private boolean					_imperviousToServerGrabs = false;
 
 	/**
 	 * Constructor.
@@ -91,6 +92,28 @@ public class Client extends Thread {
 	public boolean
 	isConnected () {
 		return _isConnected;
+	}
+
+	/**
+	 * Return whether the client is impervious to server grabs.
+	 *
+	 * @return	True if impervious.
+	 */
+	public boolean
+	getImperviousToServerGrabs () {
+		return _imperviousToServerGrabs;
+	}
+
+	/**
+	 * Set whether the client is impervious to server grabs.
+	 *
+	 * @param impervious	If true, the client is impervious.
+	 */
+	public void
+	setImperviousToServerGrabs (
+		boolean	impervious
+	) {
+		_imperviousToServerGrabs = impervious;
 	}
 
 	/**

@@ -125,6 +125,16 @@ public class ScreenView extends View {
 	}
 
 	/**
+	 * Return the current cursor.
+	 *
+	 * @return	The current cursor.
+	 */
+	public Cursor
+	getCurrentCursor () {
+		return _currentCursor;
+	}
+
+	/**
 	 * Return the current pointer X coordinate.
 	 *
 	 * @return	The current pointer X coordinate.
@@ -475,7 +485,7 @@ public class ScreenView extends View {
 	 * @param button	The button that was pressed/released.
 	 * @param pressed	True if the button was pressed.
 	 */
-	private void
+	public void
 	updatePointerButtons (
 		int			button,
 		boolean		pressed
@@ -601,7 +611,7 @@ public class ScreenView extends View {
 	 * @param keycode	Keycode of the key.
 	 * @param pressed	True if pressed, false if released.
 	 */
-	private void
+	public void
 	notifyKeyPressedReleased (
 		int			keycode,
 		boolean		pressed

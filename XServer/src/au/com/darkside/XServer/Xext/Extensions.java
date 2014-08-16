@@ -19,6 +19,7 @@ import au.com.darkside.XServer.XServer;
  */
 public class Extensions {
 	public static final byte	XGE = -128;
+	public static final byte	XTEST = -127;
 	public static final byte	BigRequests = -126;
 	public static final byte	Shape = -125;
 
@@ -60,6 +61,10 @@ public class Extensions {
 					}
 					io.flush ();
 				}
+				break;
+			case XTEST:
+				XTest.processRequest (xServer, client, opcode, arg,
+															bytesRemaining);
 				break;
 			case BigRequests:
 				if (bytesRemaining != 0) {
