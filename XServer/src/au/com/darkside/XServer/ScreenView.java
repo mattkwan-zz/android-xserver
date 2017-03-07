@@ -1399,7 +1399,7 @@ public class ScreenView extends View {
 
 		if (time < _grabKeyboardTime || time > now) {
 			status = 2;	// Invalid time.
-		} else if (_grabKeyboardWindow != null) {
+		} else if ((_grabKeyboardWindow != null) && (_grabKeyboardClient != client)) {
 			status = 1;	// Already grabbed.
 		} else {
 			_grabKeyboardClient = client;
