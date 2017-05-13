@@ -4,6 +4,8 @@
 package au.com.darkside.XServer;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Vector;
 
 import android.content.Context;
@@ -11,6 +13,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -22,6 +25,124 @@ import android.view.View;
  * It also implements the screen's root window.
  */
 public class ScreenView extends View {
+
+	private interface PendingEvent {
+
+		public void run();
+	}
+
+	private interface PendingPointerEvent extends PendingEvent {
+	}
+
+	private class PendingGrabButtonNotify implements PendingPointerEvent {
+
+		private Window mWindow;
+		private boolean mPressed;
+		private int mMotionX;
+		private int mMotionY;
+		private int mButton;
+		private int mGrabEventMask;
+		private Client mGrabPointerClient;
+		private boolean mGrabPointerOwnerEvents;
+
+		public PendingGrabButtonNotify(Window w, boolean pressed, int motionX,
+									   int motionY, int button,
+									   int grabEventMask,
+									   Client grabPointerClient,
+									   boolean grabPointerOwnerEvents) {
+			mWindow = w;
+			mPressed = pressed;
+			mMotionX = motionX;
+			mMotionY = motionY;
+			mButton = button;
+			mGrabEventMask = grabEventMask;
+			mGrabPointerClient = grabPointerClient;
+			mGrabPointerOwnerEvents = grabPointerOwnerEvents;
+		}
+
+		public void run() {
+			callGrabButtonNotify(mWindow, mPressed, mMotionX, mMotionY, mButton,
+								 mGrabEventMask, mGrabPointerClient,
+								 mGrabPointerOwnerEvents);
+		}
+	}
+
+	private class PendingGrabMotionNotify implements PendingPointerEvent {
+
+		private Window mWindow;
+		private int mX;
+		private int mY;
+		private int mButtons;
+		private int mGrabEventMask;
+		private Client mGrabPointerClient;
+		private boolean mGrabPointerOwnerEvents;
+
+		public PendingGrabMotionNotify(Window w, int x, int y, int buttons,
+									   int grabEventMask,
+									   Client grabPointerClient,
+									   boolean grabPointerOwnerEvents) {
+			mWindow = w;
+			mX = x;
+			mY = y;
+			mButtons = buttons;
+			mGrabEventMask = grabEventMask;
+			mGrabPointerClient = grabPointerClient;
+			mGrabPointerOwnerEvents = grabPointerOwnerEvents;
+		}
+
+		public void run() {
+			callGrabMotionNotify(mWindow, mX, mY, mButtons, mGrabEventMask,
+								 mGrabPointerClient, mGrabPointerOwnerEvents);
+		}
+	}
+
+	private interface PendingKeyboardEvent extends PendingEvent {
+	}
+
+	private class PendingGrabKeyNotify implements PendingKeyboardEvent {
+
+		private Window mWindow;
+		private boolean mPressed;
+		private int mMotionX;
+		private int mMotionY;
+		private int mKeycode;
+		private Client mGrabKeyboardClient;
+		private boolean mGrabKeyboardOwnerEvents;
+
+		public PendingGrabKeyNotify(Window w, boolean pressed, int motionX,
+									int motionY, int keycode,
+									Client grabKeyboardClient,
+									boolean grabKeyboardOwnerEvents) {
+			mWindow = w;
+			mPressed = pressed;
+			mMotionX = motionX;
+			mMotionY = motionY;
+			mKeycode = keycode;
+			mGrabKeyboardClient = grabKeyboardClient;
+			mGrabKeyboardOwnerEvents = grabKeyboardOwnerEvents;
+		}
+
+		public void run() {
+			callGrabKeyNotify(mWindow, mPressed, mMotionX, mMotionY, mKeycode,
+							  mGrabKeyboardClient, mGrabKeyboardOwnerEvents);
+		}
+	}
+
+	private static class PendingEventQueue<T extends PendingEvent> {
+
+		private Queue<T> mQueue = new LinkedList<T>();
+
+		public void add(T event) {
+			if (mQueue.offer(event)) {
+				return;
+			}
+		}
+
+		public T next() {
+			return mQueue.poll();
+		}
+	}
+
 	private final XServer			_xServer;
 	private final int				_rootId;
 	private Window					_rootWindow = null;
@@ -49,11 +170,13 @@ public class ScreenView extends View {
 	private boolean		_grabPointerSynchronous = false;
 	private boolean		_grabPointerPassive = false;
 	private boolean		_grabPointerAutomatic = false;
+    private boolean		_grabPointerFreezeNextEvent = false;
 	private Client		_grabKeyboardClient = null;
 	private Window		_grabKeyboardWindow = null;
 	private int			_grabKeyboardTime = 0;
 	private boolean		_grabKeyboardOwnerEvents = false;
 	private boolean		_grabKeyboardSynchronous = false;
+	private boolean		_grabKeyboardFreezeNextEvent = false;
 	private Cursor		_grabCursor = null;
 	private Window		_grabConfineWindow = null;
 	private int			_grabEventMask = 0;
@@ -62,6 +185,9 @@ public class ScreenView extends View {
 	private Window		_focusWindow = null;
 	private byte		_focusRevertTo = 0;	// 0=None, 1=Root, 2=Parent.
 	private int			_focusLastChangeTime = 0;
+
+	private PendingEventQueue<PendingPointerEvent> mPendingPointerEvents;
+	private PendingEventQueue<PendingKeyboardEvent> mPendingKeyboardEvents;
 
 	/**
 	 * Constructor.
@@ -87,6 +213,9 @@ public class ScreenView extends View {
 		_installedColormaps = new Vector<Colormap>();
 		_pixelsPerMillimeter = pixelsPerMillimeter;
 		_paint = new Paint ();
+
+		mPendingPointerEvents = new PendingEventQueue<PendingPointerEvent>();
+		mPendingKeyboardEvents = new PendingEventQueue<PendingKeyboardEvent>();
 	}
 
 	/**
@@ -458,9 +587,18 @@ public class ScreenView extends View {
 			if (_grabPointerWindow == null) {
 				w.motionNotify (x, y, _buttons & 0xff00, null);
 			} else if (!_grabPointerSynchronous) {
-				w.grabMotionNotify (x, y, _buttons & 0xff00, _grabEventMask,
-								_grabPointerClient, _grabPointerOwnerEvents);
-			}	// Else need to queue the events for later.
+                callGrabMotionNotify(w, x, y, _buttons, _grabEventMask,
+                                     _grabPointerClient,
+									 _grabPointerOwnerEvents);
+            }
+            else {
+                PendingPointerEvent e;
+                e = new PendingGrabMotionNotify(w, x, y, _buttons,
+												_grabEventMask,
+												_grabPointerClient,
+												_grabPointerOwnerEvents);
+                mPendingPointerEvents.add(e);
+            }
 
 			_motionX = x;
 			_motionY = y;
@@ -538,6 +676,7 @@ public class ScreenView extends View {
                 int timestamp = _xServer.getTimestamp();
 				Window		ew = w.buttonNotify (pressed, _motionX, _motionY,
 												 button, timestamp, null);
+				reflectPointerFreezeNextEvent();
 				Client		c = null;
 
 				if (pressed && ew != null) {
@@ -569,10 +708,20 @@ public class ScreenView extends View {
 			}
 		} else {
 			if (!_grabPointerSynchronous) {
-				_grabPointerWindow.grabButtonNotify (pressed, _motionX,
-						_motionY, button, _grabEventMask, _grabPointerClient,
+				callGrabButtonNotify(_grabPointerWindow, pressed, _motionX,
+									 _motionY, button, _grabEventMask,
+									 _grabPointerClient,
+									 _grabPointerOwnerEvents);
+			}
+			else {
+				PendingPointerEvent e;
+				e = new PendingGrabButtonNotify(_grabPointerWindow, pressed,
+												_motionX, _motionY, button,
+												_grabEventMask,
+												_grabPointerClient,
 												_grabPointerOwnerEvents);
-			}	// Else need to queue the events for later.
+				mPendingPointerEvents.add(e);
+			}
 
 			if (_grabPointerAutomatic && !pressed
 											&& (_buttons & 0xff00) == 0) {
@@ -655,10 +804,19 @@ public class ScreenView extends View {
 			else
 				_focusWindow.keyNotify (pressed, _motionX, _motionY, keycode,
 																	null);
+			reflectKeyboardFreezeNextEvent();
 		} else if (!_grabKeyboardSynchronous){
-			_grabKeyboardWindow.grabKeyNotify (pressed, _motionX, _motionY,
-					keycode, _grabKeyboardClient, _grabKeyboardOwnerEvents);
-		}	// Else need to queue keyboard events.
+            callGrabKeyNotify(_grabKeyboardWindow, pressed, _motionX, _motionY,
+							  keycode, _grabKeyboardClient,
+							  _grabKeyboardOwnerEvents);
+		}
+		else {
+            PendingKeyboardEvent e;
+            e = new PendingGrabKeyNotify(_grabKeyboardWindow, pressed, _motionX,
+										 _motionY, keycode, _grabKeyboardClient,
+                    					 _grabKeyboardOwnerEvents);
+            mPendingKeyboardEvents.add(e);
+        }
 
 		kb.updateKeymap (keycode, pressed);
 
@@ -1059,21 +1217,7 @@ public class ScreenView extends View {
 				}
 				break;
 			case RequestCode.AllowEvents:
-				if (bytesRemaining != 4) {
-					io.readSkip (bytesRemaining);
-					ErrorCode.write (client, ErrorCode.Length, opcode, 0);
-				} else {
-					int			time = io.readInt ();	// Time.
-					int			now = _xServer.getTimestamp ();
-
-					if (time == 0)
-						time = now;
-
-					if (time <= now && time >= _grabPointerTime
-											&& time >= _grabKeyboardTime) {
-						// Release queued events.
-					}
-				}
+                processAllowEvents(client, opcode, io, bytesRemaining, arg);
 				break;
 			case RequestCode.SetInputFocus:
 				if (bytesRemaining != 8) {
@@ -1107,6 +1251,65 @@ public class ScreenView extends View {
 				}
 				break;
 		}
+	}
+
+    private void
+    processAllowEvents(Client client, byte opcode, InputOutput io,
+                       int bytesRemaining, byte mode) throws IOException {
+        if (bytesRemaining != 4) {
+            io.readSkip(bytesRemaining);
+            ErrorCode.write(client, ErrorCode.Length, opcode, 0);
+            return;
+        }
+
+        int t = io.readInt();
+        int now = _xServer.getTimestamp();
+        int time = t == 0 ? now : t;
+        if ((now < time) || (time < _grabPointerTime) || (time < _grabKeyboardTime)) {
+            return;
+        }
+
+        String message;
+        switch (mode) {
+            case RequestCode.AllowEventsMode.AsyncPointer:
+				flushPendingPointerEvents();
+				_grabPointerSynchronous = false;
+				_grabPointerFreezeNextEvent = false;
+                break;
+            case RequestCode.AllowEventsMode.SyncPointer:
+				flushPendingPointerEvents();
+				_grabPointerSynchronous = false;
+				_grabPointerFreezeNextEvent = true;
+                break;
+            case RequestCode.AllowEventsMode.AsyncKeyboard:
+                flushPendingKeyboardEvents();
+				_grabKeyboardSynchronous = false;
+				_grabKeyboardFreezeNextEvent = false;
+                break;
+            case RequestCode.AllowEventsMode.SyncKeyboard:
+				flushPendingKeyboardEvents();
+				_grabKeyboardSynchronous = false;
+				_grabKeyboardFreezeNextEvent = true;
+                break;
+			case RequestCode.AllowEventsMode.AsyncBoth:
+			case RequestCode.AllowEventsMode.SyncBoth:
+            case RequestCode.AllowEventsMode.ReplayPointer:
+            case RequestCode.AllowEventsMode.ReplayKeyboard:
+                String fmt = "unsupported AllowEvents mode: %d (%s)";
+                String name = RequestCode.AllowEventsMode.toString(mode);
+				message = String.format(fmt, mode, name);
+				reportError(client, ErrorCode.Implementation, opcode, message);
+                break;
+            default:
+                message = String.format("unknown AllowEvents mode: %d", mode);
+				reportError(client, ErrorCode.Value, opcode, message);
+                break;
+        }
+	}
+
+	private void
+	reportError(Client client, byte error, byte opcode, String message) throws IOException {
+		ErrorCode.write(client, error, opcode, 0);
 	}
 
 	/**
@@ -1512,5 +1715,55 @@ public class ScreenView extends View {
 		_focusWindow = w;
 		_focusRevertTo = revertTo;
 		_focusLastChangeTime = time;
+	}
+
+	private void reflectPointerFreezeNextEvent() {
+		_grabPointerSynchronous = _grabPointerFreezeNextEvent;
+	}
+
+	private void reflectKeyboardFreezeNextEvent() {
+		_grabKeyboardSynchronous = _grabKeyboardFreezeNextEvent;
+	}
+
+	private void callGrabButtonNotify(Window w, boolean pressed, int motionX,
+									  int motionY, int button,
+									  int grabEventMask,
+									  Client grabPointerClient,
+									  boolean grabPointerOwnerEvents) {
+		w.grabButtonNotify(pressed, motionX, motionY, button, grabEventMask,
+						   grabPointerClient, grabPointerOwnerEvents);
+		reflectPointerFreezeNextEvent();
+	}
+
+	private void callGrabMotionNotify(Window w, int x, int y, int buttons,
+									  int grabEventMask,
+									  Client grabPointerClient,
+									  boolean grabPointerOwnerEvents) {
+		w.grabMotionNotify(x, y, buttons & 0xff00, grabEventMask,
+						   grabPointerClient, grabPointerOwnerEvents);
+	}
+
+	private void callGrabKeyNotify(Window w, boolean pressed, int motionX,
+								   int motionY, int keycode,
+								   Client grabKeyboardClient,
+								   boolean grabKeyboardOwnerEvents) {
+		w.grabKeyNotify(pressed, motionX, motionY, keycode, grabKeyboardClient,
+						grabKeyboardOwnerEvents);
+		reflectKeyboardFreezeNextEvent();
+	}
+
+	private void flushPendingPointerEvents() {
+		flushPendingEvents(mPendingPointerEvents);
+	}
+
+	private void flushPendingKeyboardEvents() {
+		flushPendingEvents(mPendingKeyboardEvents);
+	}
+
+	private void flushPendingEvents(PendingEventQueue q) {
+		PendingEvent e;
+		while ((e = q.next()) != null) {
+			e.run();
+		}
 	}
 }
