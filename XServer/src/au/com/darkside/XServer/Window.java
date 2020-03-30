@@ -1555,6 +1555,7 @@ public class Window extends Resource {
 		int			x,
 		int			y,
 		int			button,
+		int			timestamp,
 		Client		grabClient
 	) {
 		Window		evw = this;
@@ -1589,13 +1590,13 @@ public class Window extends Resource {
 			try {
 				if (pressed)
 					EventCode.sendButtonPress (c,
-						_xServer.getTimestamp (), button,
+						timestamp, button,
 						_screen.getRootWindow (), evw, child, x, y,
 						x - evw._irect.left, y - evw._irect.top,
 						_screen.getButtons ());
 				else
 					EventCode.sendButtonRelease (c,
-						_xServer.getTimestamp (), button,
+						timestamp, button,
 						_screen.getRootWindow (), evw, child, x, y,
 						x - evw._irect.left, y - evw._irect.top,
 						_screen.getButtons ());
@@ -1633,7 +1634,8 @@ public class Window extends Resource {
 		if (ownerEvents) {
 			Window		w = _screen.getRootWindow().windowAtPoint (x, y);
 
-			if (w.buttonNotify (pressed, x, y, button, grabClient) != null)
+			if (w.buttonNotify (pressed, x, y, button, _xServer.getTimestamp(),
+								grabClient) != null)
 				return;
 		}
 
