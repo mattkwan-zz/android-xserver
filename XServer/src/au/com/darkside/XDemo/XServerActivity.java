@@ -49,6 +49,12 @@ public class XServerActivity extends Activity {
 	private static final int	MENU_REMOTE_LOGIN = 4;
 	private static final int	ACTIVITY_ACCESS_CONTROL = 1;
 
+	private static final int DEFAULT_PORT = 6000;
+	private static final String PORT_DESC_PRE = "Listening on port ";
+
+	private int _port = DEFAULT_PORT;
+	private String _portDescription = PORT_DESC_PRE + DEFAULT_PORT;
+
 	/**
 	 * Called when the activity is first created.
 	 *
@@ -62,7 +68,7 @@ public class XServerActivity extends Activity {
 		super.onCreate (savedInstanceState);
 		setContentView (R.layout.main);
 
-		int		port = 6000;
+		int		port = DEFAULT_PORT;
 		Intent	intent = getIntent ();
 
 			// If it was launched from an intent, get the port number.
@@ -73,13 +79,17 @@ public class XServerActivity extends Activity {
 				int		p = uri.getPort ();
 
 				if (p >= 0) {
-					if (p < 10)
-						port = p + 6000;
+					if (p < 10) // Using ports 0-9 is bad juju.
+						port = p + DEFAULT_PORT;
 					else
 						port = p;
 				}
 			}
 		}
+    
+    _port = port;
+    if (_port != DEFAULT_PORT)
+      _portDescription = PORT_DESC_PRE + _port;
 
 		_xServer = new XServer (this, port, null);
 		setAccessControl ();
@@ -199,7 +209,7 @@ public class XServerActivity extends Activity {
 	 */
 	private String
 	getAddressInfo () {
-		String		s = "Listening on port 6000";
+		String		s = _portDescription;
 
 		try {
 			for (Enumeration<NetworkInterface> nie =
