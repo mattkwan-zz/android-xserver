@@ -368,13 +368,20 @@ public class InputOutput {
 	}
 
 	/**
-	 * Flush all unwritten output bytes.
-	 *
+	 * Flush all unwritten output bytes in own background thread.
 	 * @throws IOException
 	 */
 	public void
 	flush () throws IOException {
-		_outStream.flush ();
+        	new Thread(new Runnable() { 
+           		 public void run() {        
+				try{
+           			 	_outStream.flush ();
+				}
+				catch(IOException e){
+				}
+           		 }
+        	}).start();
 	}
 
 	/**
