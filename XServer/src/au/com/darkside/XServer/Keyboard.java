@@ -60,7 +60,7 @@ public class Keyboard {
 		int					idx = 0;
 		int[]				map = new int[256 * kpk];
 		KeyCharacterMap		kcm = KeyCharacterMap.load (
-										KeyCharacterMap.BUILT_IN_KEYBOARD);
+										KeyCharacterMap.ALPHA);
 
 		for (int i = 0; i < 256; i++) {
 			int			c1 = kcm.get (i, 0);
