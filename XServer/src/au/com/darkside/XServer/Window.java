@@ -534,7 +534,7 @@ public class Window extends Resource {
 
 			if (!_hardwareAccelerated) {
 				try {
-					canvas.clipRegion (_boundingShapeRegion);
+					canvas.clipRect (_boundingShapeRegion.getBounds());
 				} catch (UnsupportedOperationException e) {
 					_hardwareAccelerated = true;
 				}
@@ -563,7 +563,7 @@ public class Window extends Resource {
 
 		if (_clipShapeRegion != null && !_hardwareAccelerated) {
 			try {
-				clipIntersect = canvas.clipRegion (_clipShapeRegion);
+				clipIntersect = canvas.clipRect (_clipShapeRegion.getBounds());
 			} catch (UnsupportedOperationException e) {
 				_hardwareAccelerated = true;
 				clipIntersect = canvas.clipRect (_irect);
