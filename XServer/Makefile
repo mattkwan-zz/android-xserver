@@ -37,7 +37,7 @@ android:
 	mkdir -p $(GENDIR_ANDROID)
 	mkdir -p $(CLASSDIR_ANDROID)
 	$(AAPT) package -f -m -J $(GENDIR_ANDROID) -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_SRC)/res -I $(ANDROID_CP)
-	$(JAVAC) -classpath $(ANDROID_CP) -Xlint:deprecation -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
+	$(JAVAC) -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
 	$(AAPT) package -f -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
 	cd $(GENDIR_ANDROID) && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned classes.dex
