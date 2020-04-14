@@ -1,3 +1,4 @@
+# Author: Daniel Giritzer (giri@nwrk.biz)
 ## Workdir
 WORKDIR=$(shell pwd)
 PROJNAME=au.com.darkside.XDemo.XServerActivity
