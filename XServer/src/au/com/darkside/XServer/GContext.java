@@ -7,8 +7,9 @@ import java.io.IOException;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.Path;
-import android.graphics.PixelXorXfermode;
 import android.graphics.Rect;
 import android.graphics.Region;
 
@@ -454,7 +455,7 @@ public class GContext extends Resource {
 		_paint.setStrokeWidth (_attributes[AttrLineWidth]);
 
 		if (_attributes[AttrFunction] == 6)		// XOR.
-			_paint.setXfermode (new PixelXorXfermode (0xffffffff));
+			_paint.setXfermode (new PorterDuffXfermode(Mode.XOR));
 		else
 			_paint.setXfermode (null);
 
