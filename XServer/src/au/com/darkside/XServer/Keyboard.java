@@ -419,7 +419,7 @@ public class Keyboard {
 		}
 
 		_audioTrack = new AudioTrack (AudioManager.STREAM_SYSTEM,
-					SAMPLE_RATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
+					SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO,
 	    			AudioFormat.ENCODING_PCM_16BIT, 2 * _bellBuffer.length,
 	    			AudioTrack.MODE_STATIC);
 
