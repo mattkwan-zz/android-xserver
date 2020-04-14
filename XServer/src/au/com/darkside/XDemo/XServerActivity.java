@@ -24,6 +24,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.inputmethod.InputMethodManager;
@@ -102,7 +104,7 @@ public class XServerActivity extends Activity {
 		PowerManager	pm;
 
 		pm = (PowerManager) getSystemService (Context.POWER_SERVICE);
-		_wakeLock = pm.newWakeLock (PowerManager.SCREEN_DIM_WAKE_LOCK,
+		_wakeLock = pm.newWakeLock (WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
 																"XServer");
 	}
 
