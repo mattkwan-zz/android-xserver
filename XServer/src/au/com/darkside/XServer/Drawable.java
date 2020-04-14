@@ -551,8 +551,9 @@ public class Drawable {
 		for (int i = 0; i < pixels.length; i++)
 			pixels[i] = ((pixels[i] & bitPlane) != 0) ? fg : bg;
 
-		dst._canvas.drawBitmap (pixels, 0, width, dx, dy, width, height,
-												true, gc.getPaint ());
+		Bitmap pixelsBmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+		pixelsBmp.setPixels(pixels, 0, width, dx, dy, width, height);
+		dst._canvas.drawBitmap (pixelsBmp, dx, dy, gc.getPaint ());
 
 		if (dr.getType () == Resource.WINDOW)
 			((Window) dr).invalidate (dx, dy, width, height);
@@ -1028,8 +1029,9 @@ public class Drawable {
 		}
 
 		io.readSkip (pad);
-		_canvas.drawBitmap (colors, 0, width, dstX, dstY, width, height,
-													true, gc.getPaint ());
+		Bitmap colorsBmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+		colorsBmp.setPixels(colors, 0, width, (int)dstX, (int)dstY, width, height);
+		_canvas.drawBitmap (colorsBmp, dstX, dstY, gc.getPaint ());
 
 		return true;
 	}
