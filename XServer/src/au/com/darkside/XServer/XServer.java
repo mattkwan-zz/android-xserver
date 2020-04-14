@@ -196,15 +196,11 @@ public class XServer {
 	 */
 	private void
 	reset () {
-		Iterator<Hashtable.Entry<Integer, Resource>>
-									it = _resources.entrySet().iterator ();
-
-			// Remove all client-allocated resources.
+		Iterator<Integer> it = _resources.keySet().iterator();
 		while (it.hasNext ()) {
-			Hashtable.Entry<Integer, Resource>	entry = it.next ();
-
-			if (entry.getKey () > _clientIdStep)
-				it.remove ();
+			Integer entry = it.next();
+			if (entry > _clientIdStep)
+				_resources.remove(entry);
 		}
 
 		_screen.removeNonDefaultColormaps ();
