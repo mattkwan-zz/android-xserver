@@ -33,9 +33,7 @@ public class AccessControlEditor extends ListActivity
 											implements OnItemClickListener {
 	private ArrayAdapter<String>	_adapter;
 	private EditText				_hostField;
-	private int						_deletePosition = -1;
-
-	private static final int	DIALOG_DELETE_HOST = 1;
+	private int					_deletePosition = -1;
 
 	/**
 	 * Called when the activity is first created.
@@ -98,38 +96,32 @@ public class AccessControlEditor extends ListActivity
 		long			id
     ) {
 		_deletePosition = position;
-		showDialog (DIALOG_DELETE_HOST);
+		getDeleteHostDialog().show();
 	}
 
 	/**
-	 * Callback for creating a dialog.
+	 * @return The Dialog to delete a host.
 	 */
-	@Override
-	protected Dialog
-	onCreateDialog (
-		int			id
-    ) {
-		if (id == DIALOG_DELETE_HOST) {
-			AlertDialog.Builder		builder = new AlertDialog.Builder (this);
-	
-			builder.setMessage ("Delete the IP address?")
-				.setPositiveButton ("OK", 
-									new DialogInterface.OnClickListener () {
-					public void onClick (DialogInterface dialog, int id) {
-			        	deleteSelectedHost ();
-					}
-				})
-				.setNegativeButton ("Cancel",
-									new DialogInterface.OnClickListener () {
-					public void onClick (DialogInterface dialog, int id) {
-						dialog.cancel ();
-					}
-				});
-		  
-			return builder.create ();
-		}
+	private Dialog
+	getDeleteHostDialog () 
+	{
+		AlertDialog.Builder		builder = new AlertDialog.Builder (this);
 
-		return null;
+		builder.setMessage ("Delete the IP address?")
+			.setPositiveButton ("OK", 
+								new DialogInterface.OnClickListener () {
+				public void onClick (DialogInterface dialog, int id) {
+			        deleteSelectedHost ();
+				}
+			})
+			.setNegativeButton ("Cancel",
+								new DialogInterface.OnClickListener () {
+				public void onClick (DialogInterface dialog, int id) {
+					dialog.cancel ();
+				}
+			});
+		 
+		return builder.create ();
 	}
 
 	/**

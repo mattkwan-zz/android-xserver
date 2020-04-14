@@ -189,7 +189,7 @@ public class XServerActivity extends Activity {
 				imm.toggleSoftInput (InputMethodManager.SHOW_FORCED, 0);
 				return true;
 			case MENU_IP_ADDRESS:
-				showDialog (MENU_IP_ADDRESS);
+				getMenuIpAdressDialog().show();
 				return true;
 			case MENU_ACCESS_CONTROL:
 				launchAccessControlEditor ();
@@ -235,21 +235,12 @@ public class XServerActivity extends Activity {
 		return s;
 	}
 
-    /**
-     * This is called when a dialog is requested.
-     *
-     * @param id	Identifies the dialog to create.
-     */
-	@Override
-	protected Dialog
-	onCreateDialog (
-		int			id
-	) {
-		if (id != MENU_IP_ADDRESS)
-			return null;
-
+	/**
+	 * @return The Dialog to enter the server IP Adress.
+	 */
+	private Dialog
+	getMenuIpAdressDialog(){
 		AlertDialog.Builder		builder = new AlertDialog.Builder (this);
-
 		builder.setTitle ("IP address")
 			.setMessage (getAddressInfo ())
 			.setPositiveButton ("OK", new DialogInterface.OnClickListener () {
@@ -257,9 +248,9 @@ public class XServerActivity extends Activity {
 					dialog.cancel ();
 				}
 			});
- 
 		return builder.create ();
-    }
+	}
+
 
 	/**
 	 * Load the access control hosts from persistent storage.
