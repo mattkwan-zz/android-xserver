@@ -10,6 +10,11 @@ Quick Start
 
 To display programs within the X-Server app you need to set the DISPLAY environment variable on your host device. Its also highly recommended to use a window manager (i.e. lwm).
 
+### Build
+
+This project uses gradle build system, so you just have to open console at project's root folder and `./gradlew build`.
+
+
 ### Example 
 
 Starts xfe file browser, 192.178.1.2 should be replaced with te IP of your device:

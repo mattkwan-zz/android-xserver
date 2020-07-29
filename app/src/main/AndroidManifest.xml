@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-		package="au.com.darkside.XServer"
-		android:versionCode="22"
-		android:versionName="1.22">
-  	<uses-sdk android:minSdkVersion="23"/>
+		package="au.com.darkside.XServer">
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
 	<uses-feature android:name="android.hardware.touchscreen"

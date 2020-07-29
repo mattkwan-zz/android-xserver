@@ -105,7 +105,7 @@ public class XServerActivity extends Activity {
 
 		pm = (PowerManager) getSystemService (Context.POWER_SERVICE);
 		_wakeLock = pm.newWakeLock (WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-																"XServer");
+																getPackageName()+":XServer");
 	}
 
 	/**
