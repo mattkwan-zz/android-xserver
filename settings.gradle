@@ -1,2 +1,2 @@
-include ':app'
+include ':demo', ':library'
 rootProject.name = "android-xserver"
