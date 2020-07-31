@@ -1,13 +1,4 @@
-/**
- * Editor for the list of hosts allowed to access the X server.
- *
- * Written by Matthew Kwan - March 2012
- */
 package au.com.darkside.xdemo;
-
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -23,233 +14,197 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Editor for the list of hosts allowed to access the X server.
  *
+ * Written by Matthew Kwan - March 2012
+ *
  * @author mkwan
  */
-public class AccessControlEditor extends ListActivity
-											implements OnItemClickListener {
-	private ArrayAdapter<String>	_adapter;
-	private EditText				_hostField;
-	private int					_deletePosition = -1;
+public class AccessControlEditor extends ListActivity implements OnItemClickListener {
+    private ArrayAdapter<String> _adapter;
+    private EditText _hostField;
+    private int _deletePosition = -1;
 
-	/**
-	 * Called when the activity is first created.
-	 */
-	@Override
-	public void
-	onCreate (
-		Bundle	savedInstanceState
-	) {
-		super.onCreate (savedInstanceState);
-		setContentView (R.layout.access_control_editor);
+    /**
+     * Called when the activity is first created.
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.access_control_editor);
 
-		_hostField = (EditText) findViewById (R.id.host_field);
+        _hostField = (EditText) findViewById(R.id.host_field);
 
-		Button		button;
+        Button button;
 
-		button = (Button) findViewById (R.id.add_button);
-		button.setOnClickListener (
-			new View.OnClickListener () {
-				public void	onClick (View v) {
-					addHost ();
-				}
-			}
-		);
+        button = (Button) findViewById(R.id.add_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                addHost();
+            }
+        });
 
-		button = (Button) findViewById (R.id.cancel_button);
-		button.setOnClickListener (
-			new View.OnClickListener () {
-				public void	onClick (View v) {
-					setResult (RESULT_CANCELED, null);
-					finish ();
-				}
-			}
-		);
+        button = (Button) findViewById(R.id.cancel_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                setResult(RESULT_CANCELED, null);
+                finish();
+            }
+        });
 
-		button = (Button) findViewById (R.id.apply_button);
-		button.setOnClickListener (
-			new View.OnClickListener () {
-				public void	onClick (View v) {
-					saveAccessList ();
-					setResult (RESULT_OK, null);
-					finish ();
-				}
-			}
-		);
+        button = (Button) findViewById(R.id.apply_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                saveAccessList();
+                setResult(RESULT_OK, null);
+                finish();
+            }
+        });
 
-		getListView().setOnItemClickListener (this);
-		loadAccessList ();
-	}
+        getListView().setOnItemClickListener(this);
+        loadAccessList();
+    }
 
-	/**
-	 * Called when a list item is selected.
-	 */
-	@Override
-	public void
-	onItemClick (
-		AdapterView<?>	parent,
-		View			v,
-		int				position,
-		long			id
-    ) {
-		_deletePosition = position;
-		getDeleteHostDialog().show();
-	}
+    /**
+     * Called when a list item is selected.
+     */
+    @Override
+    public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
+        _deletePosition = position;
+        getDeleteHostDialog().show();
+    }
 
-	/**
-	 * @return The Dialog to delete a host.
-	 */
-	private Dialog
-	getDeleteHostDialog () 
-	{
-		AlertDialog.Builder		builder = new AlertDialog.Builder (this);
+    /**
+     * @return The Dialog to delete a host.
+     */
+    private Dialog getDeleteHostDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-		builder.setMessage ("Delete the IP address?")
-			.setPositiveButton ("OK", 
-								new DialogInterface.OnClickListener () {
-				public void onClick (DialogInterface dialog, int id) {
-			        deleteSelectedHost ();
-				}
-			})
-			.setNegativeButton ("Cancel",
-								new DialogInterface.OnClickListener () {
-				public void onClick (DialogInterface dialog, int id) {
-					dialog.cancel ();
-				}
-			});
-		 
-		return builder.create ();
-	}
+        builder.setMessage("Delete the IP address?").setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                deleteSelectedHost();
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }
+        });
 
-	/**
-	 * Delete the host that was selected by the user.
-	 */
-	private void
-	deleteSelectedHost () {
-		if (_deletePosition < 0)
-			return;
+        return builder.create();
+    }
 
-		_adapter.remove (_adapter.getItem (_deletePosition));
-	}
+    /**
+     * Delete the host that was selected by the user.
+     */
+    private void deleteSelectedHost() {
+        if (_deletePosition < 0) return;
 
-	/**
-	 * Convert a hexadecimal IP address into a human-readable dot-separated
-	 * format.
-	 *
-	 * @param host	The host IP address, in hexadecimal format.
-	 * @return	The host IP address in dot-separated format.
-	 */
-	private static String
-	hostToString (
-		String	host
-	) {
-		int		n;
+        _adapter.remove(_adapter.getItem(_deletePosition));
+    }
 
-		try {
-			n = (int) Long.parseLong (host, 16);
-		} catch (Exception e) {
-			return "Error";
-		}
+    /**
+     * Convert a hexadecimal IP address into a human-readable dot-separated
+     * format.
+     *
+     * @param host    The host IP address, in hexadecimal format.
+     * @return The host IP address in dot-separated format.
+     */
+    private static String hostToString(String host) {
+        int n;
 
-		int		b1 = (n >> 24) & 0xff;
-		int		b2 = (n >> 16) & 0xff;
-		int		b3 = (n >> 8) & 0xff;
-		int		b4 = n & 0xff;
+        try {
+            n = (int) Long.parseLong(host, 16);
+        } catch (Exception e) {
+            return "Error";
+        }
 
-		return "" + b1 + "." + b2 + "." + b3 + "." + b4;
-	}
+        int b1 = (n >> 24) & 0xff;
+        int b2 = (n >> 16) & 0xff;
+        int b3 = (n >> 8) & 0xff;
+        int b4 = n & 0xff;
 
-	/**
-	 * Load the list of hosts that are allowed to access the X server.
-	 */
-	private void
-	loadAccessList () {
-		SharedPreferences	prefs = getSharedPreferences ("AccessControlHosts",
-																MODE_PRIVATE);
-		Map<String, ?>		map = prefs.getAll ();
-		Set<String>			set = map.keySet ();
-		LinkedList<String>	hosts = new LinkedList<String> ();
+        return "" + b1 + "." + b2 + "." + b3 + "." + b4;
+    }
 
-		for (String s: set)
-			hosts.add (hostToString (s));
+    /**
+     * Load the list of hosts that are allowed to access the X server.
+     */
+    private void loadAccessList() {
+        SharedPreferences prefs = getSharedPreferences("AccessControlHosts", MODE_PRIVATE);
+        Map<String, ?> map = prefs.getAll();
+        Set<String> set = map.keySet();
+        LinkedList<String> hosts = new LinkedList<String>();
 
-		_adapter = new ArrayAdapter<String> (this,
-								android.R.layout.simple_list_item_1, hosts);
-		setListAdapter (_adapter);
-	}
+        for (String s : set)
+            hosts.add(hostToString(s));
 
-	/**
-	 * Convert a human-readable dot-separated IP address into hexadecimal.
-	 * Return null if there's a parse error.
-	 *
-	 * @param s	The host IP address, in dot-separated format.
-	 * @return	The host IP address in hexadecimal format, or null.
-	 */
-	private static String
-	stringToHost (
-		String		s
-	) {
-		String[]	sa = s.split ("\\.");
+        _adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, hosts);
+        setListAdapter(_adapter);
+    }
 
-		if (sa.length != 4)
-			return null;
+    /**
+     * Convert a human-readable dot-separated IP address into hexadecimal.
+     * Return null if there's a parse error.
+     *
+     * @param s    The host IP address, in dot-separated format.
+     * @return The host IP address in hexadecimal format, or null.
+     */
+    private static String stringToHost(String s) {
+        String[] sa = s.split("\\.");
 
-		int			n = 0;
+        if (sa.length != 4) return null;
 
-		for (int i = 0; i < 4; i++) {
-			int			b;
+        int n = 0;
 
-			try {
-				b = Integer.parseInt (sa[i]);
-			} catch (Exception e) {
-				return null;
-			}
+        for (int i = 0; i < 4; i++) {
+            int b;
 
-			if (b < 0 || b > 255)
-				return null;
+            try {
+                b = Integer.parseInt(sa[i]);
+            } catch (Exception e) {
+                return null;
+            }
 
-			n = (n << 8) | b;
-		}
+            if (b < 0 || b > 255) return null;
 
-		return Integer.toHexString (n);
-	}
+            n = (n << 8) | b;
+        }
 
-	/**
-	 * Save the list of hosts that are allowed to access the X server.
-	 */
-	private void
-	saveAccessList () {
-		SharedPreferences	prefs = getSharedPreferences ("AccessControlHosts",
-																MODE_PRIVATE);
-		SharedPreferences.Editor	editor = prefs.edit ();
+        return Integer.toHexString(n);
+    }
 
-		editor.clear ();
+    /**
+     * Save the list of hosts that are allowed to access the X server.
+     */
+    private void saveAccessList() {
+        SharedPreferences prefs = getSharedPreferences("AccessControlHosts", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
 
-		int			n = _adapter.getCount ();
+        editor.clear();
 
-		for (int i = 0; i < n; i++) {
-			String		host = stringToHost (_adapter.getItem (i));
+        int n = _adapter.getCount();
 
-			if (host != null)
-				editor.putBoolean (host, true);
-		}
+        for (int i = 0; i < n; i++) {
+            String host = stringToHost(_adapter.getItem(i));
 
-		editor.commit ();
-	}
+            if (host != null) editor.putBoolean(host, true);
+        }
 
-	/**
-	 * Parse the IP address in the host field and add it to the list.
-	 */
-	private void
-	addHost () {
-		String		s = _hostField.getText().toString ();
+        editor.commit();
+    }
 
-		if (stringToHost (s) != null)
-			_adapter.add (s);
-		else
-			Toast.makeText (this, "Bad IP address '" + s + "'",
-												Toast.LENGTH_LONG).show ();
-	}
+    /**
+     * Parse the IP address in the host field and add it to the list.
+     */
+    private void addHost() {
+        String s = _hostField.getText().toString();
+
+        if (stringToHost(s) != null) _adapter.add(s);
+        else Toast.makeText(this, "Bad IP address '" + s + "'", Toast.LENGTH_LONG).show();
+    }
 }
