@@ -4,7 +4,7 @@ android {
     compileSdkVersion 29
 
     defaultConfig {
-        applicationId "au.com.darkside.demo"
+        applicationId "au.com.darkside.xdemo"
         minSdkVersion 23
         targetSdkVersion 29
         versionCode 22

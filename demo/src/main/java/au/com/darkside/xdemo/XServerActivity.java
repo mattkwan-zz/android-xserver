@@ -30,7 +30,6 @@ import android.view.MenuItem;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-import au.com.darkside.xserver.R;
 import au.com.darkside.xserver.ScreenView;
 import au.com.darkside.xserver.XServer;
 
