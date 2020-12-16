@@ -8,3 +8,4 @@
 .externalNativeBuild
 
 /app/release
+debug.keystore
