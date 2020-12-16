@@ -12,12 +12,18 @@ To display programs within the X-Server app you need to set the DISPLAY environm
 
 ### Build
 
+
+#### Gardle
+
 This project uses gradle build system, so if you don't want to mess with Android Studio you can just
  open console at project's root folder and type `./gradlew build`. Generated APK can be found under
  `demo/build/outputs/`.
 
+#### Manual (Makefile based)
 
-### Example 
+If, for whatever reason, you do not want to use gardle, there is also a Makefile that performs all the necessary build steps.
+
+### Example
 
 Starts xfe file browser, 192.178.1.2 should be replaced with te IP of your device:
 
