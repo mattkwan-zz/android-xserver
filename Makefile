@@ -36,9 +36,9 @@ ANDROID_LIB=$(WORKDIR)/library/src/main
 ANDROID_SOURCES=$(shell find $(WORKDIR) -name *.java)
 
 # out
-GENDIR_ANDROID=$(WORKDIR)/app/release/gen
-CLASSDIR_ANDROID=$(WORKDIR)/app/release/class
-OUT_ANDROID=$(WORKDIR)/app/release/
+GENDIR_ANDROID=$(WORKDIR)/demo/build/outputs/gen
+CLASSDIR_ANDROID=$(WORKDIR)/demo/build/outputs/class
+OUT_ANDROID=$(WORKDIR)/demo/build/outputs
 
 all: clean android
 
