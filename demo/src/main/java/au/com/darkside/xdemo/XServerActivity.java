@@ -45,6 +45,8 @@ public class XServerActivity extends Activity {
     private static final int MENU_IP_ADDRESS = 2;
     private static final int MENU_ACCESS_CONTROL = 3;
     private static final int MENU_REMOTE_LOGIN = 4;
+    private static final int MENU_TOGGLE_ARROWS = 5;
+    private static final int MENU_TOGGLE_BACKBUTTON = 6;
     private static final int ACTIVITY_ACCESS_CONTROL = 1;
 
     private static final int DEFAULT_PORT = 6000;
@@ -150,6 +152,12 @@ public class XServerActivity extends Activity {
         item = menu.add(0, MENU_REMOTE_LOGIN, 0, "Remote login");
         item.setIcon(android.R.drawable.ic_menu_upload);
 
+        item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as buttons (on)");
+		item.setIcon(android.R.drawable.star_on);
+
+		item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
+		item.setIcon(android.R.drawable.star_off);
+
         return true;
     }
 
@@ -182,6 +190,24 @@ public class XServerActivity extends Activity {
             case MENU_REMOTE_LOGIN:
                 launchSshApp();
                 return true;
+            case MENU_TOGGLE_ARROWS:
+            	if (_xServer.getScreen().toggleArrowsAsButtons()) {
+                    item.setIcon(android.R.drawable.star_on);
+                    item.setTitle("Arrows as buttons (on)");
+            	} else {
+                    item.setIcon(android.R.drawable.star_off);
+                    item.setTitle("Arrows as buttons (off)");
+            	}
+            	return true;
+            case MENU_TOGGLE_BACKBUTTON:
+            	if (_xServer.getScreen().toggleInhibitBackButton()) {
+                    item.setIcon(android.R.drawable.star_on);
+                    item.setTitle("Inhibit back button (on)");
+            	} else {
+                    item.setIcon(android.R.drawable.star_off);
+                    item.setTitle("Inhibit back button (off)");
+            	}
+            	return true;
         }
 
         return false;

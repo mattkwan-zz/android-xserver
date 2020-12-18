@@ -145,6 +145,8 @@ public class ScreenView extends View {
     private int _motionY;
     private int _buttons = 0;
     private boolean _isBlanked = false;
+	private boolean	_arrowsAsButtons = true;
+	private boolean	_inhibitBackButton = false;
     private Paint _paint;
 
     private Client _grabPointerClient = null;
@@ -620,13 +622,12 @@ public class ScreenView extends View {
      * Called when shift/alt keys are pressed/released.
      *
      * @param pressed True if pressed, false if released.
-     * @param state   Current state of the modifier keys.
      */
-    private void updateModifiers(boolean pressed, int state) {
+    private void updateModifiers(boolean pressed) {
         int mask = 0;
 
-        if ((state & KeyEvent.META_SHIFT_ON) != 0) mask |= 1;    // Shift.
-        if ((state & KeyEvent.META_ALT_ON) != 0) mask |= 8;    // Mod1.
+		Keyboard kb = _xServer.getKeyboard();
+		mask = kb.getState();
 
         _buttons = (_buttons & 0xff00) | mask;
     }
@@ -705,6 +706,14 @@ public class ScreenView extends View {
 
             blank(false);    // Reset the screen saver.
             updatePointerPosition((int) event.getX(), (int) event.getY(), 0);
+
+            if(event.getDeviceId()==1)
+			{
+				if(event.getActionMasked()==event.ACTION_DOWN)
+					updatePointerButtons (1, true);
+				if(event.getActionMasked()==event.ACTION_UP)
+					updatePointerButtons (1, false);
+			}
         }
 
         return true;
@@ -726,34 +735,50 @@ public class ScreenView extends View {
 
             boolean sendEvent = false;
 
-            switch (keycode) {
-                case KeyEvent.KEYCODE_BACK:
-                case KeyEvent.KEYCODE_MENU:
-                    return false;
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_VOLUME_UP:
-                    updatePointerButtons(1, true);
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    updatePointerButtons(2, true);
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                case KeyEvent.KEYCODE_VOLUME_DOWN:
-                    updatePointerButtons(3, true);
-                    break;
-                case KeyEvent.KEYCODE_SHIFT_LEFT:
-                case KeyEvent.KEYCODE_SHIFT_RIGHT:
-                case KeyEvent.KEYCODE_ALT_LEFT:
-                case KeyEvent.KEYCODE_ALT_RIGHT:
-                    updateModifiers(true, event.getMetaState());
-                    sendEvent = true;
-                    break;
-                default:
-                    sendEvent = true;
-                    break;
+            if(event.getDeviceId()==1) {
+                // TODO check it is actually a right click
+                updatePointerButtons(3, true);
+                return true;
             }
+
+
+			if (_arrowsAsButtons) {
+				switch (keycode) {
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					updatePointerButtons (1, true);
+					return true;
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+					updatePointerButtons (2, true);
+					return true;
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					updatePointerButtons (3, true);
+					return true;
+				}
+			}
+
+			switch (keycode) {
+				case KeyEvent.KEYCODE_BACK:
+					if (! _inhibitBackButton)
+						return false;
+					keycode = 128 - _xServer.getKeyboard().getMinimumKeycodeDiff(); // Special keycode since keycode value 5 is out of range
+					sendEvent = true;
+					break;
+				case KeyEvent.KEYCODE_MENU:
+					return false;
+				case KeyEvent.KEYCODE_VOLUME_UP:
+					updatePointerButtons (1, true);
+					break;
+				case KeyEvent.KEYCODE_VOLUME_DOWN:
+					updatePointerButtons (3, true);
+					break;
+				default:
+					sendEvent = true;
+					break;
+			}
+	
+			updateModifiers(true);
 
             if (sendEvent) notifyKeyPressedReleased(keycode, true);
         }
@@ -777,34 +802,49 @@ public class ScreenView extends View {
 
             boolean sendEvent = false;
 
-            switch (keycode) {
-                case KeyEvent.KEYCODE_BACK:
-                case KeyEvent.KEYCODE_MENU:
-                    return false;
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_VOLUME_UP:
-                    updatePointerButtons(1, false);
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    updatePointerButtons(2, false);
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                case KeyEvent.KEYCODE_VOLUME_DOWN:
-                    updatePointerButtons(3, false);
-                    break;
-                case KeyEvent.KEYCODE_SHIFT_LEFT:
-                case KeyEvent.KEYCODE_SHIFT_RIGHT:
-                case KeyEvent.KEYCODE_ALT_LEFT:
-                case KeyEvent.KEYCODE_ALT_RIGHT:
-                    updateModifiers(false, event.getMetaState());
-                    sendEvent = true;
-                    break;
-                default:
-                    sendEvent = true;
-                    break;
+            if(event.getDeviceId()==1) {
+                // TODO check it is actually a right click
+                updatePointerButtons (3, false);
+                return true;
             }
+
+			if (_arrowsAsButtons) {
+				switch (keycode) {
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					updatePointerButtons (1, false);
+					return true;
+				case KeyEvent.KEYCODE_DPAD_UP:
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+					updatePointerButtons (2, false);
+					return true;
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					updatePointerButtons (3, false);
+					return true;
+				}
+			}
+
+			switch (keycode) {
+				case KeyEvent.KEYCODE_BACK:
+					if (! _inhibitBackButton)
+						return false;
+					keycode = 128 - _xServer.getKeyboard().getMinimumKeycodeDiff(); // Special keycode since keycode value 5 is out of range
+					sendEvent = true;
+					break;
+				case KeyEvent.KEYCODE_MENU:
+					return false;
+				case KeyEvent.KEYCODE_VOLUME_UP:
+					updatePointerButtons (1, false);
+					break;
+				case KeyEvent.KEYCODE_VOLUME_DOWN:
+					updatePointerButtons (3, false);
+					break;
+				default:
+					sendEvent = true;
+					break;
+			}
+	
+			updateModifiers(false);
 
             if (sendEvent) notifyKeyPressedReleased(keycode, false);
         }
@@ -1120,6 +1160,28 @@ public class ScreenView extends View {
     private void reportError(Client client, byte error, byte opcode, String message) throws IOException {
         ErrorCode.write(client, error, opcode, 0);
     }
+
+    /**
+	 * Toggle Arrows As Buttons.
+	 *
+	 * Switch between key and button events for arrow keys
+	 *
+	 * @return new state of switch
+	 */
+	public boolean toggleArrowsAsButtons() {
+		_arrowsAsButtons = !_arrowsAsButtons;
+		return _arrowsAsButtons;
+	}
+
+	/**
+	 * Toggle Inhibit Back Button.
+	 *
+	 * @return new state of switch
+	 */
+	public boolean toggleInhibitBackButton() {
+		_inhibitBackButton = !_inhibitBackButton;
+		return _inhibitBackButton;
+	}
 
     /**
      * Process a SendEvent request.
