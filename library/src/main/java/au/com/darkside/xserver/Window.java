@@ -15,6 +15,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 import au.com.darkside.xserver.Xext.XShape;
+import au.com.darkside.xserver.Xext.Extensions;
 
 /**
  * This class implements an X window.
@@ -2704,8 +2705,14 @@ public class Window extends Resource {
                 }
                 break;
             default:
-                io.readSkip(bytesRemaining);
-                ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
+                if(opcode<0) {
+                    redraw = false;
+                    Extensions.processRequest(_xServer, client, opcode, arg, bytesRemaining);
+                }
+                else{
+                    io.readSkip(bytesRemaining);
+                    ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
+                }
                 break;
         }
 

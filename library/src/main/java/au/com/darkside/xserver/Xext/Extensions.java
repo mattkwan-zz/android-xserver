@@ -8,6 +8,7 @@ import au.com.darkside.xserver.InputOutput;
 import au.com.darkside.xserver.Util;
 import au.com.darkside.xserver.XServer;
 
+import android.util.Log;
 
 /**
  * This class handles requests relating to extensions.
@@ -17,8 +18,13 @@ import au.com.darkside.xserver.XServer;
 public class Extensions {
     public static final byte XGE = -128;
     public static final byte XTEST = -127;
+    public static final byte Sync = -127;
     public static final byte BigRequests = -126;
     public static final byte Shape = -125;
+
+    static public void Initialize(){
+        XSync.Initialize();
+    }
 
     /**
      * Process a request relating to an X extension.
@@ -52,9 +58,6 @@ public class Extensions {
                     io.flush();
                 }
                 break;
-            case XTEST:
-                XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
-                break;
             case BigRequests:
                 if (bytesRemaining != 0) {
                     io.readSkip(bytesRemaining);
@@ -72,9 +75,22 @@ public class Extensions {
             case Shape:
                 XShape.processRequest(xServer, client, opcode, arg, bytesRemaining);
                 break;
+            case Sync:
+                XSync.processRequest(xServer, client, opcode, arg, bytesRemaining);
+                break;
+            //case XTEST:
+            //    XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
+            //    break;
             default:
-                io.readSkip(bytesRemaining);    // Not implemented.
-                ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
+                // io.readSkip(bytesRemaining);    // Not implemented.
+                // ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
+                // Write to log instead of failing:
+                byte[] ba = new byte[bytesRemaining];
+				io.readBytes(ba, 0, bytesRemaining);
+				String str=new String(ba);
+				Log.e("Xext","we can not handle this extension yet...");
+				Log.e("Xext","Major" + Integer.toString(opcode) + " Minor:" + Integer.toString(arg));
+				Log.e("Xext","DATA:" + str);
                 break;
         }
     }
