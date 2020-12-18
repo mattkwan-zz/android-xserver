@@ -6,7 +6,7 @@ LIBNAME=au.com.darkside.xserver
 
 # Version Info
 VER_CODE=22
-VER_NAME=1.23
+VER_NAME=1.24
 MIN_SDK=23
 
 ## Java/Android Compiler Settings
