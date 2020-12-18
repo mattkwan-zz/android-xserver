@@ -17,7 +17,7 @@ import android.util.Log;
  */
 public class Extensions {
     public static final byte XGE = -128;
-    public static final byte XTEST = -127;
+    public static final byte XTEST = -124;
     public static final byte Sync = -127;
     public static final byte BigRequests = -126;
     public static final byte Shape = -125;
@@ -78,9 +78,9 @@ public class Extensions {
             case Sync:
                 XSync.processRequest(xServer, client, opcode, arg, bytesRemaining);
                 break;
-            //case XTEST:
-            //    XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
-            //    break;
+            case XTEST:
+                XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
+                break;
             default:
                 // io.readSkip(bytesRemaining);    // Not implemented.
                 // ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
