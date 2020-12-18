@@ -30,7 +30,7 @@ public class XTest {
     private static final byte MotionNotify = 6;
 
     /**
-     * Process a request relating to the X SHAPE extension.
+     * Process a request relating to the X XTEST extension.
      *
      * @param xServer        The X server.
      * @param client         The remote client.
