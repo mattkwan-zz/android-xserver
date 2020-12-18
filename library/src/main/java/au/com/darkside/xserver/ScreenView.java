@@ -709,9 +709,9 @@ public class ScreenView extends View {
 
             if(event.getDeviceId()==1)
 			{
-				if(event.getActionMasked()==event.ACTION_DOWN)
+				if(event.getActionMasked()==MotionEvent.ACTION_DOWN)
 					updatePointerButtons (1, true);
-				if(event.getActionMasked()==event.ACTION_UP)
+				if(event.getActionMasked()==MotionEvent.ACTION_UP)
 					updatePointerButtons (1, false);
 			}
         }
