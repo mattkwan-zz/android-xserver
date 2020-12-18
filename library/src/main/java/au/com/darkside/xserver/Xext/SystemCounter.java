@@ -16,12 +16,7 @@ public class SystemCounter {
 	 * @param pfirstEvent	Base event type code, or zero.
 	 * @param pfirstError	Base error code, or zero.
 	 */
-	public SystemCounter (
-		int 	ID,
-		int		presHi,
-		int		presLo,
-		String  pname
-	) {
+	public SystemCounter (int ID, int presHi, int presLo, String pname) {
 		COUNTER=ID;
 		resHi = (byte) presHi;
 		resLo = (byte) presLo;
