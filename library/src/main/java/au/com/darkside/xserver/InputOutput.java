@@ -5,6 +5,8 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+import android.util.Log;
+
 /**
  * This class handles buffered bi-directional communications.
  *
@@ -313,14 +315,21 @@ public class InputOutput {
      * @throws IOException
      */
     public void flush() throws IOException {
-        new Thread(new Runnable() {
+        Thread t = new Thread(new Runnable() {
             public void run() {
                 try {
                     _outStream.flush();
                 } catch (IOException e) {
+                    Log.e("FATAL", e.toString());
                 }
             }
-        }).start();
+        });
+        t.start();
+        try{
+            t.join();
+        }catch (InterruptedException e) {
+            Log.e("FATAL", e.toString());
+        }
     }
 
     /**
