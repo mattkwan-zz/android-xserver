@@ -65,8 +65,13 @@ uninstall:
 run:
 	adb shell monkey -p $(PROJNAME) -c android.intent.category.LAUNCHER 1
 
+kill:
+	adb shell am force-stop $(PROJNAME)
+
 remote_screen:
 	 scrcpy --render-driver=software --disable-screensaver --stay-awake &
+
+deploy: clean android kill uninstall install run
 
 clean:
 	rm -rf $(GENDIR_ANDROID)
