@@ -8,6 +8,9 @@ import android.graphics.Rect;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.text.InputType;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -198,6 +201,15 @@ public class ScreenView extends View {
         mPendingPointerEvents = new PendingEventQueue<PendingPointerEvent>();
         mPendingKeyboardEvents = new PendingEventQueue<PendingKeyboardEvent>();
     }
+
+    // needed make keyboard work in landscape mode.
+    @Override
+    public InputConnection onCreateInputConnection (EditorInfo outAttrs){
+        outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
+        outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE;
+        return null;
+    }
+    
 
     /**
      * Placeholder constructor to prevent a compiler warning.
