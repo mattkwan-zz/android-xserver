@@ -28,7 +28,6 @@ import java.util.Vector;
 public class ScreenView extends View {
 
     private interface PendingEvent {
-
         public void run();
     }
 
@@ -202,11 +201,13 @@ public class ScreenView extends View {
         mPendingKeyboardEvents = new PendingEventQueue<PendingKeyboardEvent>();
     }
 
-    // needed make keyboard work in landscape mode.
+    /**
+     * needed make softkeyboard work in landscape mode and to capture backspace.
+     */
     @Override
-    public InputConnection onCreateInputConnection (EditorInfo outAttrs){
-        outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
-        outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE;
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs){
+        outAttrs.inputType = InputType.TYPE_TEXT_VARIATION_NORMAL;
+        outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE | EditorInfo.IME_FLAG_NO_FULLSCREEN;
         return null;
     }
     
@@ -631,7 +632,7 @@ public class ScreenView extends View {
     }
 
     /**
-     * Called when shift/alt keys are pressed/released.
+     * Called when modifier keys (i.e. shift/alt) are pressed/released.
      *
      * @param pressed True if pressed, false if released.
      */
