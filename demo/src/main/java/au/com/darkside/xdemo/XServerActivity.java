@@ -47,6 +47,7 @@ public class XServerActivity extends Activity {
     private static final int MENU_REMOTE_LOGIN = 4;
     private static final int MENU_TOGGLE_ARROWS = 5;
     private static final int MENU_TOGGLE_BACKBUTTON = 6;
+    private static final int MENU_TOGGLE_TOUCHCLICKS = 7;
     private static final int ACTIVITY_ACCESS_CONTROL = 1;
 
     private static final int DEFAULT_PORT = 6000;
@@ -158,6 +159,9 @@ public class XServerActivity extends Activity {
 		item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
 		item.setIcon(android.R.drawable.star_off);
 
+        item = menu.add(0, MENU_TOGGLE_TOUCHCLICKS, 0, "Touchsreen Mouseclicks (on)");
+		item.setIcon(android.R.drawable.star_on);
+
         return true;
     }
 
@@ -191,23 +195,32 @@ public class XServerActivity extends Activity {
                 launchSshApp();
                 return true;
             case MENU_TOGGLE_ARROWS:
-            	if (_xServer.getScreen().toggleArrowsAsButtons()) {
+                if (_xServer.getScreen().toggleArrowsAsButtons()) {
                     item.setIcon(android.R.drawable.star_on);
                     item.setTitle("Arrows as buttons (on)");
-            	} else {
+                } else {
                     item.setIcon(android.R.drawable.star_off);
                     item.setTitle("Arrows as buttons (off)");
-            	}
-            	return true;
+                }
+                return true;
             case MENU_TOGGLE_BACKBUTTON:
-            	if (_xServer.getScreen().toggleInhibitBackButton()) {
+                if (_xServer.getScreen().toggleInhibitBackButton()) {
                     item.setIcon(android.R.drawable.star_on);
                     item.setTitle("Inhibit back button (on)");
-            	} else {
+                } else {
                     item.setIcon(android.R.drawable.star_off);
                     item.setTitle("Inhibit back button (off)");
-            	}
-            	return true;
+                }
+                return true;
+            case MENU_TOGGLE_TOUCHCLICKS:
+                if (_xServer.getScreen().toggleEnableTouchClicks()) {
+                    item.setIcon(android.R.drawable.star_on);
+                    item.setTitle("Touchsreen Mouseclicks (on)");
+                } else {
+                    item.setIcon(android.R.drawable.star_off);
+                    item.setTitle("Touchsreen Mouseclicks (off)");
+                }
+                return true;
         }
 
         return false;

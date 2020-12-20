@@ -148,7 +148,8 @@ public class ScreenView extends View {
     private int _buttons = 0;
     private boolean _isBlanked = false;
 	private boolean	_arrowsAsButtons = true;
-	private boolean	_inhibitBackButton = false;
+    private boolean	_inhibitBackButton = false;
+    private boolean	_enableTouchClicks = true;
     private Paint _paint;
 
     private Client _grabPointerClient = null;
@@ -199,6 +200,45 @@ public class ScreenView extends View {
 
         mPendingPointerEvents = new PendingEventQueue<PendingPointerEvent>();
         mPendingKeyboardEvents = new PendingEventQueue<PendingKeyboardEvent>();
+
+        // ---- Listeners for touch input ----
+        setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // do nothing
+            }
+        });
+
+        setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                synchronized (_xServer) {
+                    if (_rootWindow == null) return false;
+        
+                    blank(false);    // Reset the screen saver.
+                    updatePointerPosition((int) event.getX(), (int) event.getY(), 0);
+        
+                    if(_enableTouchClicks){
+                        if(event.getActionMasked() == MotionEvent.ACTION_DOWN && event.getActionIndex() == 0)
+                            updatePointerButtons (1, true);
+                        if(event.getActionMasked() == MotionEvent.ACTION_UP && event.getActionIndex() == 0)
+                            updatePointerButtons (1, false);
+                        if(event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN && event.getActionIndex() == 1)
+                            updatePointerButtons (3, true);
+                        if((event.getActionMasked() == MotionEvent.ACTION_POINTER_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL)  && event.getActionIndex() == 1)
+                            updatePointerButtons (3, false);
+                    }
+                }
+                return true; // change to false to make other Listeners work!
+            }
+        });
+        
+        setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                // do nothing
+                return false;
+            }
+        });
     }
 
     /**
@@ -707,32 +747,6 @@ public class ScreenView extends View {
     }
 
     /**
-     * Called when there is a touch event.
-     *
-     * @param event The touch event.
-     * @return True if the event was handled.
-     */
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        synchronized (_xServer) {
-            if (_rootWindow == null) return false;
-
-            blank(false);    // Reset the screen saver.
-            updatePointerPosition((int) event.getX(), (int) event.getY(), 0);
-
-            if(event.getDeviceId()==1)
-			{
-				if(event.getActionMasked()==MotionEvent.ACTION_DOWN)
-					updatePointerButtons (1, true);
-				if(event.getActionMasked()==MotionEvent.ACTION_UP)
-					updatePointerButtons (1, false);
-			}
-        }
-
-        return true;
-    }
-
-    /**
      * Called when there is a key down event.
      *
      * @param keycode The value in event.getKeyCode().
@@ -747,13 +761,6 @@ public class ScreenView extends View {
             blank(false);    // Reset the screen saver.
 
             boolean sendEvent = false;
-
-            if(event.getDeviceId()==1) {
-                // TODO check it is actually a right click
-                updatePointerButtons(3, true);
-                return true;
-            }
-
 
 			if (_arrowsAsButtons) {
 				switch (keycode) {
@@ -814,12 +821,6 @@ public class ScreenView extends View {
             blank(false);    // Reset the screen saver.
 
             boolean sendEvent = false;
-
-            if(event.getDeviceId()==1) {
-                // TODO check it is actually a right click
-                updatePointerButtons (3, false);
-                return true;
-            }
 
 			if (_arrowsAsButtons) {
 				switch (keycode) {
@@ -1175,26 +1176,36 @@ public class ScreenView extends View {
     }
 
     /**
-	 * Toggle Arrows As Buttons.
-	 *
-	 * Switch between key and button events for arrow keys
-	 *
-	 * @return new state of switch
-	 */
-	public boolean toggleArrowsAsButtons() {
-		_arrowsAsButtons = !_arrowsAsButtons;
-		return _arrowsAsButtons;
-	}
+     * Toggle Arrows As Buttons.
+     *
+     * Switch between key and button events for arrow keys
+     *
+     * @return new state of switch
+     */
+    public boolean toggleArrowsAsButtons() {
+        _arrowsAsButtons = !_arrowsAsButtons;
+        return _arrowsAsButtons;
+    }
 
-	/**
-	 * Toggle Inhibit Back Button.
-	 *
-	 * @return new state of switch
-	 */
-	public boolean toggleInhibitBackButton() {
-		_inhibitBackButton = !_inhibitBackButton;
-		return _inhibitBackButton;
-	}
+    /**
+     * Toggle Inhibit Back Button.
+     *
+     * @return new state of switch
+     */
+    public boolean toggleInhibitBackButton() {
+        _inhibitBackButton = !_inhibitBackButton;
+        return _inhibitBackButton;
+    }
+
+    /**
+     * Toggle touchscreen mouse click emulation.
+     *
+     * @return new state of switch
+     */
+    public boolean toggleEnableTouchClicks() {
+        _enableTouchClicks = !_enableTouchClicks;
+        return _enableTouchClicks;
+    }
 
     /**
      * Process a SendEvent request.
