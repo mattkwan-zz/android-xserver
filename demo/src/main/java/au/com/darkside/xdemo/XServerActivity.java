@@ -265,7 +265,7 @@ public class XServerActivity extends Activity {
                 }
                 return true;
             case MENU_TOGGLE_WINDOWMANAGER:
-                if (_windowManager == null || !_windowManager.isAlive()) {
+                if (_windowManager == null) {
                     try {
                         String executable = "flwm." + System.getProperty("os.arch");
                         File file = new File(getApplicationInfo().dataDir + "/" + executable);
@@ -283,7 +283,8 @@ public class XServerActivity extends Activity {
                         throw new RuntimeException(e);
                     }
                 } else {
-                    _windowManager.destroyForcibly();
+                    _windowManager.destroy();
+                    _windowManager = null;
                     item.setIcon(android.R.drawable.star_off);
                     item.setTitle("FL Window Manager (off)");
                 }
