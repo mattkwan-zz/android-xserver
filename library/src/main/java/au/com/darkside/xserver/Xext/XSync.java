@@ -8,8 +8,6 @@ import au.com.darkside.xserver.InputOutput;
 import au.com.darkside.xserver.Util;
 import au.com.darkside.xserver.ErrorCode;
 
-import android.util.Log;
-
 /**
  * Handles requests related to the X SYNC extension.
  */
@@ -138,11 +136,8 @@ public class XSync {
                 }
                 break;
             default:
-                byte[] ba = new byte[bytesRemaining];
-                io.readBytes(ba, 0, bytesRemaining);
-                String str = new String(ba);
-                Log.e("Xext","SYNC unhandled minor opcode:" + Integer.toString(arg));
-                Log.e("Xext","DATA:" + str);
+                io.readSkip(bytesRemaining);    // Not implemented.
+                ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
                 break;
         }
     }}

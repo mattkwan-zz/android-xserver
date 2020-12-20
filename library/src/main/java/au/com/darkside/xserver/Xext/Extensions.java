@@ -8,8 +8,6 @@ import au.com.darkside.xserver.InputOutput;
 import au.com.darkside.xserver.Util;
 import au.com.darkside.xserver.XServer;
 
-import android.util.Log;
-
 /**
  * This class handles requests relating to extensions.
  *
@@ -82,15 +80,8 @@ public class Extensions {
                 XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
                 break;
             default:
-                // io.readSkip(bytesRemaining);    // Not implemented.
-                // ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
-                // Write to log instead of failing:
-                byte[] ba = new byte[bytesRemaining];
-				io.readBytes(ba, 0, bytesRemaining);
-				String str=new String(ba);
-				Log.e("Xext","we can not handle this extension yet...");
-				Log.e("Xext","Major" + Integer.toString(opcode) + " Minor:" + Integer.toString(arg));
-				Log.e("Xext","DATA:" + str);
+                io.readSkip(bytesRemaining);    // Not implemented.
+                ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
                 break;
         }
     }
