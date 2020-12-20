@@ -61,6 +61,7 @@ public class XServerActivity extends Activity {
     private static final int MENU_TOGGLE_ARROWS = 5;
     private static final int MENU_TOGGLE_BACKBUTTON = 6;
     private static final int MENU_TOGGLE_TOUCHCLICKS = 7;
+    private static final int MENU_TOGGLE_WINDOWMANAGER = 8;
     private static final int ACTIVITY_ACCESS_CONTROL = 1;
 
     private static final int DEFAULT_PORT = 6000;
@@ -68,6 +69,7 @@ public class XServerActivity extends Activity {
 
     private int _port = DEFAULT_PORT;
     private String _portDescription = PORT_DESC_PRE + DEFAULT_PORT;
+    private Process _windowManager;
 
     /**
      * Called when the activity is first created.
@@ -108,22 +110,8 @@ public class XServerActivity extends Activity {
         _xServer.setOnStartListener(new XServer.OnXSeverStartListener() {
             @Override
             public void onStart() {
-                String arch = System.getProperty("os.arch");
-                String executable = "binary.armhf";
-        
-                if(arch.equals("armv71"))
-                    executable = "binary.armhf";
-                else if(arch.equals("mips"))
-                    executable = "binary.mips";
-                else if(arch.equals("mips64"))
-                    executable = "binary.mips64";
-                else if(arch.equals("aarch64"))
-                    executable = "binary.aarch64";
-                else if(arch.equals("x86_64"))
-                    executable = "binary.x86_64";
-                else if(arch.equals("i686"))
-                    executable = "binary.i686";
-        
+                String executable = "binary." + System.getProperty("os.arch");
+
                 // execute our program 
                 try {
                     File file = new File(getApplicationInfo().dataDir + "/" + executable);
@@ -206,13 +194,16 @@ public class XServerActivity extends Activity {
         item.setIcon(android.R.drawable.ic_menu_upload);
 
         item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as buttons (on)");
-		item.setIcon(android.R.drawable.star_on);
+        item.setIcon(android.R.drawable.star_on);
 
-		item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
-		item.setIcon(android.R.drawable.star_off);
+        item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
+        item.setIcon(android.R.drawable.star_off);
 
         item = menu.add(0, MENU_TOGGLE_TOUCHCLICKS, 0, "Touchsreen Mouseclicks (on)");
-		item.setIcon(android.R.drawable.star_on);
+        item.setIcon(android.R.drawable.star_on);
+
+        item = menu.add(0, MENU_TOGGLE_WINDOWMANAGER, 0, "FL Window Manager (off)");
+        item.setIcon(android.R.drawable.star_on);
 
         return true;
     }
@@ -271,6 +262,30 @@ public class XServerActivity extends Activity {
                 } else {
                     item.setIcon(android.R.drawable.star_off);
                     item.setTitle("Touchsreen Mouseclicks (off)");
+                }
+                return true;
+            case MENU_TOGGLE_WINDOWMANAGER:
+                if (_windowManager == null || !_windowManager.isAlive()) {
+                    try {
+                        String executable = "flwm." + System.getProperty("os.arch");
+                        File file = new File(getApplicationInfo().dataDir + "/" + executable);
+                        if(file.exists()){
+                            file.setExecutable(true); // make program executable
+                            ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                            Map<String, String> env = pb.environment();
+                            env.put("DISPLAY", "127.0.0.1:0");
+                            pb.directory(new File(getApplicationInfo().dataDir));
+                            _windowManager = pb.start();
+                            item.setIcon(android.R.drawable.star_on);
+                            item.setTitle("FL Window Manager (on)");
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    _windowManager.destroyForcibly();
+                    item.setIcon(android.R.drawable.star_off);
+                    item.setTitle("FL Window Manager (off)");
                 }
                 return true;
         }
