@@ -1,0 +1,2 @@
+- Fixes keycodes. Also make Softkeyboard backspace work and avoid taking up the whole screen in landscape mode.
+- Use touch inputs for mouseclicks (can be disabled via menu entry).
