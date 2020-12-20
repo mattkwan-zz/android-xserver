@@ -5,8 +5,8 @@ PROJNAME=au.com.darkside.xdemo
 LIBNAME=au.com.darkside.xserver
 
 # Version Info
-VER_CODE=23
-VER_NAME=1.24
+VER_CODE=25
+VER_NAME=1.25
 MIN_SDK=23
 
 ## Java/Android Compiler Settings
