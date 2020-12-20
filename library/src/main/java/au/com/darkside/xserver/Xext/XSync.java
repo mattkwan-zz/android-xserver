@@ -13,22 +13,20 @@ import android.util.Log;
 /**
  * Handles requests related to the X SYNC extension.
  */
-public class XSync
-{
+public class XSync {
     private static int syncMajor = -1;
     private static int syncMinor;
     private static final Hashtable<String, SystemCounter> _systemCounters = new Hashtable<String, SystemCounter>();
     private static final Hashtable<Integer, Counter> _counters = new Hashtable<Integer, Counter>();
 
     public static final byte SYNC_INIT = 0;
-	public static final byte SYNC_LIST = 1;
-	public static final byte SYNC_CREATE = 2;
-	public static final byte SYNC_DESTROY = 3;
-	public static final byte EventBase = 95;
-	public static final byte ErrorBase = (byte)154;
+    public static final byte SYNC_LIST = 1;
+    public static final byte SYNC_CREATE = 2;
+    public static final byte SYNC_DESTROY = 3;
+    public static final byte EventBase = 95;
+    public static final byte ErrorBase = (byte)154;
 
-    static public void Initialize()
-    {
+    static public void Initialize() {
         _systemCounters.put("dummy", new SystemCounter (1,4, 0,"dummy"));
         _systemCounters.put("SERVERTIME", new SystemCounter (3,6,7,"SERVERTIME"));
     }
@@ -45,8 +43,7 @@ public class XSync
      */
     static public void processRequest(XServer xServer, Client client, byte opcode, byte arg, int bytesRemaining) throws java.io.IOException {
         InputOutput io=client.getInputOutput();
-        switch(arg)
-        {
+        switch(arg) {
             case SYNC_INIT:
                 if (bytesRemaining < 2) {
                     io.readSkip (bytesRemaining);
@@ -56,8 +53,7 @@ public class XSync
                     syncMinor=io.readByte();
                     bytesRemaining-=2;
                     io.readSkip (bytesRemaining);
-                    synchronized(io)
-                    {
+                    synchronized(io) {
                         Util.writeReplyHeader(client, arg);
                         io.writeInt (0);	// Reply length.
                         io.writeByte((byte)syncMajor);
@@ -70,8 +66,7 @@ public class XSync
             case SYNC_LIST:
                 int n = _systemCounters.size();//number of counters
                 int length = 0;
-                for(String key : _systemCounters.keySet())
-                {
+                for(String key : _systemCounters.keySet()) {
                     int temp=(key.length()+2)%4;
                     if(temp==0)
                         temp=4;
@@ -84,14 +79,12 @@ public class XSync
                 else
                     len=32;
                 length*=8;
-                synchronized(io)
-                {
+                synchronized(io) {
                     Util.writeReplyHeader(client, arg);
                     io.writeInt (length);	// Reply length.
                     io.writeInt (n);	// List length.
                     io.writePadBytes(20); //unused
-                    for(SystemCounter count : _systemCounters.values())
-                    {
+                    for(SystemCounter count : _systemCounters.values()) {
                         /* 4 COUNTER counter
                            8 INT64   resolution
                            2 n       length of name in bytes
@@ -130,10 +123,8 @@ public class XSync
                     int ID=io.readInt();
                     bytesRemaining-=4;
                     Counter count=_counters.remove(ID);
-                    if(count!=null)
-                    {
-                        synchronized(io)
-                        {
+                    if(count!=null) {
+                        synchronized(io) {
                             Util.writeReplyHeader(client, arg);
                             io.writeInt(0);
                             io.writeLong(count.getValue());
@@ -141,8 +132,7 @@ public class XSync
                         }
                         io.flush();
                     }
-                    else
-                    {
+                    else {
                         ErrorCode.writeWithMinorOpcode(client, ErrorBase, arg, opcode, ID);
                     }
                 }

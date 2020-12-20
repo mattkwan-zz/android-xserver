@@ -14,7 +14,7 @@
         android:label="@string/app_name">
         <activity
             android:name="au.com.darkside.xdemo.XServerActivity"
-            android:configChanges="keyboardHidden"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/app_name"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.WithActionBar">
