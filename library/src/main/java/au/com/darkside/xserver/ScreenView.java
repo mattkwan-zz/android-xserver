@@ -210,6 +210,7 @@ public class ScreenView extends View {
         });
 
         setOnTouchListener(new View.OnTouchListener() {
+            @Override
             public boolean onTouch(View v, MotionEvent event) {
                 synchronized (_xServer) {
                     if (_rootWindow == null) return false;

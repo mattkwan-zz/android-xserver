@@ -31,6 +31,19 @@ import java.util.Set;
 import au.com.darkside.xserver.ScreenView;
 import au.com.darkside.xserver.XServer;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.lang.ProcessBuilder;
+import java.util.Map;
+import android.util.Log;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import android.content.res.AssetManager;
+import android.preference.PreferenceManager;
+import java.io.IOException;
+
 /**
  * This activity launches an X server and provides a screen for it.
  *
@@ -66,6 +79,8 @@ public class XServerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+        copyAssetData(""); // copy all assets to /data/data directory
+
         int port = DEFAULT_PORT;
         Intent intent = getIntent();
 
@@ -88,8 +103,49 @@ public class XServerActivity extends Activity {
         if (_port != DEFAULT_PORT) _portDescription = PORT_DESC_PRE + _port;
 
         _xServer = new XServer(this, port, null);
-        setAccessControl();
 
+        // execute binary on start (if there was any packed into the assets folder)
+        _xServer.setOnStartListener(new XServer.OnXSeverStartListener() {
+            @Override
+            public void onStart() {
+                String arch = System.getProperty("os.arch");
+                String executable = "binary.armhf";
+        
+                if(arch.equals("armv71"))
+                    executable = "binary.armhf";
+                else if(arch.equals("mips"))
+                    executable = "binary.mips";
+                else if(arch.equals("mips64"))
+                    executable = "binary.mips64";
+                else if(arch.equals("aarch64"))
+                    executable = "binary.aarch64";
+                else if(arch.equals("x86_64"))
+                    executable = "binary.x86_64";
+                else if(arch.equals("i686"))
+                    executable = "binary.i686";
+        
+                // execute our program 
+                try {
+                    File file = new File(getApplicationInfo().dataDir + "/" + executable);
+                    if(file.exists()){
+                        file.setExecutable(true); // make program executable
+                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                        Map<String, String> env = pb.environment();
+                        env.put("DISPLAY", "127.0.0.1:0");
+                        pb.directory(new File(getApplicationInfo().dataDir));
+            
+                        File log = new File(getApplicationInfo().dataDir + "/log");
+                        pb.redirectErrorStream(true);
+                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log));
+                        Process process = pb.start();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        setAccessControl();
         FrameLayout fl = (FrameLayout) findViewById(R.id.frame);
 
         _screenView = _xServer.getScreen();
@@ -335,4 +391,53 @@ public class XServerActivity extends Activity {
 
         Toast.makeText(this, "The ConnectBot application needs to be installed", Toast.LENGTH_LONG).show();
     }
+
+    private void copyAssetData(String path) {
+        AssetManager assetManager = this.getAssets();
+        String assets[] = null;
+        try {
+            assets = assetManager.list(path);
+            if (assets.length == 0) {
+                copyFile(path);
+            } else {
+                String fullPath = "/data/data/" + this.getPackageName() + "/" + path;
+                File dir = new File(fullPath);
+                if (!dir.exists())
+                    dir.mkdir();
+                for (int i = 0; i < assets.length; ++i) {
+                    Log.i(assets[i], "Info");
+                    if(path == "")
+                        copyAssetData(assets[i]);
+                    else
+                        copyAssetData(path + "/" + assets[i]);
+                }
+            }
+        } catch (IOException ex) {
+            Log.e("tag", "I/O Exception", ex);
+        }
+    }
+    
+    private void copyFile(String filename) {
+        AssetManager assetManager = this.getAssets();
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = assetManager.open(filename);
+            String newFileName = "/data/data/" + this.getPackageName() + "/" + filename;
+            out = new FileOutputStream(newFileName);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            in = null;
+            out.flush();
+            out.close();
+            out = null;
+        } catch (Exception e) {
+            Log.e("tag", e.getMessage());
+        }
+    } 
 }

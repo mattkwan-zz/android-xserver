@@ -30,6 +30,11 @@ import au.com.darkside.xserver.Xext.XSync;
  * @author Matthew Kwan
  */
 public class XServer {
+
+    static public abstract class OnXSeverStartListener {
+        public abstract void onStart();
+    }
+
     public final short ProtocolMajorVersion = 11;
     public final short ProtocolMinorVersion = 0;
     public final String vendor = "Open source";
@@ -72,6 +77,7 @@ public class XServer {
     private final HashSet<Integer> _accessControlHosts;
 
     private final Hashtable<String, Extension> _extensions;
+    private OnXSeverStartListener _onStartListener = null;
 
     /**
      * Constructor.
@@ -122,6 +128,10 @@ public class XServer {
         _timestamp = System.currentTimeMillis();
     }
 
+    public void setOnStartListener(OnXSeverStartListener l){
+        _onStartListener = l;
+    }
+
     /**
      * Start the thread that listens on the socket.
      * Also start the window manager if one is specified.
@@ -157,6 +167,8 @@ public class XServer {
         }
 
         resetScreenSaver();
+
+        if(_onStartListener != null) _onStartListener.onStart();
 
         return true;
     }
