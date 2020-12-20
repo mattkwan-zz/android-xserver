@@ -133,10 +133,6 @@ public class XServerActivity extends Activity {
                         Map<String, String> env = pb.environment();
                         env.put("DISPLAY", "127.0.0.1:0");
                         pb.directory(new File(getApplicationInfo().dataDir));
-            
-                        File log = new File(getApplicationInfo().dataDir + "/log");
-                        pb.redirectErrorStream(true);
-                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log));
                         Process process = pb.start();
                     }
                 } catch (IOException e) {
