@@ -203,7 +203,11 @@ public class InputOutput {
      * @throws IOException
      */
     public void readSkip(int n) throws IOException {
-        while (n > 0) n -= _inStream.skip(n);
+        int avaiable = _inStream.available();
+        if(n > avaiable) // to avoid blocking
+            n = avaiable;
+        while (n > 0) 
+            n -= _inStream.skip(n);
     }
 
     /**
@@ -314,11 +318,13 @@ public class InputOutput {
      *
      * @throws IOException
      */
-    public void flush() throws IOException {
+    public synchronized void flush() throws IOException {
         Thread t = new Thread(new Runnable() {
             public void run() {
                 try {
-                    _outStream.flush();
+                    synchronized(this){
+                        _outStream.flush();
+                    }
                 } catch (IOException e) {
                     Log.e("FATAL", e.toString());
                 }
