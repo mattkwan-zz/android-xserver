@@ -239,6 +239,7 @@ public class GContext extends Resource {
 
                     io.readSkip(n + pad);    // Ignore the dash information.
                 }
+                break;
             case RequestCode.SetClipRectangles:
                 if (bytesRemaining < 4) {
                     io.readSkip(bytesRemaining);
