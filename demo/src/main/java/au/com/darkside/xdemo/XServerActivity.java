@@ -245,10 +245,10 @@ public class XServerActivity extends Activity {
             case MENU_TOGGLE_ARROWS:
                 if (_xServer.getScreen().toggleArrowsAsButtons()) {
                     item.setIcon(android.R.drawable.star_on);
-                    item.setTitle("Arrows as buttons (on)");
+                    item.setTitle("Arrows as Mouseclicks (on)");
                 } else {
                     item.setIcon(android.R.drawable.star_off);
-                    item.setTitle("Arrows as buttons (off)");
+                    item.setTitle("Arrows as Mouseclicks (off)");
                 }
                 return true;
             case MENU_TOGGLE_BACKBUTTON:
