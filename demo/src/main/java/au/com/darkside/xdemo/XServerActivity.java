@@ -263,10 +263,10 @@ public class XServerActivity extends Activity {
             case MENU_TOGGLE_TOUCHCLICKS:
                 if (_xServer.getScreen().toggleEnableTouchClicks()) {
                     item.setIcon(android.R.drawable.star_on);
-                    item.setTitle("Touchsreen Mouseclicks (on)");
+                    item.setTitle("Touch Mouseclicks (on)");
                 } else {
                     item.setIcon(android.R.drawable.star_off);
-                    item.setTitle("Touchsreen Mouseclicks (off)");
+                    item.setTitle("Touch Mouseclicks (off)");
                 }
                 return true;
             case MENU_TOGGLE_WINDOWMANAGER:
