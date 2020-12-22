@@ -43,6 +43,8 @@ import java.io.FileOutputStream;
 import android.content.res.AssetManager;
 import android.preference.PreferenceManager;
 import java.io.IOException;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 
 /**
  * This activity launches an X server and provides a screen for it.
@@ -62,6 +64,7 @@ public class XServerActivity extends Activity {
     private static final int MENU_TOGGLE_BACKBUTTON = 6;
     private static final int MENU_TOGGLE_TOUCHCLICKS = 7;
     private static final int MENU_TOGGLE_WINDOWMANAGER = 8;
+    private static final int MENU_TOGGLE_ORIENTATION = 9;
     private static final int ACTIVITY_ACCESS_CONTROL = 1;
 
     private static final int DEFAULT_PORT = 6000;
@@ -193,17 +196,19 @@ public class XServerActivity extends Activity {
         item = menu.add(0, MENU_REMOTE_LOGIN, 0, "Remote login");
         item.setIcon(android.R.drawable.ic_menu_upload);
 
-        item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as buttons (on)");
+        item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as Mouseclicks (on)");
         item.setIcon(android.R.drawable.star_on);
 
         item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
         item.setIcon(android.R.drawable.star_off);
 
-        item = menu.add(0, MENU_TOGGLE_TOUCHCLICKS, 0, "Touchsreen Mouseclicks (on)");
+        item = menu.add(0, MENU_TOGGLE_TOUCHCLICKS, 0, "Touch Mouseclicks (on)");
         item.setIcon(android.R.drawable.star_on);
 
-        item = menu.add(0, MENU_TOGGLE_WINDOWMANAGER, 0, "FL Window Manager (off)");
+        item = menu.add(0, MENU_TOGGLE_WINDOWMANAGER, 0, "Window Manager (off)");
         item.setIcon(android.R.drawable.star_on);
+
+        item = menu.add(0, MENU_TOGGLE_ORIENTATION, 0, "Screen Orientation (H)");
 
         return true;
     }
@@ -267,7 +272,7 @@ public class XServerActivity extends Activity {
             case MENU_TOGGLE_WINDOWMANAGER:
                 if (_windowManager == null) {
                     try {
-                        String executable = "flwm." + System.getProperty("os.arch");
+                        String executable = "wm." + System.getProperty("os.arch");
                         File file = new File(getApplicationInfo().dataDir + "/" + executable);
                         if(file.exists()){
                             file.setExecutable(true); // make program executable
@@ -277,7 +282,7 @@ public class XServerActivity extends Activity {
                             pb.directory(new File(getApplicationInfo().dataDir));
                             _windowManager = pb.start();
                             item.setIcon(android.R.drawable.star_on);
-                            item.setTitle("FL Window Manager (on)");
+                            item.setTitle("Window Manager (on)");
                         }
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -286,7 +291,16 @@ public class XServerActivity extends Activity {
                     _windowManager.destroy();
                     _windowManager = null;
                     item.setIcon(android.R.drawable.star_off);
-                    item.setTitle("FL Window Manager (off)");
+                    item.setTitle("Window Manager (off)");
+                }
+                return true;
+            case MENU_TOGGLE_ORIENTATION:
+                if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    item.setTitle("Screen Orientation (V)");
+                } else {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                    item.setTitle("Screen Orientation (H)");
                 }
                 return true;
         }
