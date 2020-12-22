@@ -275,8 +275,8 @@ public class GContext extends Resource {
                 } else {
                     _xServer.freeResource(_id);
                     if (_client != null) _client.freeResource(this);
-                    break;
                 }
+                break;
             default:
                 io.readSkip(bytesRemaining);
                 ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);

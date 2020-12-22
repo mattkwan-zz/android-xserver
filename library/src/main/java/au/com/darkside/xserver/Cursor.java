@@ -178,8 +178,8 @@ public class Cursor extends Resource {
                 } else {
                     _xServer.freeResource(_id);
                     if (_client != null) _client.freeResource(this);
-                    break;
                 }
+                break;
             case RequestCode.RecolorCursor:
                 if (bytesRemaining != 12) {
                     io.readSkip(bytesRemaining);
