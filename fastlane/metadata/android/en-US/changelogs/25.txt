@@ -2,3 +2,5 @@
 - Use touch inputs for mouseclicks (can be disabled via menu entry).
 - Add simple way to execute binary applications on start.
 - Add a simple window manager.
+- Allow configuration of screen orientation vie menu entry (restarts activity and disconnects all clients).
+- Made FLTK based programms properly work.
