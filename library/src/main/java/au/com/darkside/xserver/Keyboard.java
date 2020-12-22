@@ -361,27 +361,27 @@ public class Keyboard {
         }
     }
 
-	/**
-	 * Get modifier state.
-	 * 
-	 * @return Modifier state According to pressed keys (keymap) and modifiermapping.
-	 */
-	public int getState() {
-		int diff = getMinimumKeycodeDiff();
-		int state = 0;
-    
-		for (int m = 0 ; m < 8; m++) {
-			for (int i = 0 ; i < 8 && _modifierMapping[m * 8 + i] != 0xff ; i++) {
-				byte		keycode = (byte) (_modifierMapping[m * 8 + i] + diff);
-				int			offset = keycode / 8;
-				byte		mask = (byte) (1 << (keycode & 7));
-				if ((_keymap[offset] & mask) == mask)
-					state |= 1 << m;
-			}
-		}
-    
-		return state;
-	}
+    /**
+     * Get modifier state.
+     * 
+     * @return Modifier state According to pressed keys (keymap) and modifiermapping.
+     */
+    public int getState() {
+        int diff = getMinimumKeycodeDiff();
+        int state = 0;
+
+        for (int m = 0 ; m < 8; m++) {
+            for (int i = 0 ; i < 8 && _modifierMapping[m * 8 + i] != 0xff ; i++) {
+                byte		keycode = (byte) (_modifierMapping[m * 8 + i] + diff);
+                int			offset = keycode / 8;
+                byte		mask = (byte) (1 << (keycode & 7));
+                if ((_keymap[offset] & mask) == mask)
+                    state |= 1 << m;
+            }
+        }
+
+        return state;
+    }
 
 
     /**
