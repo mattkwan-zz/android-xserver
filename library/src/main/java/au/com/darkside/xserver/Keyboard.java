@@ -88,9 +88,12 @@ public class Keyboard {
         _keyboardMapping = new int[kpk * _numKeycodes];
         System.arraycopy(map, min * kpk, _keyboardMapping, 0, _keyboardMapping.length);
 
-        _keyboardMapping[(KeyEvent.KEYCODE_DEL - min) * kpk] = 127;
-        _keyboardMapping[(KeyEvent.KEYCODE_ALT_LEFT - min) * kpk] = 0xff7e;
-        _keyboardMapping[(KeyEvent.KEYCODE_ALT_RIGHT - min) * kpk] = 0xff7e;
+        _keyboardMapping[(KeyEvent.KEYCODE_FORWARD_DEL - min) * kpk] = 0xffff; // del
+        _keyboardMapping[(KeyEvent.KEYCODE_DEL - min) * kpk] = 0xff08; // backspace
+        _keyboardMapping[(KeyEvent.KEYCODE_ALT_LEFT - min) * kpk] = 0xffe9;
+        _keyboardMapping[(KeyEvent.KEYCODE_ALT_RIGHT - min) * kpk] = 0xfe03;
+        _keyboardMapping[(KeyEvent.KEYCODE_CTRL_LEFT - min) * kpk] = 0xffe3;
+        _keyboardMapping[(KeyEvent.KEYCODE_CTRL_RIGHT - min) * kpk] = 0xffe4;
     }
 
     /**
