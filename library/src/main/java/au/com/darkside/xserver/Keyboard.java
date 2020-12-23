@@ -94,6 +94,7 @@ public class Keyboard {
         _keyboardMapping[(KeyEvent.KEYCODE_ALT_RIGHT - min) * kpk] = 0xfe03;
         _keyboardMapping[(KeyEvent.KEYCODE_CTRL_LEFT - min) * kpk] = 0xffe3;
         _keyboardMapping[(KeyEvent.KEYCODE_CTRL_RIGHT - min) * kpk] = 0xffe4;
+        _keyboardMapping[(KeyEvent.KEYCODE_ENTER - min) * kpk] = 0xff0d; // enter/return
     }
 
     /**
