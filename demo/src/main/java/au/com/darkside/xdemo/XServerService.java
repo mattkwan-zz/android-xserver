@@ -26,7 +26,7 @@ public class XServerService extends Service {
     
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        NotificationManager manager = getSystemService(NotificationManager.class);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.cancelAll();
     }
 }
