@@ -7,6 +7,8 @@ import android.app.Notification;
 import android.content.Intent;
 import android.os.IBinder;
 
+import android.content.Context;
+
 public class XServerService extends Service {
 
     @Override
