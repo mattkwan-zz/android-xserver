@@ -7,7 +7,7 @@ LIBNAME=au.com.darkside.xserver
 # Version Info
 VER_CODE=28
 VER_NAME=1.28
-MIN_SDK=23
+MIN_SDK=21
 
 ## Java/Android Compiler Settings
 JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64/
