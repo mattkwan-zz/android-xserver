@@ -113,19 +113,24 @@ public class XServerActivity extends Activity {
         _xServer.setOnStartListener(new XServer.OnXSeverStartListener() {
             @Override
             public void onStart() {
-                String executable = "binary." + System.getProperty("os.arch");
-
                 // execute our program 
                 try {
+                    String arch = System.getProperty("os.arch");
+                    if(arch.equals("x86") || arch.equals("i386"))
+                        arch = "i686";
+                    else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
+                        arch = "armv71";
+                    String executable = "binary." + arch;
                     File file = new File(getApplicationInfo().dataDir + "/" + executable);
-                    if(file.exists()){
-                        file.setExecutable(true); // make program executable
-                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
-                        Map<String, String> env = pb.environment();
-                        env.put("DISPLAY", "127.0.0.1:0");
-                        pb.directory(new File(getApplicationInfo().dataDir));
-                        Process process = pb.start();
-                    }
+                    if(!file.exists())
+                        file = new File(getApplicationInfo().dataDir + "/binary.armv71");
+
+                    file.setExecutable(true); // make program executable
+                    ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                    Map<String, String> env = pb.environment();
+                    env.put("DISPLAY", "127.0.0.1:0");
+                    pb.directory(new File(getApplicationInfo().dataDir));
+                    Process process = pb.start();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -272,18 +277,24 @@ public class XServerActivity extends Activity {
             case MENU_TOGGLE_WINDOWMANAGER:
                 if (_windowManager == null) {
                     try {
-                        String executable = "wm." + System.getProperty("os.arch");
+                        String arch = System.getProperty("os.arch");
+                        if(arch.equals("x86") || arch.equals("i386"))
+                            arch = "i686";
+                        else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
+                            arch = "armv71";
+                        String executable = "wm." + arch;
                         File file = new File(getApplicationInfo().dataDir + "/" + executable);
-                        if(file.exists()){
-                            file.setExecutable(true); // make program executable
-                            ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
-                            Map<String, String> env = pb.environment();
-                            env.put("DISPLAY", "127.0.0.1:0");
-                            pb.directory(new File(getApplicationInfo().dataDir));
-                            _windowManager = pb.start();
-                            item.setIcon(android.R.drawable.star_on);
-                            item.setTitle("Window Manager (on)");
-                        }
+                        if(!file.exists())
+                            file = new File(getApplicationInfo().dataDir + "/wm.armv71");
+
+                        file.setExecutable(true); // make program executable
+                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                        Map<String, String> env = pb.environment();
+                        env.put("DISPLAY", "127.0.0.1:0");
+                        pb.directory(new File(getApplicationInfo().dataDir));
+                        _windowManager = pb.start();
+                        item.setIcon(android.R.drawable.star_on);
+                        item.setTitle("Window Manager (on)");
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
