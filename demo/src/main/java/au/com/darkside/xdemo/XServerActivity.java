@@ -124,13 +124,14 @@ public class XServerActivity extends Activity {
                     File file = new File(getApplicationInfo().dataDir + "/" + executable);
                     if(!file.exists())
                         file = new File(getApplicationInfo().dataDir + "/binary.armv71");
-
-                    file.setExecutable(true); // make program executable
-                    ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
-                    Map<String, String> env = pb.environment();
-                    env.put("DISPLAY", "127.0.0.1:0");
-                    pb.directory(new File(getApplicationInfo().dataDir));
-                    Process process = pb.start();
+                    if(file.exists()){
+                        file.setExecutable(true); // make program executable
+                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                        Map<String, String> env = pb.environment();
+                        env.put("DISPLAY", "127.0.0.1:0");
+                        pb.directory(new File(getApplicationInfo().dataDir));
+                        Process process = pb.start();
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -476,5 +477,6 @@ public class XServerActivity extends Activity {
         } catch (Exception e) {
             Log.e("tag", e.getMessage());
         }
-    } 
+    }
+
 }
