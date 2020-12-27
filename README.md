@@ -34,10 +34,11 @@ $ lwm &
 $ xfe
 ```
 
-The volume rocker acts as mouse buttons.
+In addition to the touch screen, the volume rocker acts as mouse buttons.
+
 
 About
---------
+-----
 
 Forked from: https://github.com/mattkwan-zz/android-xserver
 
