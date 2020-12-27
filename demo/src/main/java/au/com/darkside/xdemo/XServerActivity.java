@@ -175,7 +175,7 @@ public class XServerActivity extends Activity {
     @Override
     public void onPause() {
         super.onPause();
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, getIntent(), Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, getIntent(), PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new Notification.Builder(this)
             .setSmallIcon(android.R.drawable.ic_menu_view)
             .setContentTitle("Running!")
