@@ -224,8 +224,8 @@ public class XServerActivity extends Activity {
         item = menu.add(0, MENU_REMOTE_LOGIN, 0, "Remote login");
         item.setIcon(android.R.drawable.ic_menu_upload);
 
-        item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as Mouseclicks (on)");
-        item.setIcon(android.R.drawable.star_on);
+        item = menu.add(0, MENU_TOGGLE_ARROWS, 0, "Arrows as Mouseclicks (off)");
+        item.setIcon(android.R.drawable.star_off);
 
         item = menu.add(0, MENU_TOGGLE_BACKBUTTON, 0, "Inhibit back button (off)");
         item.setIcon(android.R.drawable.star_off);

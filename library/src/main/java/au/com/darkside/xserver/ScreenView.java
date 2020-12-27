@@ -147,7 +147,7 @@ public class ScreenView extends View {
     private int _motionY;
     private int _buttons = 0;
     private boolean _isBlanked = false;
-	private boolean	_arrowsAsButtons = true;
+	private boolean	_arrowsAsButtons = false;
     private boolean	_inhibitBackButton = false;
     private boolean	_enableTouchClicks = true;
     private Paint _paint;
@@ -673,11 +673,9 @@ public class ScreenView extends View {
     }
 
     /**
-     * Called when modifier keys (i.e. shift/alt) are pressed/released.
-     *
-     * @param pressed True if pressed, false if released.
+     * Updates keycodes for modifier keys (i.e. shift/alt).
      */
-    private void updateModifiers(boolean pressed) {
+    private void updateModifiers() {
         int mask = 0;
 
 		Keyboard kb = _xServer.getKeyboard();
@@ -799,8 +797,7 @@ public class ScreenView extends View {
 					break;
 			}
 	
-			updateModifiers(true);
-
+			updateModifiers();
             if (sendEvent) notifyKeyPressedReleased(keycode, true);
         }
 
@@ -859,8 +856,7 @@ public class ScreenView extends View {
 					break;
 			}
 	
-			updateModifiers(false);
-
+			updateModifiers();
             if (sendEvent) notifyKeyPressedReleased(keycode, false);
         }
 

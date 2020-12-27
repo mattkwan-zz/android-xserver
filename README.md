@@ -10,7 +10,7 @@ This project also includes a simple demo application.
 Quick Start
 -----------
 
-To display programs within the X-Server demo app you need to set the DISPLAY environment variable on your host device. Its also highly recommended to use a window manager (i.e. lwm). A simple window manager (FLWM) is already embedded into the application.
+To display programs within the X-Server demo app you need to set the DISPLAY environment variable on your host device. Its also highly recommended to use a window manager (i.e. lwm). A simple window manager (FLWM) is already embedded into the application. For an extended softkeyboard [Hacker's Keyboard](https://f-droid.org/en/packages/org.pocketworkstation.pckeyboard/) can be used.
 
 ### Build
 

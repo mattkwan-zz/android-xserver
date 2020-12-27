@@ -21,14 +21,14 @@ public class Keyboard {
     private byte _keycodesPerModifier = 8;
     private byte[] _keymap = new byte[32];
 	private byte[] _modifierMapping = new byte[] {
-		KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT, 0, 0, 0, 0, 0, 0,
+		KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT, 0, 0, 0, 0, 0, 0,  // 1
+		0, 0, 0, 0, 0, 0, 0, 0, // 2
+		KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT, 0, 0, 0, 0, 0, 0, // 4
+		KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_ALT_RIGHT, 0, 0, 0, 0, 0, 0, // 8
 		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0
+		0, 0, 0, 0, 0, 0, 0, 0, // 20
+		KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT, 0, 0, 0, 0, 0, 0, // 40
+		0, 0, 0, 0, 0, 0, 0, 0  // 80
     };
     
     private static final int DefaultBellPercent = 50;
@@ -88,6 +88,7 @@ public class Keyboard {
         _keyboardMapping = new int[kpk * _numKeycodes];
         System.arraycopy(map, min * kpk, _keyboardMapping, 0, _keyboardMapping.length);
 
+        // Keycode translation table
         _keyboardMapping[(KeyEvent.KEYCODE_FORWARD_DEL - min) * kpk] = 0xffff; // del
         _keyboardMapping[(KeyEvent.KEYCODE_DEL - min) * kpk] = 0xff08; // backspace
         _keyboardMapping[(KeyEvent.KEYCODE_ALT_LEFT - min) * kpk] = 0xffe9;
@@ -95,6 +96,55 @@ public class Keyboard {
         _keyboardMapping[(KeyEvent.KEYCODE_CTRL_LEFT - min) * kpk] = 0xffe3;
         _keyboardMapping[(KeyEvent.KEYCODE_CTRL_RIGHT - min) * kpk] = 0xffe4;
         _keyboardMapping[(KeyEvent.KEYCODE_ENTER - min) * kpk] = 0xff0d; // enter/return
+        _keyboardMapping[(KeyEvent.KEYCODE_DPAD_UP - min) * kpk] = 0xff52;
+        _keyboardMapping[(KeyEvent.KEYCODE_DPAD_DOWN - min) * kpk] = 0xff54;
+        _keyboardMapping[(KeyEvent.KEYCODE_DPAD_LEFT - min) * kpk] = 0xff51;
+        _keyboardMapping[(KeyEvent.KEYCODE_DPAD_RIGHT - min) * kpk] = 0xff53;
+        _keyboardMapping[(KeyEvent.KEYCODE_PAGE_UP - min) * kpk] = 0xff55;
+        _keyboardMapping[(KeyEvent.KEYCODE_PAGE_DOWN - min) * kpk] = 0xff56;
+        _keyboardMapping[(KeyEvent.KEYCODE_MOVE_HOME - min) * kpk] = 0xff50;
+        _keyboardMapping[(KeyEvent.KEYCODE_MOVE_END - min) * kpk] = 0xff57;
+        _keyboardMapping[(KeyEvent.KEYCODE_ESCAPE - min) * kpk] = 0xff1b;
+        _keyboardMapping[(KeyEvent.KEYCODE_F1 - min) * kpk] = 0xffbe;
+        _keyboardMapping[(KeyEvent.KEYCODE_F2 - min) * kpk] = 0xffbf;
+        _keyboardMapping[(KeyEvent.KEYCODE_F3 - min) * kpk] = 0xffc0;
+        _keyboardMapping[(KeyEvent.KEYCODE_F4 - min) * kpk] = 0xffc1;
+        _keyboardMapping[(KeyEvent.KEYCODE_F5 - min) * kpk] = 0xffc2;
+        _keyboardMapping[(KeyEvent.KEYCODE_F6 - min) * kpk] = 0xffc3;
+        _keyboardMapping[(KeyEvent.KEYCODE_F7 - min) * kpk] = 0xffc4;
+        _keyboardMapping[(KeyEvent.KEYCODE_F8 - min) * kpk] = 0xffc5;
+        _keyboardMapping[(KeyEvent.KEYCODE_F9 - min) * kpk] = 0xffc6;
+        _keyboardMapping[(KeyEvent.KEYCODE_F10 - min) * kpk] = 0xffc7;
+        _keyboardMapping[(KeyEvent.KEYCODE_F11 - min) * kpk] = 0xffc8;
+        _keyboardMapping[(KeyEvent.KEYCODE_F12 - min) * kpk] = 0xffc9;
+        _keyboardMapping[(KeyEvent.KEYCODE_INSERT - min) * kpk] = 0xff63;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_0 - min) * kpk] = 0xffb0;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_1 - min) * kpk] = 0xffb1;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_2 - min) * kpk] = 0xffb2;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_3 - min) * kpk] = 0xffb3;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_4 - min) * kpk] = 0xffb4;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_5 - min) * kpk] = 0xffb5;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_6 - min) * kpk] = 0xffb6;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_7 - min) * kpk] = 0xffb7;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_8 - min) * kpk] = 0xffb8;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_9 - min) * kpk] = 0xffb9;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_ADD - min) * kpk] = 0xffab;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_COMMA - min) * kpk] = 0xffac;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_DIVIDE - min) * kpk] = 0xffaf;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_DOT - min) * kpk] = 0xffae;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_ENTER - min) * kpk] = 0xff8d;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_EQUALS - min) * kpk] = 0xffbd;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_MULTIPLY - min) * kpk] = 0xffaa;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUMPAD_SUBTRACT - min) * kpk] = 0xffad;
+        _keyboardMapping[(KeyEvent.KEYCODE_NUM_LOCK - min) * kpk] = 0xff7f;
+        _keyboardMapping[(KeyEvent.KEYCODE_META_LEFT - min) * kpk] = 0xffeb; // Windows / Super key
+        _keyboardMapping[(KeyEvent.KEYCODE_META_RIGHT - min) * kpk] = 0xffec; // Windows / Super key
+        _keyboardMapping[(KeyEvent.KEYCODE_TAB - min) * kpk] = 0xff09;
+        _keyboardMapping[(KeyEvent.KEYCODE_BREAK - min) * kpk] = 0xff13;
+        _keyboardMapping[(KeyEvent.KEYCODE_SCROLL_LOCK - min) * kpk] = 0xff14;
+        _keyboardMapping[(KeyEvent.KEYCODE_SYSRQ - min) * kpk] = 0xff61; // print screen
+        _keyboardMapping[(KeyEvent.KEYCODE_SHIFT_LEFT - min) * kpk] = 0xffe1;
+        _keyboardMapping[(KeyEvent.KEYCODE_SHIFT_RIGHT - min) * kpk] = 0xffe2;
     }
 
     /**
