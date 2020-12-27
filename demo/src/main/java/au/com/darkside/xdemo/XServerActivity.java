@@ -164,7 +164,7 @@ public class XServerActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-        NotificationManager manager = getSystemService(NotificationManager.class);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.cancel(1);
         _wakeLock.acquire();
     }
@@ -184,7 +184,7 @@ public class XServerActivity extends Activity {
             .setOngoing(true)
             .build();
 
-        NotificationManager manager = getSystemService(NotificationManager.class);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.notify(1, notification);
 
         _wakeLock.release();
@@ -198,7 +198,7 @@ public class XServerActivity extends Activity {
         _xServer.stop();
         super.onDestroy();
 
-        NotificationManager manager = getSystemService(NotificationManager.class);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.cancel(1);
     }
 
