@@ -1,1 +1,2 @@
 - Better native binary selection.
+- Add notification to status bar when running in background.

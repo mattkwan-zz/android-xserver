@@ -4,6 +4,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Service;
+import android.app.NotificationManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
@@ -151,6 +154,8 @@ public class XServerActivity extends Activity {
 
         // make window fullscreen
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        startService(new Intent(this, XServerService.class));
     }
 
     /**
@@ -159,6 +164,8 @@ public class XServerActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.cancel(1);
         _wakeLock.acquire();
     }
 
@@ -168,6 +175,18 @@ public class XServerActivity extends Activity {
     @Override
     public void onPause() {
         super.onPause();
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, getIntent(), Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP);
+        Notification notification = new Notification.Builder(this)
+            .setSmallIcon(android.R.drawable.ic_menu_view)
+            .setContentTitle("Running!")
+            .setContentText("XServer running in background.")
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build();
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.notify(1, notification);
+
         _wakeLock.release();
     }
 
@@ -178,6 +197,9 @@ public class XServerActivity extends Activity {
     public void onDestroy() {
         _xServer.stop();
         super.onDestroy();
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.cancel(1);
     }
 
     /**
