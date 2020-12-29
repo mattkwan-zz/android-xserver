@@ -73,12 +73,12 @@ public class Extensions {
             case Shape:
                 XShape.processRequest(xServer, client, opcode, arg, bytesRemaining);
                 break;
-            case Sync:
-                XSync.processRequest(xServer, client, opcode, arg, bytesRemaining);
-                break;
             case XTEST:
                 XTest.processRequest(xServer, client, opcode, arg, bytesRemaining);
                 break;
+            case Sync:
+            //    XSync.processRequest(xServer, client, opcode, arg, bytesRemaining);
+            //    break;
             default:
                 io.readSkip(bytesRemaining);    // Not implemented.
                 ErrorCode.write(client, ErrorCode.Implementation, opcode, 0);
