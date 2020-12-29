@@ -176,21 +176,21 @@ public class InputOutput {
         long n = readByte();
 
         if (_msb) {
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
-            n = (n << 8) | readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
+            n = (n << 8) | (long)readByte();
         } else {
-            n |= readByte() << 8;
-            n |= readByte() << 16;
-            n |= readByte() << 24;
-            n |= readByte() << 32;
-            n |= readByte() << 40;
-            n |= readByte() << 48;
-            n |= readByte() << 56;
+            n |= (long)readByte() << 8;
+            n |= (long)readByte() << 16;
+            n |= (long)readByte() << 24;
+            n |= (long)readByte() << 32;
+            n |= (long)readByte() << 40;
+            n |= (long)readByte() << 48;
+            n |= (long)readByte() << 56;
         }
 
         return n;
