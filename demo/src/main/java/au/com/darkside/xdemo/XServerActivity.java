@@ -124,15 +124,17 @@ public class XServerActivity extends Activity {
                     else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
                         arch = "armv71";
                     String executable = "binary." + arch;
-                    File file = new File(getApplicationInfo().dataDir + "/" + executable);
-                    if(!file.exists())
-                        file = new File(getApplicationInfo().dataDir + "/binary.armv71");
+                    File file = new File("/data/data/" + getPackageName() + "/" + executable);
+                    if(!file.exists()){
+                        executable = "binary.armv71";
+                        file = new File("/data/data/" + getPackageName() + "/" + executable);
+                    }
                     if(file.exists()){
                         file.setExecutable(true); // make program executable
-                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                        ProcessBuilder pb = new ProcessBuilder("/data/data/" + getPackageName() + "/" + executable);
                         Map<String, String> env = pb.environment();
                         env.put("DISPLAY", "127.0.0.1:0");
-                        pb.directory(new File(getApplicationInfo().dataDir));
+                        pb.directory(new File("/data/data/" + getPackageName() + "/"));
                         Process process = pb.start();
                     }
                 } catch (IOException e) {
@@ -306,15 +308,16 @@ public class XServerActivity extends Activity {
                         else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
                             arch = "armv71";
                         String executable = "wm." + arch;
-                        File file = new File(getApplicationInfo().dataDir + "/" + executable);
-                        if(!file.exists())
-                            file = new File(getApplicationInfo().dataDir + "/wm.armv71");
-
+                        File file = new File("/data/data/" + this.getPackageName() + "/" + executable);
+                        if(!file.exists()){
+                            executable = "wm.armv71";
+                            file = new File("/data/data/" + this.getPackageName() + "/" + executable);
+                        }
                         file.setExecutable(true); // make program executable
-                        ProcessBuilder pb = new ProcessBuilder(getApplicationInfo().dataDir + "/" + executable);
+                        ProcessBuilder pb = new ProcessBuilder("/data/data/" + this.getPackageName() + "/" + executable);
                         Map<String, String> env = pb.environment();
                         env.put("DISPLAY", "127.0.0.1:0");
-                        pb.directory(new File(getApplicationInfo().dataDir));
+                        pb.directory(new File("/data/data/" + this.getPackageName() + "/"));
                         _windowManager = pb.start();
                         item.setIcon(android.R.drawable.star_on);
                         item.setTitle("Window Manager (on)");
