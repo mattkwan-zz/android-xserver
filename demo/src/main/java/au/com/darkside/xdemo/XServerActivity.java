@@ -90,7 +90,7 @@ public class XServerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        copyAssetData(""); // copy all assets to /data/data directory
+        copyAssetData(""); // copy all assets to getApplicationInfo().dataDir directory
 
         int port = DEFAULT_PORT;
         Intent intent = getIntent();
@@ -121,23 +121,13 @@ public class XServerActivity extends Activity {
             public void onStart() {
                 // execute our program 
                 try {
-                    String arch = System.getProperty("os.arch");
-                    if(arch.equals("x86") || arch.equals("i386"))
-                        arch = "i686";
-                    else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
-                        arch = "armv71";
-                    String executable = "binary." + arch;
-                    File file = new File("/data/data/" + getPackageName() + "/" + executable);
-                    if(!file.exists()){
-                        executable = "binary.armv71";
-                        file = new File("/data/data/" + getPackageName() + "/" + executable);
-                    }
+                    File file = new File(getApplicationInfo().nativeLibraryDir + "/libbinary.so");
                     if(file.exists()){
                         file.setExecutable(true); // make program executable
-                        ProcessBuilder pb = new ProcessBuilder("/data/data/" + getPackageName() + "/" + executable);
+                        ProcessBuilder pb = new ProcessBuilder(file.getPath());
                         Map<String, String> env = pb.environment();
                         env.put("DISPLAY", "127.0.0.1:0");
-                        pb.directory(new File("/data/data/" + getPackageName() + "/"));
+                        pb.directory(new File(getApplicationInfo().dataDir)); // execute within data-dir
                         Process process = pb.start();
                     }
                 } catch (IOException e) {
@@ -327,22 +317,12 @@ public class XServerActivity extends Activity {
             case MENU_TOGGLE_WINDOWMANAGER:
                 if (_windowManager == null) {
                     try {
-                        String arch = System.getProperty("os.arch");
-                        if(arch.equals("x86") || arch.equals("i386"))
-                            arch = "i686";
-                        else if(arch.indexOf("arm") != -1 && arch.indexOf("64") == -1)
-                            arch = "armv71";
-                        String executable = "wm." + arch;
-                        File file = new File("/data/data/" + this.getPackageName() + "/" + executable);
-                        if(!file.exists()){
-                            executable = "wm.armv71";
-                            file = new File("/data/data/" + this.getPackageName() + "/" + executable);
-                        }
+                        File file = new File(getApplicationInfo().nativeLibraryDir + "/libwm.so");
                         file.setExecutable(true); // make program executable
-                        ProcessBuilder pb = new ProcessBuilder("/data/data/" + this.getPackageName() + "/" + executable);
+                        ProcessBuilder pb = new ProcessBuilder(file.getPath());
                         Map<String, String> env = pb.environment();
                         env.put("DISPLAY", "127.0.0.1:0");
-                        pb.directory(new File("/data/data/" + this.getPackageName() + "/"));
+                        pb.directory(new File(getApplicationInfo().dataDir)); // execute within dataDir
                         _windowManager = pb.start();
                         item.setIcon(android.R.drawable.star_on);
                         item.setTitle("Window Manager (on)");
@@ -488,7 +468,7 @@ public class XServerActivity extends Activity {
             if (assets.length == 0) {
                 copyFile(path);
             } else {
-                String fullPath = "/data/data/" + this.getPackageName() + "/" + path;
+                String fullPath = getApplicationInfo().dataDir + "/" + path;
                 File dir = new File(fullPath);
                 if (!dir.exists())
                     dir.mkdir();
@@ -511,7 +491,7 @@ public class XServerActivity extends Activity {
         OutputStream out = null;
         try {
             in = assetManager.open(filename);
-            String newFileName = "/data/data/" + this.getPackageName() + "/" + filename;
+            String newFileName = getApplicationInfo().dataDir + "/" + filename;
             out = new FileOutputStream(newFileName);
 
             byte[] buffer = new byte[1024];

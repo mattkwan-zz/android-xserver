@@ -11,6 +11,7 @@
 
     <application
         android:allowBackup="true"
+        android:extractNativeLibs="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name">
         <service android:name="au.com.darkside.xdemo.XServerService" 
