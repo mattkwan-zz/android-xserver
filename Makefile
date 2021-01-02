@@ -98,7 +98,7 @@ kill:
 remote_screen:
 	 scrcpy --render-driver=software --disable-screensaver --stay-awake &
 
-deploy: clean android kill uninstall install run
+deploy: clean android_debug kill uninstall install run
 
 clean:
 	rm -rf $(GENDIR_ANDROID)
