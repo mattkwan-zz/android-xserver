@@ -3,6 +3,7 @@ package au.com.darkside.xdemo;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.NotificationChannel;
 import android.app.Service;
 import android.app.NotificationManager;
 import android.app.Notification;
@@ -14,6 +15,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
@@ -37,14 +39,13 @@ import au.com.darkside.xserver.XServer;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.lang.ProcessBuilder;
-import java.util.Map;
+
 import android.util.Log;
-import java.io.BufferedReader;
+
 import java.io.FileOutputStream;
 import android.content.res.AssetManager;
-import android.preference.PreferenceManager;
+
 import java.io.IOException;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -58,6 +59,8 @@ public class XServerActivity extends Activity {
     private XServer _xServer;
     private ScreenView _screenView;
     private WakeLock _wakeLock;
+
+    private static final String NOTIFICATION_CHANNEL_DEFAULT = "default";
 
     private static final int MENU_KEYBOARD = 1;
     private static final int MENU_IP_ADDRESS = 2;
@@ -158,6 +161,21 @@ public class XServerActivity extends Activity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         startService(new Intent(this, XServerService.class));
+
+        /*
+         * Create notification channel as it required for notifications on Android >= 8
+         */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Default channel";
+            String description = "Default notification channel of XServer demo";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_DEFAULT, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     /**
@@ -178,16 +196,23 @@ public class XServerActivity extends Activity {
     public void onPause() {
         super.onPause();
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, getIntent(), PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification notification = new Notification.Builder(this)
+        Notification.Builder nb = new Notification.Builder(this)
             .setSmallIcon(android.R.drawable.ic_menu_view)
             .setContentTitle("Running!")
             .setContentText("XServer running in background.")
             .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build();
+            .setOngoing(true);
+
+        /*
+         * Set notification channel as it required for notifications on Android >= 8
+         */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nb.setChannelId(NOTIFICATION_CHANNEL_DEFAULT);
+        }
+
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(1, notification);
+        manager.notify(1, nb.build());
 
         _wakeLock.release();
     }
@@ -479,7 +504,7 @@ public class XServerActivity extends Activity {
             Log.e("tag", "I/O Exception", ex);
         }
     }
-    
+
     private void copyFile(String filename) {
         AssetManager assetManager = this.getAssets();
         InputStream in = null;
