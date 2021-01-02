@@ -77,9 +77,6 @@ android_release:
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
 	$(ZIPALIGN) -f 4 $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(OUT_ANDROID)/$(PROJNAME).apk
 
-test:
-	$(ANDROID_NATIVE_LIBS_AAPT_CMD)
-
 generate_keystore:
 	keytool -genkey -v -keystore $(ANDROID_KEYSTORE_PATH)  -storepass $(ANDROID_KEYSTORE_PW) -alias $(ANDROID_KEYSTORE_NAME) -keypass $(ANDROID_KEYSTORE_PW) -keyalg RSA -keysize 2048 -validity 10000	
 
