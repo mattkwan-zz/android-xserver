@@ -10,10 +10,12 @@ VER_NAME=1.29
 MIN_SDK=21
 
 ## Java/Android Compiler Settings (defaults are valid for debian buster)
-JAVA_HOME:=$(if $(JAVA_HOME),$(JAVA_HOME),/usr/lib/jvm/java-1.11.0-openjdk-amd64/) 						# can be overridden by environment variable
-ANDROID_SDK_ROOT:=$(if $(ANDROID_SDK_ROOT),$(ANDROID_SDK_ROOT),/usr/lib/android-sdk) 					# can be overridden by environment variable
-ANDROID_BUILD_TOOLS_VERSION:=$(if $(ANDROID_BUILD_TOOLS_VERSION),$(ANDROID_BUILD_TOOLS_VERSION),debian) # can be overridden by environment variable
-ANDROID_PLATORM_VERSION:=$(if $(ANDROID_PLATORM_VERSION),$(ANDROID_PLATORM_VERSION),23) 				# can be overridden by environment variable
+# Can be overridden by environment variables
+JAVA_HOME:=$(if $(JAVA_HOME),$(JAVA_HOME),/usr/lib/jvm/java-1.11.0-openjdk-amd64/)
+ANDROID_SDK_ROOT:=$(if $(ANDROID_SDK_ROOT),$(ANDROID_SDK_ROOT),/usr/lib/android-sdk)
+ANDROID_BUILD_TOOLS_VERSION:=$(if $(ANDROID_BUILD_TOOLS_VERSION),$(ANDROID_BUILD_TOOLS_VERSION),debian)
+ANDROID_PLATORM_VERSION:=$(if $(ANDROID_PLATORM_VERSION),$(ANDROID_PLATORM_VERSION),23)
+
 ANDROID_PLATORM=android-$(ANDROID_PLATORM_VERSION)
 ANDROID_CP=$(ANDROID_SDK_ROOT)/platforms/$(ANDROID_PLATORM)/android.jar
 
@@ -43,9 +45,9 @@ CLASSDIR_ANDROID=$(WORKDIR)/demo/build/outputs/class
 NATIVELIBDIR_ANDROID=$(WORKDIR)/demo/build/outputs/lib
 OUT_ANDROID=$(WORKDIR)/demo/build/outputs/apk
 
-all: clean android
+all: clean android_release
 
-android:
+android_debug:
 	mkdir -p $(GENDIR_ANDROID)
 	mkdir -p $(CLASSDIR_ANDROID)
 	mkdir -p $(OUT_ANDROID)
@@ -55,6 +57,21 @@ android:
 	$(JAVAC) -g -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
 	$(AAPT) package -f --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
+	cd $(GENDIR_ANDROID) && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned classes.dex
+	cd $(NATIVELIBDIR_ANDROID)/../ $(ANDROID_NATIVE_LIBS_AAPT_CMD)
+	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
+	$(ZIPALIGN) -f 4 $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(OUT_ANDROID)/$(PROJNAME).apk
+
+android_release:
+	mkdir -p $(GENDIR_ANDROID)
+	mkdir -p $(CLASSDIR_ANDROID)
+	mkdir -p $(OUT_ANDROID)
+	mkdir -p $(NATIVELIBDIR_ANDROID)
+	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
+	$(AAPT) package -f -m --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
+	$(JAVAC) -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
+	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
+	$(AAPT) package -f --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
 	cd $(GENDIR_ANDROID) && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned classes.dex
 	cd $(NATIVELIBDIR_ANDROID)/../ $(ANDROID_NATIVE_LIBS_AAPT_CMD)
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
