@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 29
-
+    ndkVersion "21.0.6113669"
     defaultConfig {
         applicationId "au.com.darkside.xdemo"
         minSdkVersion 21
