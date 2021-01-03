@@ -240,6 +240,7 @@ public class ScreenView extends View {
                 return false;
             }
         });
+        requestFocus();
     }
 
     /**
