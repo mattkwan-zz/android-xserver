@@ -7,7 +7,6 @@ import android.graphics.PorterDuff.Mode;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.Region;
-import android.os.Build;
 
 import java.io.IOException;
 
