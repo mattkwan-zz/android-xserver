@@ -1,0 +1,2 @@
+- Fix notifications for Android 8+.
+- Fix crash when trying to start FLWM on Android 10+.
