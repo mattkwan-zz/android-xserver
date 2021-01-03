@@ -3,7 +3,6 @@ package au.com.darkside.xdemo;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.NotificationChannel;
 import android.app.Service;
 import android.app.NotificationManager;
 import android.app.Notification;
@@ -40,6 +39,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ProcessBuilder;
+import java.lang.Class;
+import java.lang.reflect.Constructor;
 
 import android.util.Log;
 
@@ -154,17 +155,26 @@ public class XServerActivity extends Activity {
 
         /*
          * Create notification channel as it required for notifications on Android >= 8
+         * Use reflection to stay backward compatible with sdk provided by debian
          */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= 26) {
             CharSequence name = "Default channel";
             String description = "Default notification channel of XServer demo";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_DEFAULT, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+            int importance = 3; // default importance
+
+            try{
+                Class nc = Class.forName("android.app.NotificationChannel");
+                Object ncObj = nc.getConstructor(new Class[] {String.class, CharSequence.class, int.class}).newInstance(NOTIFICATION_CHANNEL_DEFAULT, name, importance);
+                nc.getMethod("setDescription", String.class).invoke(ncObj, description);
+                nc.getMethod("setVibrationPattern", long[].class).invoke(ncObj, new long[]{ 0 }); // enableVibration is bugged, use this as workaround
+                nc.getMethod("enableVibration", boolean.class).invoke(ncObj, true);
+                nc.getMethod("enableLights", boolean.class).invoke(ncObj, false);
+                NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                manager.getClass().getMethod("createNotificationChannel", nc).invoke(manager, ncObj);
+            }
+            catch(Exception e){
+                Log.e("FATAL", "Could not reflect Android SDK >= 26", e);
+            }
         }
     }
 
@@ -195,9 +205,15 @@ public class XServerActivity extends Activity {
 
         /*
          * Set notification channel as it required for notifications on Android >= 8
+         * Use reflection to stay backward compatible with sdk provided by debian
          */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nb.setChannelId(NOTIFICATION_CHANNEL_DEFAULT);
+        if (Build.VERSION.SDK_INT >= 26) {
+            try{
+                nb.getClass().getMethod("setChannelId", String.class).invoke(nb, NOTIFICATION_CHANNEL_DEFAULT);
+            }
+            catch(Exception e){
+                Log.e("FATAL", "Could not reflect Android SDK >= 26", e);
+            }
         }
 
 
