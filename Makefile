@@ -41,19 +41,15 @@ ANDROID_NATIVE_LIBS=$(shell cd $(ANDROID_SRC) && find ./jniLibs -name *.so)
 ANDROID_NATIVE_LIBS_AAPT_CMD=$(subst ./jniLibs,lib,$(addprefix && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned ,$(ANDROID_NATIVE_LIBS)))
 
 # out
-GENDIR_ANDROID=$(WORKDIR)/demo/build/outputs/gen
-CLASSDIR_ANDROID=$(WORKDIR)/demo/build/outputs/class
-NATIVELIBDIR_ANDROID=$(WORKDIR)/demo/build/outputs/lib
-OUT_ANDROID=$(WORKDIR)/demo/build/outputs/apk
+OUT=$(WORKDIR)/demo/build/outputs
+GENDIR_ANDROID=$(OUT)/gen
+CLASSDIR_ANDROID=$(OUT)/class
+NATIVELIBDIR_ANDROID=$(OUT)/lib
+OUT_ANDROID=$(OUT)/apk
 
-all: clean android_release
+all: android_release
 
-android_debug:
-	mkdir -p $(GENDIR_ANDROID)
-	mkdir -p $(CLASSDIR_ANDROID)
-	mkdir -p $(OUT_ANDROID)
-	mkdir -p $(NATIVELIBDIR_ANDROID)
-	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
+android_debug: clean prepare_dirs
 	$(AAPT) package -f -m --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
 	$(JAVAC) -g -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
@@ -63,12 +59,7 @@ android_debug:
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
 	$(ZIPALIGN) -f 4 $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(OUT_ANDROID)/$(PROJNAME).apk
 
-android_release:
-	mkdir -p $(GENDIR_ANDROID)
-	mkdir -p $(CLASSDIR_ANDROID)
-	mkdir -p $(OUT_ANDROID)
-	mkdir -p $(NATIVELIBDIR_ANDROID)
-	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
+android_release: clean prepare_dirs
 	$(AAPT) package -f -m --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
 	$(JAVAC) -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
@@ -77,6 +68,13 @@ android_release:
 	cd $(NATIVELIBDIR_ANDROID)/../ $(ANDROID_NATIVE_LIBS_AAPT_CMD)
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
 	$(ZIPALIGN) -f 4 $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(OUT_ANDROID)/$(PROJNAME).apk
+
+prepare_dirs:
+	mkdir -p $(GENDIR_ANDROID)
+	mkdir -p $(CLASSDIR_ANDROID)
+	mkdir -p $(OUT_ANDROID)
+	mkdir -p $(NATIVELIBDIR_ANDROID)
+	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
 
 generate_keystore:
 	keytool -genkey -v -keystore $(ANDROID_KEYSTORE_PATH)  -storepass $(ANDROID_KEYSTORE_PW) -alias $(ANDROID_KEYSTORE_NAME) -keypass $(ANDROID_KEYSTORE_PW) -keyalg RSA -keysize 2048 -validity 10000	
@@ -96,7 +94,7 @@ kill:
 remote_screen:
 	 scrcpy --render-driver=software --disable-screensaver --stay-awake &
 
-deploy: clean android_debug kill uninstall install run
+deploy: android_debug kill uninstall install run
 
 clean:
 	rm -rf $(GENDIR_ANDROID)
