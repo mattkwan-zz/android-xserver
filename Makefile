@@ -8,6 +8,7 @@ LIBNAME=au.com.darkside.xserver
 VER_CODE=30
 VER_NAME=1.30
 MIN_SDK=21
+TARGET_SDK=29
 
 ## Java/Android Compiler Settings (defaults are valid for debian buster)
 # Can be overridden by environment variables
@@ -53,10 +54,10 @@ android_debug:
 	mkdir -p $(OUT_ANDROID)
 	mkdir -p $(NATIVELIBDIR_ANDROID)
 	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
-	$(AAPT) package -f -m --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
+	$(AAPT) package -f -m --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
 	$(JAVAC) -g -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
-	$(AAPT) package -f --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
+	$(AAPT) package -f --debug-mode --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
 	cd $(GENDIR_ANDROID) && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned classes.dex
 	cd $(NATIVELIBDIR_ANDROID)/../ $(ANDROID_NATIVE_LIBS_AAPT_CMD)
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
@@ -68,10 +69,10 @@ android_release:
 	mkdir -p $(OUT_ANDROID)
 	mkdir -p $(NATIVELIBDIR_ANDROID)
 	cp -rf $(ANDROID_SRC)/jniLibs/* $(NATIVELIBDIR_ANDROID)
-	$(AAPT) package -f -m --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
+	$(AAPT) package -f -m --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -J $(GENDIR_ANDROID) --auto-add-overlay -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -I $(ANDROID_CP)  --extra-packages $(LIBNAME)
 	$(JAVAC) -classpath $(ANDROID_CP) -sourcepath 'src:$(GENDIR_ANDROID)' -d '$(CLASSDIR_ANDROID)' -target 1.7 -source 1.7 $(ANDROID_SOURCES)
 	$(DX) --dex --output=$(GENDIR_ANDROID)/classes.dex $(CLASSDIR_ANDROID)
-	$(AAPT) package -f --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
+	$(AAPT) package -f --version-code $(VER_CODE) --version-name $(VER_NAME) --min-sdk-version $(MIN_SDK) --target-sdk-version $(TARGET_SDK) -M $(ANDROID_LIB)/AndroidManifest.xml -M $(ANDROID_SRC)/AndroidManifest.xml -S $(ANDROID_LIB)/res -S $(ANDROID_SRC)/res -A $(ANDROID_SRC)/assets -I $(ANDROID_CP) -F $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned
 	cd $(GENDIR_ANDROID) && $(AAPT) add $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned classes.dex
 	cd $(NATIVELIBDIR_ANDROID)/../ $(ANDROID_NATIVE_LIBS_AAPT_CMD)
 	$(JARSIGNER) -keystore $(ANDROID_KEYSTORE_PATH) -storepass '$(ANDROID_KEYSTORE_PW)' $(GENDIR_ANDROID)/$(PROJNAME).apk.unaligned  $(ANDROID_KEYSTORE_NAME)
