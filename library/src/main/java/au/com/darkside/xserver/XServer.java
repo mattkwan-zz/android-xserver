@@ -507,6 +507,19 @@ public class XServer {
     }
 
     /**
+     * Get next free resource id.
+     *
+     * @param id The resource ID.
+     */
+    public int nextFreeResourceId() {
+        int maxKey = 0;  
+        for (int cur : _resources.keySet())
+            if (cur > maxKey)
+                maxKey = cur;  
+        return maxKey++; 
+    }
+
+    /**
      * If client is null, destroy the resources of all clients that have
      * terminated in RetainTemporary mode. Otherwise destroy all resources
      * associated with the client, which has terminated with mode
@@ -543,6 +556,7 @@ public class XServer {
      */
     public void sendMappingNotify(int request, int firstKeycode, int keycodeCount) {
         for (Client c : _clients) {
+            if (c == null) continue;
             try {
                 EventCode.sendMappingNotify(c, request, firstKeycode, keycodeCount);
             } catch (IOException e) {

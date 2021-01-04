@@ -191,6 +191,7 @@ public class Window extends Resource {
         else rect = _orect;
 
         for (Client client : _shapeSelectInput) {
+            if (client == null) continue;
             try {
                 InputOutput io = client.getInputOutput();
 
@@ -356,8 +357,10 @@ public class Window extends Resource {
         Vector<Client> rc = new Vector<Client>();
         Set<Client> sc = _clientMasks.keySet();
 
-        for (Client c : sc)
+        for (Client c : sc) {
+            if (c == null) continue;
             if ((_clientMasks.get(c) & mask) != 0) rc.add(c);
+        }
 
         return rc;
     }
@@ -374,8 +377,10 @@ public class Window extends Resource {
         Set<Client> sc = _clientMasks.keySet();
 
         _eventMask = 0;
-        for (Client c : sc)
+        for (Client c : sc) {
+            if (c == null) continue;
             _eventMask |= _clientMasks.get(c);
+        }
     }
 
     /**
@@ -663,8 +668,10 @@ public class Window extends Resource {
         Vector<Client> sc;
 
         if ((sc = getSelectingClients(EventCode.MaskSubstructureNotify)) != null) {
-            for (Client c : sc)
+            for (Client c : sc) {
+                if (c == null) continue;
                 EventCode.sendCreateNotify(c, this, w, x, y, width, height, borderWidth, _overrideRedirect);
+            }
         }
 
         return true;
@@ -711,6 +718,7 @@ public class Window extends Resource {
 
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     try {
                         EventCode.sendUnmapNotify(c, this, this, false);
                     } catch (IOException e) {
@@ -721,6 +729,7 @@ public class Window extends Resource {
 
             if (psc != null) {
                 for (Client c : psc) {
+                    if (c == null) continue;
                     try {
                         EventCode.sendUnmapNotify(c, _parent, this, false);
                     } catch (IOException e) {
@@ -735,6 +744,7 @@ public class Window extends Resource {
 
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendDestroyNotify(c, this, this);
                 } catch (IOException e) {
@@ -745,6 +755,7 @@ public class Window extends Resource {
 
         if (psc != null) {
             for (Client c : psc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendDestroyNotify(c, _parent, this);
                 } catch (IOException e) {
@@ -894,8 +905,10 @@ public class Window extends Resource {
             Set<Client> sc = _clientMasks.keySet();
 
             _eventMask = 0;
-            for (Client c : sc)
+            for (Client c : sc){
+                if (c == null) continue;
                 _eventMask |= _clientMasks.get(c);
+            }
         }
 
         if ((mask & (1 << AttrOverrideRedirect)) != 0)
@@ -945,6 +958,7 @@ public class Window extends Resource {
         if (fw != null) focus = (fw == this) || isAncestor(fw);
 
         for (Client c : sc) {
+            if (c == null) continue;
             try {
                 EventCode.sendEnterNotify(c, _xServer.getTimestamp(), detail, _screen.getRootWindow(), this, child, x, y, x - _irect.left, y - _irect.top, _screen.getButtons(), mode, focus);
             } catch (IOException e) {
@@ -957,6 +971,7 @@ public class Window extends Resource {
             Keyboard kb = _xServer.getKeyboard();
 
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendKeymapNotify(c, kb.getKeymap());
                 } catch (IOException e) {
@@ -989,6 +1004,7 @@ public class Window extends Resource {
         if (fw != null) focus = (fw == this) || isAncestor(fw);
 
         for (Client c : sc) {
+            if (c == null) continue;
             try {
                 EventCode.sendLeaveNotify(c, _xServer.getTimestamp(), detail, _screen.getRootWindow(), this, child, x, y, x - _irect.left, y - _irect.top, _screen.getButtons(), mode, focus);
             } catch (IOException e) {
@@ -1071,6 +1087,7 @@ public class Window extends Resource {
         if ((sc = getSelectingClients(EventCode.MaskFocusChange)) == null) return;
 
         for (Client c : sc) {
+            if (c == null) continue;
             try {
                 EventCode.sendFocusIn(c, _xServer.getTimestamp(), detail, this, mode);
             } catch (IOException e) {
@@ -1083,6 +1100,7 @@ public class Window extends Resource {
             Keyboard kb = _xServer.getKeyboard();
 
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendKeymapNotify(c, kb.getKeymap());
                 } catch (IOException e) {
@@ -1107,6 +1125,7 @@ public class Window extends Resource {
         if ((sc = getSelectingClients(EventCode.MaskFocusChange)) == null) return;
 
         for (Client c : sc) {
+            if (c == null) continue;
             try {
                 EventCode.sendFocusOut(c, _xServer.getTimestamp(), detail, this, mode);
             } catch (IOException e) {
@@ -1344,6 +1363,7 @@ public class Window extends Resource {
         Window sentWindow = null;
 
         for (Client c : sc) {
+            if (c == null) continue;
             if (grabClient != null && grabClient != c) continue;
 
             try {
@@ -1427,6 +1447,7 @@ public class Window extends Resource {
         boolean sent = false;
 
         for (Client c : sc) {
+            if (c == null) continue;
             if (grabClient != null && grabClient != c) continue;
 
             try {
@@ -1522,6 +1543,7 @@ public class Window extends Resource {
         boolean sent = false;
 
         for (Client c : sc) {
+            if (c == null) continue;
             if (grabClient != null && grabClient != c) continue;
 
             int detail = 0;    // Normal.
@@ -1588,6 +1610,7 @@ public class Window extends Resource {
             sc = _parent.getSelectingClients(EventCode.MaskSubstructureRedirect);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     if (c != client) {
                         EventCode.sendMapRequest(c, _parent, this);
                         return;
@@ -1601,6 +1624,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskStructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendMapNotify(c, this, this, _overrideRedirect);
                 } catch (IOException e) {
@@ -1612,6 +1636,7 @@ public class Window extends Resource {
         sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendMapNotify(c, _parent, this, _overrideRedirect);
                 } catch (IOException e) {
@@ -1626,6 +1651,7 @@ public class Window extends Resource {
             sc = getSelectingClients(EventCode.MaskExposure);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     try {
                         EventCode.sendExpose(c, this, 0, 0, _drawable.getWidth(), _drawable.getHeight(), 0);
                     } catch (IOException e) {
@@ -1665,6 +1691,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskStructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendUnmapNotify(c, this, this, false);
                 } catch (IOException e) {
@@ -1676,6 +1703,7 @@ public class Window extends Resource {
         sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendUnmapNotify(c, _parent, this, false);
                 } catch (IOException e) {
@@ -1725,6 +1753,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskStructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendDestroyNotify(c, this, this);
                 } catch (IOException e) {
@@ -1736,6 +1765,7 @@ public class Window extends Resource {
         sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendDestroyNotify(c, _parent, this);
                 } catch (IOException e) {
@@ -1785,6 +1815,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskStructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendReparentNotify(c, this, this, parent, x, y, _overrideRedirect);
                 } catch (IOException e) {
@@ -1796,6 +1827,7 @@ public class Window extends Resource {
         sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendReparentNotify(c, _parent, this, parent, x, y, _overrideRedirect);
                 } catch (IOException e) {
@@ -1807,6 +1839,7 @@ public class Window extends Resource {
         sc = parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendReparentNotify(c, parent, this, parent, x, y, _overrideRedirect);
                 } catch (IOException e) {
@@ -1858,6 +1891,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskSubstructureRedirect);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 if (c != client) {
                     try {
                         EventCode.sendCirculateRequest(c, this, sw, direction);
@@ -1880,6 +1914,7 @@ public class Window extends Resource {
         sc = getSelectingClients(EventCode.MaskStructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendCirculateNotify(c, this, sw, direction);
                 } catch (IOException e) {
@@ -1891,6 +1926,7 @@ public class Window extends Resource {
         sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
         if (sc != null) {
             for (Client c : sc) {
+                if (c == null) continue;
                 try {
                     EventCode.sendCirculateNotify(c, _parent, sw, direction);
                 } catch (IOException e) {
@@ -2005,6 +2041,7 @@ public class Window extends Resource {
             sc = getSelectingClients(EventCode.MaskStructureNotify);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     try {
                         EventCode.sendGravityNotify(c, this, this, _orect.left + dx - _parent._irect.left, _orect.top + dy - _parent._irect.top);
                     } catch (IOException e) {
@@ -2016,6 +2053,7 @@ public class Window extends Resource {
             sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     try {
                         EventCode.sendGravityNotify(c, _parent, this, _orect.left + dx - _parent._irect.left, _orect.top + dy - _parent._irect.top);
                     } catch (IOException e) {
@@ -2130,6 +2168,7 @@ public class Window extends Resource {
             sc = _parent.getSelectingClients(EventCode.MaskSubstructureRedirect);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     if (c != client) {
                         EventCode.sendConfigureRequest(c, stackMode, _parent, this, sibling, x, y, width, height, borderWidth, mask);
                         return false;
@@ -2149,6 +2188,7 @@ public class Window extends Resource {
             sc = getSelectingClients(EventCode.MaskResizeRedirect);
             if (sc != null) {
                 for (Client c : sc) {
+                    if (c == null) continue;
                     if (c != client) {
                         EventCode.sendResizeRequest(c, this, width, height);
                         width = oldWidth;
@@ -2279,14 +2319,18 @@ public class Window extends Resource {
 
             sc = getSelectingClients(EventCode.MaskStructureNotify);
             if (sc != null) {
-                for (Client c : sc)
+                for (Client c : sc) {
+                    if (c == null) continue;
                     EventCode.sendConfigureNotify(c, this, this, null, x, y, width, height, _borderWidth, _overrideRedirect);
+                }
             }
 
             sc = _parent.getSelectingClients(EventCode.MaskSubstructureNotify);
             if (sc != null) {
-                for (Client c : sc)
+                for (Client c : sc) {
+                    if (c == null) continue;
                     EventCode.sendConfigureNotify(c, _parent, this, null, x, y, width, height, _borderWidth, _overrideRedirect);
+                }
             }
 
             if (_irect.left != oldLeft || _irect.top != oldTop || width != oldWidth || height != oldHeight)
@@ -2300,8 +2344,10 @@ public class Window extends Resource {
             Vector<Client> sc;
 
             if ((sc = getSelectingClients(EventCode.MaskExposure)) != null) {
-                for (Client c : sc)
+                for (Client c : sc) {
+                    if (c == null) continue;
                     EventCode.sendExpose(c, this, 0, 0, _drawable.getWidth(), _drawable.getHeight(), 0);
+                }
             }
             _exposed = true;
         }
@@ -2541,6 +2587,7 @@ public class Window extends Resource {
                         _properties.remove(id);
                         if (sc != null) {
                             for (Client c : sc) {
+                                if (c == null) continue;
                                 try {
                                     EventCode.sendPropertyNotify(c, this, a, _xServer.getTimestamp(), 1);
                                 } catch (IOException e) {
@@ -2672,8 +2719,10 @@ public class Window extends Resource {
                         Vector<Client> sc;
 
                         sc = getSelectingClients(EventCode.MaskExposure);
-                        if (sc != null) for (Client c : sc)
+                        if (sc != null) for (Client c : sc){
+                            if (c == null) continue;
                             EventCode.sendExpose(c, this, x, y, width, height, 0);
+                        }
                     }
                 }
                 break;
@@ -2773,6 +2822,7 @@ public class Window extends Resource {
                 _visibility = visibility;
                 if (visibility != NotViewable) {
                     for (Client c : sc) {
+                        if (c == null) continue;
                         try {
                             EventCode.sendVisibilityNotify(c, this, visibility);
                         } catch (IOException e) {
@@ -2801,5 +2851,13 @@ public class Window extends Resource {
             w.updateVisibility();
             if (w == this) break;
         }
+    }
+
+    /**
+     * Allows adding a new property to this window.
+     * @param p property to add.
+     */
+    public void addProperty(Property p){
+        _properties.put(p.getId(),p);
     }
 }
