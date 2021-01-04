@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.Vector;
 
 /**
- * This class implements a selection.
+ * This class implements a property.
  *
  * @author Matthew KWan
  */
