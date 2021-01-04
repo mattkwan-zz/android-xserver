@@ -10,10 +10,31 @@ import java.util.Vector;
  * @author Matthew KWan
  */
 public class Property {
+
+    /**
+     * Listener Object which allows listening on property change events.
+     */
+    static public abstract class OnPropertyChangedListener {
+        /**
+         * @param data New data after the ChangeProperty request
+         * @param type Atom describing the property data (i.e. "UTF8_STRING")
+         */
+        public abstract void onPropertyChanged(byte[] data, Atom type);
+    }
+
     private final int _id;
     private int _type;
     private byte _format;
     private byte[] _data = null;
+    private OnPropertyChangedListener _onPropertyChange = null;
+
+    /**
+     * Allows setting a callback object to listen on property change events.
+     * @param l Callback object to listen on property change events
+     */
+    public void setOnPropertyChangedListener(OnPropertyChangedListener l){
+        _onPropertyChange = l;
+    }
 
     /**
      * Constructor.
@@ -182,9 +203,14 @@ public class Property {
         Vector<Client> sc;
 
         if ((sc = w.getSelectingClients(EventCode.MaskPropertyChange)) != null) {
-            for (Client c : sc)
+            for (Client c : sc) {
+                if (c == null) continue;
                 EventCode.sendPropertyNotify(c, w, property, xServer.getTimestamp(), 0);
+            }
         }
+
+        // trigger callback for event change if existent
+        if(p._onPropertyChange != null) p._onPropertyChange.onPropertyChanged(p._data, xServer.getAtom(tid));
     }
 
     /**
@@ -296,8 +322,10 @@ public class Property {
             Vector<Client> sc;
 
             if ((sc = w.getSelectingClients(EventCode.MaskPropertyChange)) != null) {
-                for (Client c : sc)
+                for (Client c : sc) {
+                    if (c == null) continue;
                     EventCode.sendPropertyNotify(c, w, property, xServer.getTimestamp(), 1);
+                }
             }
         }
     }
@@ -366,8 +394,10 @@ public class Property {
 
         if ((sc = w.getSelectingClients(EventCode.MaskPropertyChange)) != null) {
             for (int i = 0; i < n; i++) {
-                for (Client c : sc)
+                for (Client c : sc) {
+                    if (c == null) continue;
                     EventCode.sendPropertyNotify(c, w, xServer.getAtom(aids[i]), xServer.getTimestamp(), 0);
+                }
             }
         }
     }
