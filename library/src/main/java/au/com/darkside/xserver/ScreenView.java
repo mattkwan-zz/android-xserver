@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Vector;
 import java.nio.charset.StandardCharsets;
+import java.lang.Math; 
 
 /**
  * This class implements an X Windows screen.
@@ -203,6 +204,11 @@ public class ScreenView extends View {
     private static final int ACTION_M_CLICK = 6;
     private static final int ACTION_ESC = 7;
 
+    // -- helpers for movement thresholding, works around phones with cheap touch screens
+    private double _totalMove = 0;
+    private double _xPrec = 0;
+    private double _yPrec = 0;
+
     /**
      * Constructor.
      *
@@ -254,9 +260,25 @@ public class ScreenView extends View {
                             updatePointerButtons (3, false);
                     }
                 }
-                if(event.getActionMasked() != MotionEvent.ACTION_MOVE){
+
+                if(event.getActionMasked() == MotionEvent.ACTION_DOWN){
+                    _totalMove = 0;
+                    _xPrec = event.getX();
+                    _yPrec = event.getY();
+                }
+                else if (event.getActionMasked() == MotionEvent.ACTION_MOVE){
+                    final double dx = event.getX() - _xPrec;
+                    final double dy = event.getY() - _yPrec;
+                    final double dl = Math.sqrt(dx * dx + dy * dy);
+                    _totalMove += dl;
+                    _xPrec = event.getX();
+                    _yPrec = event.getY();
+                }
+
+
+                if(_totalMove < 20){ // -- workaround for phones with cheap touchscreens (which will constantly trigger ACTION_MOVE events)
                     _ignoreLongPress = false;
-                    return false; // make other Listeners work!
+                    return false; // make longClick Listeners work!
                 }
 
                 _ignoreLongPress = true;
