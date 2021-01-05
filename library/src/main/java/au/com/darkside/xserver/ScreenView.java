@@ -357,6 +357,15 @@ public class ScreenView extends View {
                                 mode.finish();
                                 return true;
                             case ACTION_R_CLICK:
+                                if (_sharedClipboard) {
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("CLIPBOARD"), _sharedClipboardWindow); // override owner to point to our clipboardwindow
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("PRIMARY"), _sharedClipboardWindow);
+                                    ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                    ClipData.Item clipitem = clipboard.getPrimaryClip().getItemAt(0);
+
+                                    _sharedClipboardProperty.setData(clipitem.getText().toString());
+                                    _sharedClipboardPrimaryProperty.setData(clipitem.getText().toString());
+                                }
                                 updatePointerButtons(3, true);
                                 updatePointerButtons(3, false);
                                 mode.finish();
