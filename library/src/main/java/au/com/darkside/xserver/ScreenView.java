@@ -18,6 +18,8 @@ import android.os.Build;
 import android.content.ClipboardManager;
 import android.content.ClipData;
 import android.app.Instrumentation;
+import android.os.Looper;
+import android.os.Handler;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -617,16 +619,24 @@ public class ScreenView extends View {
         _sharedClipboardProperty = new Property(_xServer.findAtom("CLIPBOARD").getId(), _xServer.findAtom("CLIPBOARD").getId(), (byte)32); // property which will hold the clipboard data
         _sharedClipboardPrimaryProperty = new Property(_xServer.findAtom("PRIMARY").getId(), _xServer.findAtom("PRIMARY").getId(), (byte)32); // property which will hold the clipboard data
 
-        Property.OnPropertyChangedListener cb = new Property.OnPropertyChangedListener(){
+        Property.OnPropertyChangedListener cb = new Property.OnPropertyChangedListener(){ // -- executed on a per client thread basis
             @Override
             public void onPropertyChanged(byte[] data, Atom type){
                 switch(type.getName()){
                     case "UTF8_STRING":
-                        // store to android clipboard
-                        String s = new String(data, StandardCharsets.UTF_8);
-                        ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                        ClipData clip = ClipData.newPlainText("cb", s);
-                        clipboard.setPrimaryClip(clip);
+                        String s = new String(data, StandardCharsets.UTF_8); // convert to UTF8 string
+
+                        // create task for UI thread
+                        class OneShotTask implements Runnable {
+                            private String d;
+                            OneShotTask(String s) { d = s; }
+                            public void run() {
+                                ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                ClipData clip = ClipData.newPlainText("cb", d);
+                                clipboard.setPrimaryClip(clip); // store to clipboard
+                            }
+                        }
+                        new Handler(Looper.getMainLooper()).post(new OneShotTask(s));
                         break;
                     default: // different types can be implemented here (binary etc.)
                         break;
