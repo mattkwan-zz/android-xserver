@@ -38,6 +38,7 @@ public class Window extends Resource {
     private int _borderWidth;
     private final boolean _inputOnly;
     private boolean _overrideRedirect;
+    private boolean _isServerWindow = false;
     private boolean _hardwareAccelerated = false;
     private final Vector<Window> _children;
     private final Hashtable<Integer, Property> _properties;
@@ -156,6 +157,24 @@ public class Window extends Resource {
         _passiveKeyGrabs = new HashSet<PassiveKeyGrab>();
         _clientMasks = new Hashtable<Client, Integer>();
         _shapeSelectInput = new Vector<Client>();
+    }
+
+    /**
+     * Is this a functional server only window?
+     *
+     * @return True if this is a hidden server only window.
+     */
+    public boolean isServerWindow() {
+        return _isServerWindow;
+    }
+
+    /**
+     * Flag this window as server only.
+     * 
+     * @param b True if this is a hidden server only window.
+     */
+    public void setIsServerWindow(boolean b) {
+        _isServerWindow = b;
     }
 
     /**
@@ -2859,5 +2878,14 @@ public class Window extends Resource {
      */
     public void addProperty(Property p){
         _properties.put(p.getId(),p);
+    }
+
+    /**
+     * Returns a property assigned to this window.
+     * @param id Id of the property.
+     * @return Property or null if not found.
+     */
+    public Property getProperty(int id) {
+        return _properties.get(id);
     }
 }

@@ -72,6 +72,7 @@ public class XServerActivity extends Activity {
     private static final int MENU_TOGGLE_TOUCHCLICKS = 7;
     private static final int MENU_TOGGLE_WINDOWMANAGER = 8;
     private static final int MENU_TOGGLE_ORIENTATION = 9;
+    private static final int MENU_TOGGLE_SHARED_CLIPBOARD = 10;
     private static final int ACTIVITY_ACCESS_CONTROL = 1;
 
     private static final int DEFAULT_PORT = 6000;
@@ -269,6 +270,9 @@ public class XServerActivity extends Activity {
         item = menu.add(0, MENU_TOGGLE_WINDOWMANAGER, 0, "Window Manager (off)");
         item.setIcon(android.R.drawable.star_on);
 
+        item = menu.add(0, MENU_TOGGLE_SHARED_CLIPBOARD, 0, "Shared Clipboard (on)");
+        item.setIcon(android.R.drawable.star_on);
+
         item = menu.add(0, MENU_TOGGLE_ORIENTATION, 0, "Screen Orientation (H)");
 
         return true;
@@ -328,6 +332,15 @@ public class XServerActivity extends Activity {
                 } else {
                     item.setIcon(android.R.drawable.star_off);
                     item.setTitle("Touch Mouseclicks (off)");
+                }
+                return true;
+            case MENU_TOGGLE_SHARED_CLIPBOARD:
+                if (_xServer.getScreen().toggleSharedClipboard()) {
+                    item.setIcon(android.R.drawable.star_on);
+                    item.setTitle("Shared Clipboard (on)");
+                } else {
+                    item.setIcon(android.R.drawable.star_off);
+                    item.setTitle("Shared Clipboard (off)");
                 }
                 return true;
             case MENU_TOGGLE_WINDOWMANAGER:

@@ -71,6 +71,37 @@ public class Property {
     }
 
     /**
+     * Allows setting the data held by this property.
+     * @param d Data to set.
+     */
+    public void setData(byte[] d) {
+        _data = d;
+    }
+
+    /**
+     * @return Data held by this property
+     */
+    public byte[] getData() {
+        return _data;
+    }
+
+    /**
+     * Allows setting the type of this property.
+     * @param id Atom ID of atom describing this property type.
+     */
+    public void setType(int id) {
+        _type = id;
+    }
+
+    /**
+     * Allows setting the data held by this property.
+     * @param d Data to set as string, will be converted to bytes.
+     */
+    public void setData(String d) {
+        _data = d.getBytes();
+    }
+
+    /**
      * Process an X request relating to properties.
      *
      * @param xServer        The X server.

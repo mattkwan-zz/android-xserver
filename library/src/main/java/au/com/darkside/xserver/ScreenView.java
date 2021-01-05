@@ -8,14 +8,22 @@ import android.graphics.Rect;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.text.InputType;
+import android.os.Build;
+import android.content.ClipboardManager;
+import android.content.ClipData;
+import android.app.Instrumentation;
 
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Vector;
+import java.nio.charset.StandardCharsets;
 
 /**
  * This class implements an X Windows screen.
@@ -132,6 +140,9 @@ public class ScreenView extends View {
     private final XServer _xServer;
     private final int _rootId;
     private Window _rootWindow = null;
+    private Window _sharedClipboardWindow = null;
+    private Property _sharedClipboardProperty = null;
+    private Property _sharedClipboardPrimaryProperty = null;
     private Colormap _defaultColormap = null;
     private final Vector<Colormap> _installedColormaps;
     private final float _pixelsPerMillimeter;
@@ -150,6 +161,7 @@ public class ScreenView extends View {
 	private boolean	_arrowsAsButtons = false;
     private boolean	_inhibitBackButton = false;
     private boolean	_enableTouchClicks = true;
+    private boolean _sharedClipboard = true;
     private Paint _paint;
 
     private Client _grabPointerClient = null;
@@ -177,6 +189,17 @@ public class ScreenView extends View {
 
     private PendingEventQueue<PendingPointerEvent> mPendingPointerEvents;
     private PendingEventQueue<PendingKeyboardEvent> mPendingKeyboardEvents;
+
+    private boolean _ignoreLongPress = false;
+
+    private static final int ACTION_CANCEL = 0;
+    private static final int ACTION_CTRL_C = 1;
+    private static final int ACTION_CTRL_V = 2;
+    private static final int ACTION_CTRL_X = 3;
+    private static final int ACTION_CTRL_A = 4;
+    private static final int ACTION_R_CLICK = 5;
+    private static final int ACTION_M_CLICK = 6;
+    private static final int ACTION_ESC = 7;
 
     /**
      * Constructor.
@@ -229,14 +252,130 @@ public class ScreenView extends View {
                             updatePointerButtons (3, false);
                     }
                 }
-                return true; // change to false to make other Listeners work!
+                if(event.getActionMasked() != MotionEvent.ACTION_MOVE){
+                    _ignoreLongPress = false;
+                    return false; // make other Listeners work!
+                }
+
+                _ignoreLongPress = true;
+                return true;
             }
         });
         
         setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                // do nothing
+                if(_ignoreLongPress)
+                    return true;
+
+                ActionMode.Callback cb = new ActionMode.Callback(){
+                    @Override
+                    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                        menu.add(0, ACTION_CTRL_C, 0, "CTRL+C");
+                        menu.add(0, ACTION_CTRL_V, 0, "CTRL+V");
+                        menu.add(0, ACTION_CTRL_X, 0, "CTRL+X");
+                        menu.add(0, ACTION_CTRL_A, 0, "CTRL+A");
+                        menu.add(0, ACTION_ESC, 0, "ESC");
+                        menu.add(0, ACTION_R_CLICK, 0, "M-Click");
+                        menu.add(0, ACTION_R_CLICK, 0, "R-Click");
+                        menu.add(0, ACTION_CANCEL, 0, "Cancel");
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                        return false; // Return false if nothing is done
+                    }
+
+                    @Override
+                    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                        switch (item.getItemId()) {
+                            case ACTION_CTRL_C:
+                                onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+                                onKeyDown(KeyEvent.KEYCODE_C, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_C));
+                                onKeyUp(KeyEvent.KEYCODE_C, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_C));
+                                onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+                                mode.finish();
+                                return true;
+                            case ACTION_CTRL_V:
+                                if (_sharedClipboard) {
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("CLIPBOARD"), _sharedClipboardWindow); // override owner to point to our clipboardwindow
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("PRIMARY"), _sharedClipboardWindow);
+                                    ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                    ClipData.Item clipitem = clipboard.getPrimaryClip().getItemAt(0);
+
+                                    _sharedClipboardProperty.setData(clipitem.getText().toString());
+                                    _sharedClipboardPrimaryProperty.setData(clipitem.getText().toString());
+                                }
+                            
+                                onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+                                onKeyDown(KeyEvent.KEYCODE_V, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_V));
+                                onKeyUp(KeyEvent.KEYCODE_V, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_V));
+                                onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+                                mode.finish();
+                                return true;
+                            case ACTION_CTRL_X:
+                                onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+                                onKeyDown(KeyEvent.KEYCODE_X, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_X));
+                                onKeyUp(KeyEvent.KEYCODE_X, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_X));
+                                onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+                                mode.finish();
+                                return true;
+                            case ACTION_CTRL_A:
+                                onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT));
+                                onKeyDown(KeyEvent.KEYCODE_A, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A));
+                                onKeyUp(KeyEvent.KEYCODE_A, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A));
+                                onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT));
+                                mode.finish();
+                                return true;
+                            case ACTION_R_CLICK:
+                                updatePointerButtons(3, true);
+                                updatePointerButtons(3, false);
+                                mode.finish();
+                                return true;
+                            case ACTION_M_CLICK:
+                                if (_sharedClipboard) {
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("CLIPBOARD"), _sharedClipboardWindow); // override owner to point to our clipboardwindow
+                                    Selection.setSelectionOwner(_xServer, _xServer.findAtom("PRIMARY"), _sharedClipboardWindow);
+                                    ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                                    ClipData.Item clipitem = clipboard.getPrimaryClip().getItemAt(0);
+
+                                    _sharedClipboardProperty.setData(clipitem.getText().toString());
+                                    _sharedClipboardPrimaryProperty.setData(clipitem.getText().toString());
+                                }
+                                updatePointerButtons(2, true);
+                                updatePointerButtons(2, false);
+                                mode.finish();
+                                return true;
+                            case ACTION_ESC:
+                                onKeyDown(KeyEvent.KEYCODE_ESCAPE, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE));
+                                onKeyUp(KeyEvent.KEYCODE_ESCAPE, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ESCAPE));
+                                mode.finish();
+                                return true;
+                            case ACTION_CANCEL:
+                                mode.finish();
+                                return true;
+                            default:
+                                mode.finish();
+                                return false;
+                        }
+                    }
+
+                    // Called when the user exits the action mode
+                    @Override
+                    public void onDestroyActionMode(ActionMode mode) {
+                        mode = null;
+                    } 
+                };
+
+                // use floating mode on newer android versions
+                if(Build.VERSION.SDK_INT >= 23){
+                    startActionMode(cb, ActionMode.TYPE_FLOATING);
+                }
+                else{
+                    startActionMode(cb);
+                }
+
                 return false;
             }
         });
@@ -473,7 +612,38 @@ public class ScreenView extends View {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
 
         _rootWindow = new Window(_rootId, _xServer, null, this, null, 0, 0, width, height, 0, false, true);
+        _sharedClipboardWindow = new Window(_xServer.nextFreeResourceId()+1, _xServer, null, this, _rootWindow, -1, -1, 1, 1, 0, true, false); // hidden window managing android <-> xServer clipboard
+        _sharedClipboardWindow.setIsServerWindow(true); // flag as functional server only window (there is a urgent need to introduce interfaces..)
+        _sharedClipboardProperty = new Property(_xServer.findAtom("CLIPBOARD").getId(), _xServer.findAtom("CLIPBOARD").getId(), (byte)32); // property which will hold the clipboard data
+        _sharedClipboardPrimaryProperty = new Property(_xServer.findAtom("PRIMARY").getId(), _xServer.findAtom("PRIMARY").getId(), (byte)32); // property which will hold the clipboard data
+
+        Property.OnPropertyChangedListener cb = new Property.OnPropertyChangedListener(){
+            @Override
+            public void onPropertyChanged(byte[] data, Atom type){
+                switch(type.getName()){
+                    case "UTF8_STRING":
+                        // store to android clipboard
+                        String s = new String(data, StandardCharsets.UTF_8);
+                        ClipboardManager clipboard = (ClipboardManager) _xServer.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                        ClipData clip = ClipData.newPlainText("cb", s);
+                        clipboard.setPrimaryClip(clip);
+                        break;
+                    default: // different types can be implemented here (binary etc.)
+                        break;
+                }
+            }
+        };
+
+
+        // capture data changes on this property
+        _sharedClipboardProperty.setOnPropertyChangedListener(cb);
+        _sharedClipboardPrimaryProperty.setOnPropertyChangedListener(cb);
+
+        _sharedClipboardWindow.addProperty(_sharedClipboardPrimaryProperty);
+        _sharedClipboardWindow.addProperty(_sharedClipboardProperty);
+
         _xServer.addResource(_rootWindow);
+        _xServer.addResource(_sharedClipboardWindow);
 
         _currentCursor = _rootWindow.getCursor();
         _currentCursorX = width / 2;
@@ -1186,6 +1356,17 @@ public class ScreenView extends View {
     }
 
     /**
+     * Toggle shared clipboard. Shared clipboard works when using the long press 
+     * action shortcuts.
+     *
+     * @return new state of switch
+     */
+    public boolean toggleSharedClipboard() {
+        _sharedClipboard = !_sharedClipboard;
+        return _sharedClipboard;
+    }
+
+    /**
      * Toggle Inhibit Back Button.
      *
      * @return new state of switch
@@ -1266,6 +1447,7 @@ public class ScreenView extends View {
         if (dc == null) return;
 
         for (Client c : dc) {
+            if (c == null) continue;
             InputOutput dio = c.getInputOutput();
 
             synchronized (dio) {
@@ -1582,5 +1764,19 @@ public class ScreenView extends View {
         while ((e = q.next()) != null) {
             e.run();
         }
+    }
+
+    /**
+     * @return true if shared clipboard is enabled, false otherwise.
+     */
+    public boolean hasSharedClipboard() {
+        return _sharedClipboard;
+    }
+
+    /**
+     * @return Window used for shared clipboard.
+     */
+    public Window getSharedClipboardWindow(){
+        return _sharedClipboardWindow;
     }
 }
