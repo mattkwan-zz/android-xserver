@@ -1,0 +1,5 @@
+- Allow sharing clipboard between Android and X11 apps.
+- Introduce shortcut menu on long press.
+- Allow opening softkeyboard from newly introduced shortcut menu.
+- Remove deprecated clipRect(r, Region.Op.UNION) call (Crashes Android 8+).
+- Volume Keys were not captured on android 10.

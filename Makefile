@@ -5,8 +5,8 @@ PROJNAME=au.com.darkside.xdemo
 LIBNAME=au.com.darkside.xserver
 
 # Version Info
-VER_CODE=30
-VER_NAME=1.30
+VER_CODE=31
+VER_NAME=1.31
 MIN_SDK=21
 TARGET_SDK=29
 
