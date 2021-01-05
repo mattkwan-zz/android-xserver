@@ -20,6 +20,8 @@ import android.content.ClipData;
 import android.app.Instrumentation;
 import android.os.Looper;
 import android.os.Handler;
+import android.view.inputmethod.InputMethodManager;
+import android.app.Service;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -203,6 +205,7 @@ public class ScreenView extends View {
     private static final int ACTION_R_CLICK = 5;
     private static final int ACTION_M_CLICK = 6;
     private static final int ACTION_ESC = 7;
+    private static final int ACTION_KEYBOARD = 8;
 
     // -- helpers for movement thresholding, works around phones with cheap touch screens
     private double _totalMove = 0;
@@ -302,6 +305,7 @@ public class ScreenView extends View {
                         menu.add(0, ACTION_ESC, 0, "ESC");
                         menu.add(0, ACTION_R_CLICK, 0, "M-Click");
                         menu.add(0, ACTION_R_CLICK, 0, "R-Click");
+                        menu.add(0, ACTION_KEYBOARD, 0, "Keyboard");
                         menu.add(0, ACTION_CANCEL, 0, "Cancel");
                         return true;
                     }
@@ -374,6 +378,13 @@ public class ScreenView extends View {
                             case ACTION_ESC:
                                 onKeyDown(KeyEvent.KEYCODE_ESCAPE, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE));
                                 onKeyUp(KeyEvent.KEYCODE_ESCAPE, new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ESCAPE));
+                                mode.finish();
+                                return true;
+                            case ACTION_KEYBOARD:
+                                InputMethodManager imm = (InputMethodManager) _xServer.getContext().getSystemService(Service.INPUT_METHOD_SERVICE);
+                                requestFocus();
+                                imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
                                 mode.finish();
                                 return true;
                             case ACTION_CANCEL:
