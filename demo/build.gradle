@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 29
-    ndkVersion "21.3.6528147"
     defaultConfig {
         applicationId "au.com.darkside.xdemo"
         minSdkVersion 21
@@ -15,6 +14,9 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+	    packagingOptions { 
+                doNotStrip "**/*/*.so" 
+            }
         }
     }
 }
