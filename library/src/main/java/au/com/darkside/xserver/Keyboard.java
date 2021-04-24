@@ -30,7 +30,7 @@ public class Keyboard {
 		KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT, 0, 0, 0, 0, 0, 0, // 40
 		0, 0, 0, 0, 0, 0, 0, 0  // 80
     };
-    
+
     private static final int DefaultBellPercent = 50;
     private int _bellPercent = DefaultBellPercent;
     private static final int DefaultBellPitch = 400;
@@ -61,6 +61,14 @@ public class Keyboard {
         int idx = 0;
         int[] map = new int[256 * kpk];
         KeyCharacterMap kcm = KeyCharacterMap.load(KeyCharacterMap.FULL);
+        // Some devices don't have keyboard with full type, and the Android OS uses
+        // the KeyCharacterMap.BUILT_IN_KEYBOARD (value is 0) as the fallback keyboard
+        // type. If the phone/tablet doesn't have built in keyboard, the returned
+        // KeyCharacterMap is empty, and it will causes the ArrayOutOfBounds exception
+        // when initializing keyboard mapping.
+        if (kcm.getKeyboardType() != KeyCharacterMap.FULL) {
+            kcm = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
+        }
 
         for (int i = 0; i < 256; i++) {
             int c1 = kcm.get(i, 0);
@@ -357,7 +365,7 @@ public class Keyboard {
 						int offset = keycode / 8;
 						byte mask = (byte) (1 << (keycode & 7));
 						if ((_keymap[offset] & mask) == mask)
-							status = 2; // If a modifier is pressed 
+							status = 2; // If a modifier is pressed
 						modifierMapping[i] = (byte) (keycode - diff);
 					}
 
@@ -417,7 +425,7 @@ public class Keyboard {
 
     /**
      * Get modifier state.
-     * 
+     *
      * @return Modifier state According to pressed keys (keymap) and modifiermapping.
      */
     public int getState() {
