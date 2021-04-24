@@ -273,8 +273,9 @@ public class Selection {
 
         if (sel != null) owner = sel._owner;
 
+        Window ownerWindow = sel != null ? sel._ownerWindow : null;
         // move the property to the client the dirty way,... some interfaces would make sense here
-        if(sel._ownerWindow.isServerWindow() && owner == null){
+        if(ownerWindow != null && ownerWindow.isServerWindow() && owner == null){
             Property target = w.getProperty(pid);
             if(target == null){
                 target = new Property(pid, tid, (byte)8);
