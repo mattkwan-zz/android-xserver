@@ -1,0 +1,29 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    ndkVersion "22.0.7026061"
+    defaultConfig {
+        applicationId "au.com.darkside.xdemo"
+        minSdkVersion 21
+        targetSdkVersion 29
+        versionCode 31
+        versionName "1.31"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+	    packagingOptions { 
+                doNotStrip "**/*/*.so" 
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation project(":library")
+
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+}

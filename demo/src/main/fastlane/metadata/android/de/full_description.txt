@@ -1,0 +1,10 @@
+Dieses Projekt implementiert einen in Java geschriebenen X11-Server zur Verwendung mit Android-Geräten. Der X11-Server wird in einer Android View-Unterklasse ausgeführt. Das bedeutet, dass er einfach in andere Anwendungen eingebettet werden kann.
+
+Dies ist eine voll funktionsfähige und leichtgewichtige Demo-Anwendung, die diese View-Unterklasse verwendet.
+
+Um Programme in der X-Server-App anzuzeigen, müssen Sie die Umgebungsvariable DISPLAY auf Ihrem Hostgerät festlegen. Es wird außerdem dringend empfohlen, einen Fenstermanager zu verwenden (z.B. <code> lwm </code>).
+Ein einfacher Fenstermanager (FLWM) ist bereits in die Anwendung eingebettet.
+
+<pre>$ export DISPLAY=192.178.1.2:0
+$ lwm &
+$ xclock</pre>

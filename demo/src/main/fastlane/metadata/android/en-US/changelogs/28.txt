@@ -1,0 +1,3 @@
+- Better native binary selection.
+- Add notification to status bar when running in background.
+- Fix most keyboard keycodes (Hacker's Keyboard should be fully supported now).

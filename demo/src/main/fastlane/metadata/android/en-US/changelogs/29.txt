@@ -1,0 +1,3 @@
+- Fix InputOutput readLong function.
+- Disable broken sync extension.
+- Small fixes for proper loading and executing flwm.
